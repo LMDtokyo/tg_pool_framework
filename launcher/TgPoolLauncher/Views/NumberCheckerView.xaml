@@ -1,0 +1,27 @@
+<UserControl x:Class="TgPoolLauncher.Views.NumberCheckerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup">
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Border Margin="24"
+                Padding="24"
+                MaxWidth="620"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+            <StackPanel>
+                <TextBlock Text="Number checker"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Margin="0,12,0,0"
+                           Text="{tr:Tr Common.NotImplementedTooltip}"
+                           TextWrapping="Wrap"
+                           Foreground="{StaticResource TextMutedBrush}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

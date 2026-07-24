@@ -1,0 +1,101 @@
+<UserControl x:Class="TgPoolLauncher.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
+             xmlns:loc="clr-namespace:TgPoolLauncher.Localization"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="700">
+    <UserControl.Resources>
+        <loc:BoolToConnectionLabelConverter x:Key="BoolToConnectionLabelConverter" />
+    </UserControl.Resources>
+    <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock Text="Backend: " Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+            <Ellipse Width="10" Height="10" Margin="4,0,4,0" VerticalAlignment="Center">
+                <Ellipse.Style>
+                    <Style TargetType="Ellipse">
+                        <Setter Property="Fill" Value="{StaticResource DangerBrush}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Connected}" Value="True">
+                                <Setter Property="Fill" Value="{StaticResource SuccessBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Ellipse.Style>
+            </Ellipse>
+            <TextBlock Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center">
+                <Run Text="{tr:Tr Dashboard.LiveFeed}" /><Run Text=": " />
+                <Run>
+                    <Run.Text>
+                        <MultiBinding Converter="{StaticResource BoolToConnectionLabelConverter}" Mode="OneWay">
+                            <Binding Path="Connected" />
+                            <Binding Source="{x:Static loc:LocalizationService.Instance}" Path="CurrentLanguage" />
+                        </MultiBinding>
+                    </Run.Text>
+                </Run>
+            </TextBlock>
+        </StackPanel>
+
+        <UniformGrid Grid.Row="1" Rows="1" Columns="4" Margin="0,0,0,16">
+            <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" Margin="0,0,8,0" Padding="14,12" CornerRadius="10">
+                <StackPanel>
+                    <TextBlock Text="{tr:Tr Dashboard.Total}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                    <TextBlock Text="{Binding Total}" FontSize="24" FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                </StackPanel>
+            </Border>
+            <Border Background="{StaticResource SuccessTintBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" Margin="0,0,8,0" Padding="14,12" CornerRadius="10">
+                <StackPanel>
+                    <TextBlock Text="{tr:Tr Dashboard.Sent}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                    <TextBlock Text="{Binding Sent}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" />
+                </StackPanel>
+            </Border>
+            <Border Background="{StaticResource DangerTintBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" Margin="0,0,8,0" Padding="14,12" CornerRadius="10">
+                <StackPanel>
+                    <TextBlock Text="{tr:Tr Dashboard.Failed}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                    <TextBlock Text="{Binding Failed}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource DangerBrush}" />
+                </StackPanel>
+            </Border>
+            <Border Background="{StaticResource AccentTintBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" Padding="14,12" CornerRadius="10">
+                <StackPanel>
+                    <TextBlock Text="{tr:Tr Dashboard.Status}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                    <TextBlock FontSize="18" FontWeight="Bold">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="{tr:Tr Dashboard.NotRunning}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Running}" Value="True">
+                                        <Setter Property="Text" Value="{tr:Tr Dashboard.Running}" />
+                                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <DataGrid Grid.Row="2" ItemsSource="{Binding AccountStatuses}" AutoGenerateColumns="False"
+                  IsReadOnly="True" CanUserAddRows="False" GridLinesVisibility="Horizontal">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="{tr:Tr Dashboard.ColPhone}" Binding="{Binding Phone}" Width="160" />
+                <DataGridTextColumn Header="{tr:Tr Dashboard.ColStatus}" Binding="{Binding Status}" Width="120" />
+                <DataGridTextColumn Header="{tr:Tr Dashboard.ColDetail}" Binding="{Binding Detail}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

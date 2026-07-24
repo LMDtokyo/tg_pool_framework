@@ -1,0 +1,14 @@
+{
+  "app_id": 12345,
+  "app_hash": "0123456789abcdef0123456789abcdef",
+  "phone": "+15551234567",
+  "device": "Pixel 9",
+  "system": "SDK 35",
+  "app_version": "11.5.3",
+  "lang_code": "en",
+  "system_lang_code": "en-US",
+  "lang_pack": "android",
+  "sdk": 35,
+  "tz_offset": 0,
+  "perf_cat": 2
+}

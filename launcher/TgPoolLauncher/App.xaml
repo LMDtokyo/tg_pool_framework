@@ -1,0 +1,19 @@
+﻿<Application x:Class="TgPoolLauncher.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:TgPoolLauncher"
+             xmlns:conv="clr-namespace:TgPoolLauncher.Converters">
+    <!-- No StartupUri: MainWindow is constructed via DI in App.xaml.cs's OnStartup,
+         after the backend process is confirmed healthy. -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Theme/Colors.xaml" />
+                <ResourceDictionary Source="/Theme/ControlStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+            <conv:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

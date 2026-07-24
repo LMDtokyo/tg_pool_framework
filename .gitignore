@@ -1,0 +1,49 @@
+# Local runtime data (accounts, tdata, sessions, exports, logs — do not commit)
+Data/
+
+# Telegram session files (SQLite)
+sessions/
+*.session
+*.session-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# Конфиденциальная конфигурация (НЕ коммить!)
+.env
+secrets.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Pytest cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# .NET / Visual Studio (launcher/)
+bin/
+obj/
+*.user
+.vs/
+
+# Inno Setup build output (installer/)
+installer/Output/

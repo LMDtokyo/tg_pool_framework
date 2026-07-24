@@ -1,0 +1,16 @@
+<Window x:Class="TgPoolLauncher.Views.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
+        WindowStartupLocation="CenterScreen"
+        Width="360" Height="220" Opacity="0">
+    <Border Background="#0C0C0E" CornerRadius="18" BorderBrush="#2A2A2F" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="50" ShadowDepth="0" Opacity="0.6" Color="Black" />
+        </Border.Effect>
+        <Image Source="pack://application:,,,/Assets/logo.png" Width="220" Stretch="Uniform"
+               HorizontalAlignment="Center" VerticalAlignment="Center"
+               RenderOptions.BitmapScalingMode="HighQuality" />
+    </Border>
+</Window>

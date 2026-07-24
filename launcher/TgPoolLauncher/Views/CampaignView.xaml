@@ -1,0 +1,703 @@
+<UserControl x:Class="TgPoolLauncher.Views.CampaignView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:conv="clr-namespace:TgPoolLauncher.Converters"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
+             mc:Ignorable="d"
+             d:DesignHeight="640" d:DesignWidth="980">
+    <UserControl.Resources>
+        <conv:MessageMarkupToInlinesConverter x:Key="MessageMarkupToInlinesConverter" />
+        <conv:ButtonsRawToRowsConverter x:Key="ButtonsRawToRowsConverter" />
+        <conv:MediaPathToPreviewConverter x:Key="MediaPathToPreviewConverter" />
+        <conv:FirstLetterConverter x:Key="FirstLetterConverter" />
+
+        <Style x:Key="PreviewButtonRowStyle" TargetType="ItemsControl">
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1" />
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <Border Background="Transparent" BorderBrush="{StaticResource BorderStrongBrush}"
+                                BorderThickness="1" CornerRadius="8" Margin="3,0" Padding="8,6">
+                            <TextBlock Text="{Binding Text}" FontSize="12" HorizontalAlignment="Center"
+                                       Foreground="{StaticResource AccentHoverBrush}" TextTrimming="CharacterEllipsis" />
+                        </Border>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="Margin" Value="0,0,0,16" />
+        </Style>
+
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+            <Setter Property="Margin" Value="0,0,0,14" />
+        </Style>
+
+        <Style x:Key="ToolbarIconButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource AccentHoverBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Segmented on/off placeholder for settings the backend doesn't support yet,
+             visually complete per the reference mock, deliberately inert (no Command/
+             Click bound) and muted so it doesn't read
+             as broken when clicked, just not built yet. -->
+        <Style x:Key="ToggleHalfLeftStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+            <Setter Property="CornerRadius" Value="8,0,0,8" />
+            <Setter Property="Padding" Value="14,8" />
+        </Style>
+        <Style x:Key="ToggleHalfRightStyle" TargetType="Border">
+            <Setter Property="Background" Value="#5C1414" />
+            <Setter Property="CornerRadius" Value="0,8,8,0" />
+            <Setter Property="Padding" Value="14,8" />
+        </Style>
+        <Style x:Key="PlaceholderToggleStyle" TargetType="Border">
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="ToolTip" Value="{tr:Tr Common.NotImplementedTooltip}" />
+            <Setter Property="Cursor" Value="Help" />
+        </Style>
+        <Style x:Key="PlaceholderFieldStyle" TargetType="FrameworkElement">
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="ToolTip" Value="{tr:Tr Common.NotImplementedTooltip}" />
+            <Setter Property="Cursor" Value="Help" />
+        </Style>
+
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="16">
+
+            <!-- Scope: what a click on "Рассылка" actually commits to -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                <Border Style="{StaticResource StatPillStyle}">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{StaticResource TextFaintBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                            <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="{tr:Tr Dashboard.NotRunning}" />
+                                    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                            <Setter Property="Text" Value="{tr:Tr Dashboard.Running}" />
+                                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatPillStyle}">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="AccountGroup" Width="13" Height="13" Margin="0,0,8,0"
+                                                     Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                        <TextBlock VerticalAlignment="Center" FontSize="13">
+                            <Run Text="{Binding EligibleAccountsCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <Run Text="{tr:Tr Campaign.SuffixAccountsInvolved}" Foreground="{StaticResource TextMutedBrush}" />
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatPillStyle}" Margin="0">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Web" Width="13" Height="13" Margin="0,0,8,0"
+                                                     Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                        <TextBlock VerticalAlignment="Center" FontSize="13">
+                            <Run Text="{Binding ActiveProxiesCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <Run Text="{tr:Tr Campaign.SuffixProxiesActive}" Foreground="{StaticResource TextMutedBrush}" />
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Row 1: composer + live preview -->
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="380" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource SectionCardStyle}" Margin="0">
+                    <StackPanel>
+                        <TextBlock Text="{tr:Tr Campaign.SectionTextTools}" Style="{StaticResource SectionHeaderStyle}" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Campaign.TooltipBold}" Click="BoldButton_Click">
+                                <iconPacks:PackIconMaterial Kind="FormatBold" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Campaign.TooltipItalic}" Click="ItalicButton_Click">
+                                <iconPacks:PackIconMaterial Kind="FormatItalic" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Campaign.TooltipCode}" Click="CodeButton_Click">
+                                <iconPacks:PackIconMaterial Kind="CodeTags" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Campaign.TooltipLink}" Click="LinkButton_Click">
+                                <iconPacks:PackIconMaterial Kind="LinkVariant" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" IsEnabled="False" ToolTip="{tr:Tr Campaign.TooltipForwardSoon}">
+                                <iconPacks:PackIconMaterial Kind="Repeat" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Campaign.TooltipAttach}" Command="{Binding BrowseMediaFileCommand}">
+                                <iconPacks:PackIconMaterial Kind="Paperclip" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" IsEnabled="False" ToolTip="{tr:Tr Campaign.TooltipBotSoon}">
+                                <iconPacks:PackIconMaterial Kind="Robot" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" IsEnabled="False" ToolTip="{tr:Tr Campaign.TooltipTemplatesSoon}">
+                                <iconPacks:PackIconMaterial Kind="TextBoxMultiple" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" Margin="0" ToolTip="{tr:Tr Campaign.TooltipInsertPlaceholder}" Click="PlaceholderButton_Click">
+                                <iconPacks:PackIconMaterial Kind="AccountOutline" Width="15" Height="15" />
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Campaign.FieldTarget}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{tr:Tr Campaign.FieldMessage}" Style="{StaticResource FieldLabelStyle}" />
+                            <Button Grid.Column="1" Style="{StaticResource ToolbarIconButtonStyle}" Width="26" Height="26" Margin="0"
+                                    Background="#3A1414" BorderBrush="#5C1414" Foreground="#F87171"
+                                    ToolTip="{tr:Tr Campaign.TooltipClearMessage}" Click="ClearButton_Click">
+                                <iconPacks:PackIconMaterial Kind="TrashCanOutline" Width="13" Height="13" />
+                            </Button>
+                        </Grid>
+                        <TextBox x:Name="MessageTextBox" Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True" TextWrapping="Wrap" Height="140" VerticalScrollBarVisibility="Auto" Margin="0,0,0,16" />
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{tr:Tr Campaign.FieldMedia}" Style="{StaticResource FieldLabelStyle}" />
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Text="{Binding MediaPath, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Column="1" Content="{tr:Tr Common.Browse}" Margin="8,0,0,0" Command="{Binding BrowseMediaFileCommand}" />
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}" Margin="0,0,0,0">
+                            <TextBlock Text="{tr:Tr Campaign.FieldButtons}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding ButtonsRaw, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                    <TextBlock Text="{tr:Tr Campaign.PreviewHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="4,0,0,10" />
+                    <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="12" Padding="18">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                <Border Width="34" Height="34" CornerRadius="17" Background="{StaticResource AccentBrush}">
+                                    <TextBlock Text="{Binding Target, Converter={StaticResource FirstLetterConverter}}"
+                                               Foreground="#0C0C0E" FontWeight="Bold" FontSize="14"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock FontSize="13" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="{Binding Target}" />
+                                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Target}" Value="">
+                                                        <Setter Property="Text" Value="{tr:Tr Campaign.NoTarget}" />
+                                                        <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{tr:Tr Campaign.TargetKind}" FontSize="11" Foreground="{StaticResource TextFaintBrush}" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Border Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1" CornerRadius="12" Padding="14">
+                                <StackPanel>
+                                    <ContentControl HorizontalContentAlignment="Stretch" Margin="0,0,0,10"
+                                                    Content="{Binding MediaPath, Converter={StaticResource MediaPathToPreviewConverter}}"
+                                                    Visibility="{Binding MediaPath, Converter={StaticResource EmptyStringToVisibilityConverter}, ConverterParameter=Invert}" />
+
+                                    <ContentControl HorizontalContentAlignment="Stretch">
+                                        <ContentControl.Content>
+                                            <MultiBinding Converter="{StaticResource MessageMarkupToInlinesConverter}">
+                                                <Binding Path="MessageText" />
+                                                <Binding Path="ParseMode" />
+                                            </MultiBinding>
+                                        </ContentControl.Content>
+                                    </ContentControl>
+
+                                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding ButtonsRaw, Converter={StaticResource ButtonsRawToRowsConverter}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <ItemsControl Style="{StaticResource PreviewButtonRowStyle}" ItemsSource="{Binding}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Style="{StaticResource FieldGroupStyle}" Margin="0,16,0,0">
+                        <TextBlock Text="{tr:Tr Campaign.FieldParseMode}" Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox SelectedValue="{Binding ParseMode}" SelectedValuePath="Content" HorizontalAlignment="Left" MinWidth="140">
+                            <ComboBoxItem Content="markdown" />
+                            <ComboBoxItem Content="html" />
+                        </ComboBox>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <!-- НАСТРОЙКИ -->
+            <Border Style="{StaticResource SectionCardStyle}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{tr:Tr Common.SettingsHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="0" />
+                        <Button Grid.Column="1" Content="{tr:Tr Common.Reset}" Command="{Binding ResetFormCommand}" />
+                    </Grid>
+
+                    <UniformGrid Columns="2">
+                        <StackPanel Margin="0,0,20,16">
+                            <TextBlock Text="{tr:Tr Campaign.FieldUseDatabase}" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                        <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                    </Border>
+                                    <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                        <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="{tr:Tr Campaign.FieldMessagesPerAccount}" Style="{StaticResource FieldLabelStyle}" />
+                            <StackPanel Orientation="Horizontal" Style="{StaticResource PlaceholderFieldStyle}">
+                                <TextBox Text="1" IsEnabled="False" Width="70" Margin="0,0,8,0" />
+                                <TextBlock Text="—" VerticalAlignment="Center" Foreground="{StaticResource TextFaintBrush}" Margin="0,0,8,0" />
+                                <TextBox Text="40" IsEnabled="False" Width="70" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,20,0">
+                            <TextBlock Text="{tr:Tr Campaign.FieldDelayBetween}" Style="{StaticResource FieldLabelStyle}" />
+                            <StackPanel Orientation="Horizontal" Style="{StaticResource PlaceholderFieldStyle}">
+                                <TextBox Text="1" IsEnabled="False" Width="70" Margin="0,0,8,0" />
+                                <TextBlock Text="—" VerticalAlignment="Center" Foreground="{StaticResource TextFaintBrush}" Margin="0,0,8,0" />
+                                <TextBox Text="10" IsEnabled="False" Width="70" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="{tr:Tr Campaign.FieldFloodWait}" Style="{StaticResource FieldLabelStyle}" />
+                            <StackPanel Orientation="Horizontal" Style="{StaticResource PlaceholderFieldStyle}">
+                                <TextBox Text="500" IsEnabled="False" Width="90" />
+                            </StackPanel>
+                        </StackPanel>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- ПОЛЬЗОВАТЕЛИ -->
+            <Border Style="{StaticResource SectionCardStyle}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Style="{StaticResource SectionHeaderStyle}" Margin="0">
+                            <Run Text="{tr:Tr Campaign.SectionUsersPrefix}" /><Run Text="0" />
+                        </TextBlock>
+                        <Button Grid.Column="1" Content="{tr:Tr Common.Delete}" IsEnabled="False" ToolTip="{tr:Tr Campaign.DeleteTooltip}" />
+                    </Grid>
+                    <TextBox Style="{StaticResource PlaceholderFieldStyle}" IsEnabled="False" Height="90"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             Text="{tr:Tr Campaign.UsersPlaceholder}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Выберите аккаунты -->
+            <Border Style="{StaticResource SectionCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{tr:Tr Campaign.SelectAccounts}" VerticalAlignment="Center"
+                               FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextFaintBrush}">
+                        <Run Text="{tr:Tr Campaign.SelectedPrefix}" /><Run Text="{Binding SelectedAccountsCount, Mode=OneWay}" />
+                    </TextBlock>
+                    <Button x:Name="SelectAccountsButton" Grid.Column="2" Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding OpenAccountPickerCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="AccountOutline" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{tr:Tr Campaign.SelectAccountsButton}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Popup IsOpen="{Binding IsAccountPickerOpen}" PlacementTarget="{Binding ElementName=SelectAccountsButton}"
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                        <Border Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderStrongBrush}"
+                                BorderThickness="1" CornerRadius="10" Width="360" Padding="4" Margin="0,6,0,0">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="24" ShadowDepth="6" Opacity="0.4" Color="Black" />
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Margin="10,10,10,4" FontSize="12" Foreground="{StaticResource TextMutedBrush}">
+                                    <Run Text="{tr:Tr Campaign.PickerSelectedPrefix}" /><Run Text="{Binding SelectedAccountsCount, Mode=OneWay}" />
+                                    <Run Text="{tr:Tr Campaign.OfInfix}" /><Run Text="{Binding PickerAccounts.Count, Mode=OneWay}" />
+                                </TextBlock>
+                                <ScrollViewer MaxHeight="320">
+                                    <ItemsControl ItemsSource="{Binding PickerAccounts}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox Content="{Binding Account.Phone}" IsChecked="{Binding IsSelected}" Margin="10,4" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <TextBlock Margin="10,8" FontSize="11" Foreground="{StaticResource TextFaintBrush}" TextWrapping="Wrap"
+                                           Text="{tr:Tr Campaign.PickerNote}" />
+                                <Button Content="{tr:Tr Common.Done}" Margin="10,0,10,10" Command="{Binding CloseAccountPickerCommand}" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </Grid>
+            </Border>
+
+            <!-- Переключатели поведения -->
+            <Border Style="{StaticResource SectionCardStyle}">
+                <UniformGrid Columns="2">
+                    <StackPanel Margin="0,0,20,16">
+                        <TextBlock Text="{tr:Tr Campaign.ToggleDeleteDialog}" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="{tr:Tr Campaign.ToggleForcedCount}" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,20,16">
+                        <TextBlock Text="{tr:Tr Campaign.ToggleLinkPreview}" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="{tr:Tr Campaign.ToggleSilent}" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,20,0">
+                        <TextBlock Text="{tr:Tr Campaign.ToggleAutoRepost}" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="{tr:Tr Campaign.TogglePinMessage}" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </UniformGrid>
+            </Border>
+
+            <!-- ОТПРАВКА ФАЙЛОВ -->
+            <Border Style="{StaticResource SectionCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="{tr:Tr Campaign.SectionFiles}" Style="{StaticResource SectionHeaderStyle}" />
+                    <UniformGrid Columns="2">
+                        <StackPanel Margin="0,0,20,0">
+                            <TextBlock Text="{tr:Tr Campaign.ToggleVideoNote}" Style="{StaticResource FieldLabelStyle}" TextWrapping="Wrap" />
+                            <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="{tr:Tr Campaign.ToggleSelfDestruct}" Style="{StaticResource FieldLabelStyle}" TextWrapping="Wrap" />
+                            <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        </StackPanel>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- ДЕЙСТВИЯ ПРОГРАММЫ -->
+            <Border Style="{StaticResource SectionCardStyle}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{tr:Tr Campaign.SectionActions}" Style="{StaticResource SectionHeaderStyle}" Margin="0" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Common.Start}" Command="{Binding StartCommand}">
+                                <iconPacks:PackIconMaterial Kind="Play" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Common.Stop}" Command="{Binding StopCommand}">
+                                <iconPacks:PackIconMaterial Kind="Stop" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" Margin="0" ToolTip="{tr:Tr Common.ClearLog}" Command="{Binding ClearLogCommand}">
+                                <iconPacks:PackIconMaterial Kind="TrashCanOutline" Width="15" Height="15" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <DataGrid ItemsSource="{Binding Log}" AutoGenerateColumns="False" IsReadOnly="True"
+                              CanUserAddRows="False" Height="220">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{tr:Tr Campaign.ColTime}" Binding="{Binding Time}" Width="90" />
+                            <DataGridTextColumn Header="{tr:Tr Campaign.ColAccount}" Binding="{Binding Account}" Width="140" />
+                            <DataGridTextColumn Header="{tr:Tr Campaign.ColMessage}" Binding="{Binding Message}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ -->
+            <Border Style="{StaticResource SectionCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="{tr:Tr Campaign.SectionExtra}" Style="{StaticResource SectionHeaderStyle}" />
+                    <UniformGrid Columns="2">
+                        <StackPanel Margin="0,0,20,16">
+                            <TextBlock Text="{tr:Tr Campaign.ToggleScheduled}" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="{tr:Tr Campaign.ToggleThreadControl}" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,20,0">
+                            <TextBlock Text="{tr:Tr Campaign.ToggleAutoStop}" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="{tr:Tr Campaign.ToggleLaunchControl}" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource PlaceholderToggleStyle}" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource ToggleHalfLeftStyle}">
+                                    <iconPacks:PackIconMaterial Kind="Check" Width="14" Height="14" Foreground="{StaticResource TextMutedBrush}" />
+                                </Border>
+                                <Border Style="{StaticResource ToggleHalfRightStyle}">
+                                    <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="14" Height="14" Foreground="White" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        </StackPanel>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- РЕЗУЛЬТАТЫ -->
+            <Border Style="{StaticResource SectionCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{tr:Tr Common.ResultsHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="0" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Command="{Binding OpenResultsFolderCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="FolderOpenOutline" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{tr:Tr Common.Open}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Live progress once a send is underway -->
+            <Border Background="{StaticResource AccentTintBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,0,0,16"
+                    Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock FontSize="13" Foreground="{StaticResource TextPrimaryBrush}">
+                    <Run Text="{tr:Tr Campaign.ProgressSentPrefix}" /><Run Text="{Binding LatestStatus.Sent, Mode=OneWay}" FontWeight="Bold" />
+                    <Run Text="{tr:Tr Campaign.OfInfix}" /><Run Text="{Binding LatestStatus.Total, Mode=OneWay}" FontWeight="Bold" />
+                    <Run Text="{tr:Tr Campaign.ProgressErrorsInfix}" /><Run Text="{Binding LatestStatus.Failed, Mode=OneWay}" FontWeight="Bold"
+                         Foreground="{StaticResource DangerBrush}" />
+                </TextBlock>
+            </Border>
+
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{tr:Tr Campaign.SendButton}" VerticalAlignment="Center" />
+                        <iconPacks:PackIconMaterial Kind="PlayCircleOutline" Width="15" Height="15" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Content="{tr:Tr Common.Stop}" Margin="10,0,0,0" Command="{Binding StopCommand}" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource DangerBrush}"
+                       Margin="0,14,0,0" TextWrapping="Wrap"
+                       Visibility="{Binding StatusMessage, Converter={StaticResource EmptyStringToVisibilityConverter}, ConverterParameter=Invert}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

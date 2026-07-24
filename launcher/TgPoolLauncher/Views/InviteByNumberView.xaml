@@ -1,0 +1,372 @@
+<UserControl x:Class="TgPoolLauncher.Views.InviteByNumberView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1080">
+    <UserControl.Resources>
+        <Style x:Key="SectionCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="Margin" Value="0,0,0,16" />
+        </Style>
+
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+            <Setter Property="Margin" Value="0,0,0,14" />
+        </Style>
+
+        <Style x:Key="ToolbarIconButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#0C0C0E" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource AccentHoverBrush}" />
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CompactTextButtonStyle" TargetType="Button" BasedOn="{StaticResource ToolbarIconButtonStyle}">
+            <Setter Property="Width" Value="78" />
+            <Setter Property="Padding" Value="8,0" />
+        </Style>
+
+        <Style x:Key="ToggleShellStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="Opacity" Value="0.75" />
+        </Style>
+
+        <Style x:Key="ToggleHalfOnStyle" TargetType="Border">
+            <Setter Property="Height" Value="31" />
+            <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+
+        <Style x:Key="ToggleHalfOffStyle" TargetType="Border" BasedOn="{StaticResource ToggleHalfOnStyle}">
+            <Setter Property="Background" Value="#6D0616" />
+        </Style>
+
+        <Style x:Key="SegmentButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="31" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="MutedInputStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Opacity" Value="0.72" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.02*" MinWidth="460" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="1.08*" MinWidth="500" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <Border Style="{StaticResource SectionCardStyle}" Padding="16">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="SETTINGS" Style="{StaticResource SectionHeaderStyle}" Margin="0" />
+                                <Button Grid.Column="1" Style="{StaticResource CompactTextButtonStyle}" ToolTip="Reset settings">
+                                    <StackPanel Orientation="Horizontal">
+                                        <iconPacks:PackIconMaterial Kind="Refresh" Width="15" Height="15" Margin="0,0,7,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="Reset" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#0C0C0E" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <UniformGrid Columns="2" Margin="0,0,0,14">
+                                <StackPanel Margin="0,0,14,0">
+                                    <TextBlock Text="Use base data" Style="{StaticResource FieldLabelStyle}" />
+                                    <Border Style="{StaticResource ToggleShellStyle}">
+                                        <UniformGrid Columns="2">
+                                            <Button x:Name="UseBaseDataOkButton" Style="{StaticResource SegmentButtonStyle}"
+                                                    Background="#1D8A78" Margin="0,0,5,0" ToolTip="Use base data"
+                                                    Click="UseBaseDataOkButton_Click">
+                                                <iconPacks:PackIconMaterial Kind="Check" Width="17" Height="17" Foreground="#0C0C0E" />
+                                            </Button>
+                                            <Button x:Name="UseBaseDataNoButton" Style="{StaticResource SegmentButtonStyle}"
+                                                    Margin="5,0,0,0" ToolTip="Do not use base data"
+                                                    Click="UseBaseDataNoButton_Click">
+                                                <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="17" Height="17" Foreground="{StaticResource TextMutedBrush}" />
+                                            </Button>
+                                        </UniformGrid>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Leave the main group" Style="{StaticResource FieldLabelStyle}" />
+                                    <Border Style="{StaticResource ToggleShellStyle}">
+                                        <UniformGrid Columns="2">
+                                            <Border Style="{StaticResource ToggleHalfOnStyle}" Margin="0,0,5,0">
+                                                <iconPacks:PackIconMaterial Kind="Check" Width="17" Height="17" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <Border Style="{StaticResource ToggleHalfOffStyle}" Margin="5,0,0,0">
+                                                <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="17" Height="17" Foreground="#0C0C0E" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                        </UniformGrid>
+                                    </Border>
+                                </StackPanel>
+                            </UniformGrid>
+
+                            <Border x:Name="BaseDataPanel" Style="{StaticResource SectionCardStyle}"
+                                    Background="{StaticResource AccentTintBrush}" BorderThickness="0"
+                                    Padding="18" Margin="0,0,0,16" Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="Use base data" Foreground="{StaticResource AccentBrush}"
+                                               FontSize="13" FontWeight="Bold" Margin="0,0,0,14" />
+                                    <TextBlock Text="Database" Style="{StaticResource FieldLabelStyle}" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="BaseDataPathTextBox" Height="46"
+                                                 IsReadOnly="True" Style="{StaticResource MutedInputStyle}"
+                                                 Text="Path to the database file" />
+                                        <Button Grid.Column="1" Width="46" Height="46"
+                                                Style="{StaticResource ToolbarIconButtonStyle}"
+                                                Margin="8,0,0,0" ToolTip="Choose xlsx database file"
+                                                Click="BrowseBaseDataButton_Click">
+                                            <iconPacks:PackIconMaterial Kind="FolderOpenOutline" Width="18" Height="18" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Groups" Style="{StaticResource FieldLabelStyle}" />
+                                <Button Grid.Column="1" Style="{StaticResource CompactTextButtonStyle}" Height="28"
+                                        ToolTip="Refresh accounts and joined groups" Click="RefreshGroupsButton_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="Refresh" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#0C0C0E" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                            <TextBox x:Name="GroupsTextBox" Height="160" AcceptsReturn="True"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                     Style="{StaticResource MutedInputStyle}" Margin="0,0,0,16"
+                                     Text="Number&#x0a;Group1&#x0a;Group2" />
+
+                            <TextBlock Text="Total users per account" Style="{StaticResource FieldLabelStyle}" />
+                            <UniformGrid Columns="2" Margin="0,0,0,14">
+                                <TextBox Text="min  1                                      users" Height="44" Style="{StaticResource MutedInputStyle}" Margin="0,0,12,0" IsReadOnly="True" />
+                                <TextBox x:Name="MaxPerAccountTextBox" Text="40" Height="44" Style="{StaticResource MutedInputStyle}" />
+                            </UniformGrid>
+
+                            <TextBlock Text="Total users per request" Style="{StaticResource FieldLabelStyle}" />
+                            <UniformGrid Columns="2" Margin="0,0,0,14">
+                                <TextBox Text="min  1                                      users" Height="44" Style="{StaticResource MutedInputStyle}" Margin="0,0,12,0" IsReadOnly="True" />
+                                <TextBox Text="max  1                                      users" Height="44" Style="{StaticResource MutedInputStyle}" IsReadOnly="True" />
+                            </UniformGrid>
+
+                            <TextBlock Text="Delay" Style="{StaticResource FieldLabelStyle}" />
+                            <UniformGrid Columns="2" Margin="0,0,0,14">
+                                <TextBox x:Name="DelayMinTextBox" Text="1" Height="44" Style="{StaticResource MutedInputStyle}" Margin="0,0,12,0" />
+                                <TextBox x:Name="DelayMaxTextBox" Text="10" Height="44" Style="{StaticResource MutedInputStyle}" />
+                            </UniformGrid>
+
+                            <TextBlock Text="Maximum timeout (FloodWait)" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox x:Name="MaxFloodWaitTextBox" Text="500" Height="44"
+                                     Style="{StaticResource MutedInputStyle}" Margin="0,0,0,14" />
+
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="280" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Select Accounts" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox Text="0" Height="48" Style="{StaticResource MutedInputStyle}" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Style="{StaticResource PrimaryButtonStyle}" Height="48" VerticalAlignment="Bottom">
+                                    <StackPanel Orientation="Horizontal">
+                                        <iconPacks:PackIconMaterial Kind="AccountOutline" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="Select Accounts" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <UniformGrid Columns="2" Margin="0,0,0,14">
+                                <StackPanel Margin="0,0,14,0">
+                                    <TextBlock Text="streams Control" Style="{StaticResource FieldLabelStyle}" />
+                                    <Border Style="{StaticResource ToggleShellStyle}">
+                                        <UniformGrid Columns="2">
+                                            <Border Style="{StaticResource ToggleHalfOnStyle}" Margin="0,0,5,0">
+                                                <iconPacks:PackIconMaterial Kind="Check" Width="17" Height="17" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <Border Style="{StaticResource ToggleHalfOffStyle}" Margin="5,0,0,0">
+                                                <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="17" Height="17" Foreground="#0C0C0E" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                        </UniformGrid>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Auto stop" Style="{StaticResource FieldLabelStyle}" />
+                                    <Border Style="{StaticResource ToggleShellStyle}">
+                                        <UniformGrid Columns="2">
+                                            <Border Style="{StaticResource ToggleHalfOnStyle}" Margin="0,0,5,0">
+                                                <iconPacks:PackIconMaterial Kind="Check" Width="17" Height="17" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <Border Style="{StaticResource ToggleHalfOffStyle}" Margin="5,0,0,0">
+                                                <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="17" Height="17" Foreground="#0C0C0E" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                        </UniformGrid>
+                                    </Border>
+                                </StackPanel>
+                            </UniformGrid>
+
+                            <TextBlock Text="Request First name, Last name, Bio" Style="{StaticResource FieldLabelStyle}" />
+                            <Border Style="{StaticResource ToggleShellStyle}" Width="286" HorizontalAlignment="Left">
+                                <UniformGrid Columns="2">
+                                    <Border Style="{StaticResource ToggleHalfOnStyle}" Margin="0,0,5,0">
+                                        <iconPacks:PackIconMaterial Kind="Check" Width="17" Height="17" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <Border Style="{StaticResource ToggleHalfOffStyle}" Margin="5,0,0,0">
+                                        <iconPacks:PackIconMaterial Kind="CloseOctagon" Width="17" Height="17" Foreground="#0C0C0E" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </UniformGrid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="IMPORTANT INFORMATION !" Style="{StaticResource SectionHeaderStyle}" Margin="32,8,0,14" />
+                    <Border Style="{StaticResource SectionCardStyle}" Background="{StaticResource AccentTintBrush}" BorderThickness="0" Padding="20">
+                        <TextBlock Foreground="{StaticResource TextMutedBrush}" FontSize="14" TextWrapping="Wrap" LineHeight="22"
+                                   Text="Use the ID column from parse exports (Telegram user id), not PhoneNumber. Keep limits moderate. The sender session must already know the recipient (same group/dialog history) or have a public @username, otherwise Telethon cannot resolve the entity." />
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="PhoneNumbersHeaderText" Grid.Column="0" Text="RECEIVER IDs : 0" Style="{StaticResource SectionHeaderStyle}" Margin="0" />
+                        <Button Grid.Column="1" Style="{StaticResource CompactTextButtonStyle}" ToolTip="Delete receiver IDs"
+                                Click="ClearPhoneNumbersButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="TrashCanOutline" Width="15" Height="15" Margin="0,0,7,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Delete" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#0C0C0E" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <TextBox x:Name="PhoneNumbersTextBox" Height="286" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             Style="{StaticResource MutedInputStyle}" Margin="0,0,0,24"
+                             TextChanged="PhoneNumbersTextBox_TextChanged"
+                             Text="List of Telegram receiver IDs (export ID column), one per line:&#x0a;8535286786&#x0a;8820638155&#x0a;@username&#x0a;&#x0a;Load a parse export xlsx (ID column) via Use base data, or paste IDs here.&#x0a;Paste https://t.me/... invite links under each sender account in Groups, then press Run." />
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="RESULTS" Style="{StaticResource SectionHeaderStyle}" Margin="0" />
+                        <Button Grid.Column="1" Style="{StaticResource CompactTextButtonStyle}" ToolTip="Open results folder">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="FolderOpenOutline" Width="15" Height="15" Margin="0,0,7,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Open" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" Foreground="#0C0C0E" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Border Height="118" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="12" Margin="0,0,0,26" />
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="PROGRAM ACTIONS" Style="{StaticResource SectionHeaderStyle}" Margin="0" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Build invite actions" Click="RunInviteActionsButton_Click">
+                                <iconPacks:PackIconMaterial Kind="Play" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Stop invite requests" Click="StopInviteActionsButton_Click">
+                                <iconPacks:PackIconMaterial Kind="Stop" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ToolbarIconButtonStyle}" Margin="0" ToolTip="Stop and remove all items" Click="ClearProgramActionsButton_Click">
+                                <iconPacks:PackIconMaterial Kind="TrashCanOutline" Width="15" Height="15" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <DataGrid x:Name="ProgramActionsGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal" MinHeight="220">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="110" />
+                            <DataGridTextColumn Header="Account" Binding="{Binding Account}" Width="150" />
+                            <DataGridTextColumn Header="State" Binding="{Binding State}" Width="95" />
+                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

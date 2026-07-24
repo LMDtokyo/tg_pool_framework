@@ -1,0 +1,6 @@
+# Progress Report — SMSPool & Invite by Phone Number
+
+**Date:** 16 July 2026  
+**Author:** Development
+
+I implemented SMSPool number purchase and Telegram activation in the desktop launcher using the same activation-manager method already used for Hero SMS. I implemented SMSPool balance, country, operator, and Telegram price lookup using the SMSPool HTTP API method. I implemented automatic registration of newly activated SMSPool accounts into the shared account pool using the account-registry registration method. I implemented clearer failure reporting for SMSPool purchase and login errors using the exception-detail reporting method. I implemented Invite-by-number invite-link delivery from the launcher using the Telethon saved-session method. I implemented loading of invite recipients from parse-export Excel files using the ID, PhoneNumber, and username column method. I implemented sender-account and invite-link configuration in the Groups panel using the per-account phone-and-link method. I implemented live Run/Stop progress for invite jobs using the backend start, stop, and status job method. I implemented recipient lookup before each invite DM using the username-then-user-id-then-phone resolution method. I implemented trustworthy sent/failed status for invite delivery using the outgoing peer-verification method.

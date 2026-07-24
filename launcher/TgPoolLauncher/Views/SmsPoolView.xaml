@@ -1,0 +1,248 @@
+<UserControl x:Class="TgPoolLauncher.Views.SmsPoolView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="1080">
+    <UserControl.Resources>
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+        </Style>
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource AccentHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.9*" MinWidth="390" />
+            <ColumnDefinition Width="18" />
+            <ColumnDefinition Width="1.45*" MinWidth="520" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="20">
+                    <TextBlock Text="{Binding AccountHeader}" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,12" />
+                    <TextBlock Text="SMS service" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBox Text="{Binding ProviderHost, Mode=OneWay}" Height="44" IsReadOnly="True" Margin="0,0,0,12" />
+
+                    <TextBlock Text="API key" Style="{StaticResource FieldLabelStyle}" />
+                    <PasswordBox x:Name="ApiKeyBox" Height="44" Margin="0,0,0,6"
+                                 PasswordChanged="ApiKeyBox_OnPasswordChanged"
+                                 ToolTip="{Binding ApiKeyToolTip}" />
+                    <TextBlock Text="{Binding KeyPrivacyMessage}"
+                               Foreground="{StaticResource TextFaintBrush}" FontSize="11" Margin="0,0,0,14" />
+
+                    <TextBlock Text="Balance" Style="{StaticResource FieldLabelStyle}" />
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding BalanceDisplay}" Height="44" IsReadOnly="True" />
+                        <Button Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}" Height="36" Margin="10,0,0,0"
+                                VerticalAlignment="Center" Command="{Binding LoadBalanceCommand}" Content="Refresh" />
+                    </Grid>
+                    <TextBlock Text="{Binding BalanceErrorMessage}" Foreground="{StaticResource DangerBrush}"
+                               FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                    <TextBlock Text="TELEGRAM ACTIVATION" Style="{StaticResource SectionTitleStyle}" Margin="0,4,0,12" />
+                    <TextBlock Text="Country" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBox Text="{Binding CountrySearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Height="44" Margin="0,0,0,6" VerticalContentAlignment="Center"
+                             ToolTip="Search countries by name or id" />
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <ComboBox Height="42" ItemsSource="{Binding Countries}" SelectedItem="{Binding SelectedCountry}"
+                                  DisplayMemberPath="DisplayName" />
+                        <Button Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}" Height="36" Margin="10,0,0,0"
+                                VerticalAlignment="Center" Command="{Binding LoadCountriesCommand}" Content="Load" />
+                    </Grid>
+                    <TextBlock Text="{Binding CountriesStatusMessage}" Foreground="{StaticResource TextMutedBrush}"
+                               FontSize="11" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding CountriesErrorMessage}" Foreground="{StaticResource DangerBrush}"
+                               FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                    <TextBlock Text="Operator" Style="{StaticResource FieldLabelStyle}" />
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <ComboBox Height="42" ItemsSource="{Binding Operators}" SelectedItem="{Binding SelectedOperator}"
+                                  DisplayMemberPath="DisplayName" />
+                        <Button Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}" Height="36" Margin="10,0,0,0"
+                                VerticalAlignment="Center" Command="{Binding RefreshCatalogCommand}" Content="Refresh" />
+                    </Grid>
+                    <TextBlock Text="Operators and availability load automatically after country selection."
+                               Foreground="{StaticResource TextFaintBrush}" FontSize="11" Margin="0,0,0,12" />
+
+                    <UniformGrid Columns="2" Margin="0,0,0,12">
+                        <StackPanel Margin="0,0,8,0">
+                            <TextBlock Text="Start price" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox Height="44"
+                                      ItemsSource="{Binding PriceOptions}"
+                                      SelectedItem="{Binding SelectedPriceOption}"
+                                      DisplayMemberPath="DisplayName" />
+                        </StackPanel>
+                        <StackPanel Margin="8,0,0,0">
+                            <TextBlock Text="{Binding AvailabilityLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding AvailabilityDisplay, Mode=OneWay}" Height="44" IsReadOnly="True" />
+                        </StackPanel>
+                    </UniformGrid>
+                    <TextBlock Text="Purchase ceiling" Style="{StaticResource FieldLabelStyle}" />
+                    <ComboBox Height="44" Margin="0,0,0,6"
+                              ItemsSource="{Binding CeilingPriceOptions}"
+                              SelectedItem="{Binding SelectedCeilingOption}"
+                              DisplayMemberPath="DisplayName" />
+                    <TextBlock Text="If the start price has no numbers, purchases climb higher tiers up to this ceiling."
+                               Foreground="{StaticResource TextFaintBrush}" FontSize="11" Margin="0,0,0,12" />
+                    <TextBlock Text="{Binding CatalogStatusMessage}" Foreground="{StaticResource TextMutedBrush}"
+                               FontSize="11" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding CatalogErrorMessage}" Foreground="{StaticResource DangerBrush}"
+                               FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                    <UniformGrid Columns="2" Margin="0,0,0,10">
+                        <StackPanel Margin="0,0,8,0">
+                            <TextBlock Text="Accounts to create" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding TargetAccountCount, UpdateSourceTrigger=PropertyChanged}" Height="44" />
+                        </StackPanel>
+                        <StackPanel Margin="8,0,0,0">
+                            <TextBlock Text="Concurrent phones (1–10)" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding ConcurrentPhoneCount, UpdateSourceTrigger=PropertyChanged}" Height="44" />
+                        </StackPanel>
+                    </UniformGrid>
+                    <TextBlock Text="SMS timeout, seconds (30–1200)" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBox Text="{Binding SmsTimeout, UpdateSourceTrigger=PropertyChanged}" Height="44" Margin="0,0,0,10" />
+                    <Border Background="{StaticResource AccentTintBrush}" CornerRadius="8" Padding="12" Margin="0,4,0,10">
+                        <TextBlock Text="The app keeps the configured number of phones active until the account target is reached. Failed attempts are replaced automatically."
+                                   Foreground="{StaticResource TextMutedBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="17" />
+                    </Border>
+                    <TextBlock Text="{Binding OperationStatusMessage}" Foreground="{StaticResource TextMutedBrush}"
+                               FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding OperationErrorMessage}" Foreground="{StaticResource DangerBrush}"
+                               FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="3*" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="1.35*" />
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" Style="{StaticResource CardStyle}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid Margin="20,17,20,14">
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="ACTIVATION ACTIVITY" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="Purchased numbers and incoming Telegram codes appear here"
+                                       Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Style="{StaticResource ActionButtonStyle}" Command="{Binding StartCommand}" ToolTip="Start activations">
+                                <iconPacks:PackIconMaterial Kind="Play" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ActionButtonStyle}" Command="{Binding StopCommand}" ToolTip="Stop and cancel pending activations">
+                                <iconPacks:PackIconMaterial Kind="Stop" Width="15" Height="15" />
+                            </Button>
+                            <Button Style="{StaticResource ActionButtonStyle}" Command="{Binding ClearCommand}" Margin="0" ToolTip="Clear completed activity">
+                                <iconPacks:PackIconMaterial Kind="TrashCanOutline" Width="15" Height="15" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <DataGrid Grid.Row="1" Margin="20,0" ItemsSource="{Binding ActivityRows}"
+                              SelectedItem="{Binding SelectedActivityRow}"
+                              AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                              GridLinesVisibility="Horizontal" SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Time" Binding="{Binding TimeDisplay}" Width="76" />
+                            <DataGridTextColumn Header="Phone" Binding="{Binding PhoneNumber}" Width="125" />
+                            <DataGridTextColumn Header="Operator" Binding="{Binding Operator}" Width="90" />
+                            <DataGridTextColumn Header="Cost" Binding="{Binding Cost, StringFormat=USD {0:0.####}}" Width="82" />
+                            <DataGridTextColumn Header="Stage" Binding="{Binding Stage}" Width="115" />
+                            <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="80" />
+                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Grid Grid.Row="2" Margin="20,12,20,16">
+                        <TextBlock Text="Pending activations are canceled on Stop or timeout."
+                                   Foreground="{StaticResource TextFaintBrush}" FontSize="12" />
+                        <TextBlock HorizontalAlignment="Right" Foreground="{StaticResource TextFaintBrush}" FontSize="12">
+                            <Run Text="{Binding EventCount, Mode=OneWay}" /><Run Text=" events" />
+                        </TextBlock>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2" Style="{StaticResource CardStyle}"
+                    Visibility="{Binding SelectedActivityRow.NeedsTwoFactor, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="TELEGRAM 2-STEP VERIFICATION" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="{Binding SelectedActivityRow.PhoneNumber, StringFormat=Enter the cloud password for {0}}"
+                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,5,0,8" />
+                        <PasswordBox x:Name="TwoFactorPasswordBox" Height="40"
+                                     PasswordChanged="TwoFactorPasswordBox_OnPasswordChanged" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Submit 2FA" Margin="14,20,0,0"
+                            Height="40" Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding SubmitTwoFactorCommand}" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="4" Style="{StaticResource CardStyle}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Grid Margin="20,17,20,12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Width="30" Height="30" Background="{StaticResource AccentTintBrush}" CornerRadius="8" Margin="0,0,10,0">
+                            <iconPacks:PackIconMaterial Kind="InformationOutline" Width="16" Height="16"
+                                                        Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="IMPORTANT INFORMATION" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="{Binding IntegrationBehaviorTitle}" Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,0,14,18">
+                        <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="10" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Real purchases" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                <TextBlock Text="{Binding PurchaseWarning}"
+                                           Foreground="{StaticResource TextMutedBrush}" FontSize="12" TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,12" />
+                                <TextBlock Text="Price and availability" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                <TextBlock Text="{Binding PriceAvailabilityNote}"
+                                           Foreground="{StaticResource TextMutedBrush}" FontSize="12" TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,12" />
+                                <TextBlock Text="Lifecycle" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                <TextBlock Text="The app replaces failed attempts, keeps the configured pool full, and stops when the requested number of new accounts has been created."
+                                           Foreground="{StaticResource TextMutedBrush}" FontSize="12" TextWrapping="Wrap" LineHeight="18" />
+                            </StackPanel>
+                        </Border>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

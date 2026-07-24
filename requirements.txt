@@ -1,0 +1,73 @@
+# ================================================================
+# requirements.txt — Dependencies for tg_pool_framework
+# Install: pip install -r requirements.txt
+# ================================================================
+
+# MTProto client
+telethon>=1.36.0,<2.0.0
+
+# C-accelerated MTProto encryption — Telethon auto-detects and uses it,
+# no code changes needed. Free throughput win over the pure-Python fallback.
+cryptg>=0.4.0
+
+# SOCKS5 proxy support for Telethon
+PySocks>=1.7.1
+
+# .env file loading
+python-dotenv>=1.0.0
+
+# Distributed rate-limiting and deduplication
+redis>=5.0.0
+
+# TData (Telegram Desktop) → Telethon session conversion
+opentele>=1.15.1
+
+# Durable account state (optional — enabled via DATABASE_URL)
+sqlalchemy>=2.0
+asyncpg>=0.29
+alembic>=1.13
+
+# Session-file encryption at rest (optional — enabled via SESSION_ENCRYPTION_ENABLED)
+cryptography>=42.0
+
+# Sandboxed Lua scripting engine for hot-reloadable filters/behavior
+# (src/scripting/lua_engine.py). Already a transitive test dependency via
+# fakeredis[lua] below — promoted to a direct runtime dependency here.
+lupa>=2.0
+
+# Phone-number -> country lookup for account geo (src/accounts/geo.py).
+# Google libphonenumber port — accurate calling-code parsing, not a hand-rolled table.
+phonenumbers>=9.0.0
+
+# IP -> country lookup for proxy geo (src/proxy/proxy_geo.py). Bundles its
+# own offline database — no MaxMind account/API key/network call needed.
+geoip2fast>=1.2.2
+
+# Terminal live dashboard
+rich>=13.7.0
+
+# Local control API for the desktop launcher (src/api/) -- REST + WebSocket
+# surface over the existing engine, consumed by the WPF launcher over localhost.
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# Excel export
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# ================================================================
+# Testing
+# ================================================================
+
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-clarity>=1.0.1
+
+# In-process Redis for tests; [lua] adds lupa for Lua script execution
+fakeredis[lua]>=2.23.0
+
+# In-process SQLite driver — stands in for Postgres in AccountRepository tests
+aiosqlite>=0.20.0
+
+# Required by FastAPI's TestClient (tests/test_api.py)
+httpx>=0.27.0
