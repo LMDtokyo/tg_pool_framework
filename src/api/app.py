@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import uuid
@@ -18,6 +19,15 @@ from src.accounts.health_checker import AccountStatus
 from src.accounts.session_crypto import load_key_from_env
 from src.api import schemas
 from src.api.campaign import CampaignAlreadyRunningError, CampaignManager
+from src.api.datamoll import (
+    DatamollApiError,
+    DatamollDeliveryError,
+    create_order_with_recovery as create_datamoll_order,
+    download_and_import_deliveries as import_datamoll_deliveries,
+    fetch_balance as fetch_datamoll_balance,
+    fetch_telegram_catalog as fetch_datamoll_telegram_catalog,
+    save_order_receipt as save_datamoll_order_receipt,
+)
 from src.api.events import handle_event_stream
 from src.api.grizzly_sms import (
     GRIZZLY_SMS_API_URL,
@@ -270,10 +280,36 @@ async def lifespan(app: FastAPI):
     )
 
     accounts_dir = os.getenv("ACCOUNTS_DIR", "accounts")
+    app.state.accounts_dir = accounts_dir
+    app.state.tdata_accounts_dir = os.getenv(
+        "TDATA_ACCOUNTS_DIR",
+        os.path.join(os.path.dirname(accounts_dir), "Tdata"),
+    )
+    app.state.datamoll_receipts_dir = os.path.join(
+        os.path.dirname(accounts_dir),
+        "DatamollReceipts",
+    )
     fingerprint_file = os.getenv(
         "TELEGRAM_FINGERPRINT_FILE",
         os.path.join(os.path.dirname(accounts_dir), "Fingerprints", "telegram_devices.xlsx"),
     )
+    registration_proxy_lock = asyncio.Lock()
+    registration_proxy_call_count = 0
+
+    async def next_registration_proxy() -> Optional[ProxyConfig]:
+        nonlocal registration_proxy_call_count
+        proxies = await _load_proxy_inventory(app.state.proxy_repository)
+        if not proxies:
+            return None
+        accounts_per_proxy = bootstrap.env_int("ACCOUNTS_PER_PROXY", "1")
+        if accounts_per_proxy < 1:
+            raise ValueError("accounts_per_proxy must be >= 1")
+        async with registration_proxy_lock:
+            proxy_index = (
+                registration_proxy_call_count // accounts_per_proxy
+            ) % len(proxies)
+            registration_proxy_call_count += 1
+            return proxies[proxy_index]
 
     async def register_saved_account(account) -> None:
         known_phones = {item.phone for item in primary} | {item.phone for item in spares}
@@ -287,6 +323,7 @@ async def lifespan(app: FastAPI):
         fingerprint_file=fingerprint_file,
         accounts_dir=accounts_dir,
         encryption_key=session_encryption_key,
+        proxy_provider=next_registration_proxy,
     )
     app.state.hero_sms_activation_manager = HeroSmsActivationManager(
         authenticator=telegram_authenticator,
@@ -331,9 +368,126 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="tg_pool_framework control API", lifespan=lifespan)
 
 
+async def _rescan_account_storage() -> int:
+    registry: AccountRegistry = app.state.registry
+    primary: list = app.state.primary_accounts
+    spares: list = app.state.spare_accounts
+
+    fresh_primary, fresh_spares = bootstrap.load_accounts()
+    proxy_inventory = await _load_proxy_inventory(app.state.proxy_repository)
+    fresh_primary = _apply_proxy_inventory(fresh_primary, proxy_inventory)
+    fresh_spares = _apply_proxy_inventory(fresh_spares, proxy_inventory)
+    known_phones = {a.phone for a in primary} | {a.phone for a in spares}
+
+    new_primary = [a for a in fresh_primary if a.phone not in known_phones]
+    new_spares = [a for a in fresh_spares if a.phone not in known_phones]
+
+    primary.extend(new_primary)
+    spares.extend(new_spares)
+    await registry.register_many(new_primary + new_spares)
+    invite_manager: InviteByNumberManager = app.state.invite_by_number_manager
+    for account in new_primary + new_spares:
+        invite_manager.register_account(account)
+        app.state.send_by_numbers_manager.register_account(account)
+
+    return len(new_primary) + len(new_spares)
+
+
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/datamoll/balance", response_model=schemas.DatamollBalanceOut)
+async def datamoll_balance(
+    body: schemas.DatamollCredentialsRequest,
+) -> schemas.DatamollBalanceOut:
+    try:
+        balance = await fetch_datamoll_balance(body.api_key, body.api_secret)
+    except (DatamollApiError, ValueError) as exc:
+        logger.warning("Datamoll balance request failed: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.DatamollBalanceOut(**balance)
+
+
+@app.post("/datamoll/catalog", response_model=schemas.DatamollCatalogOut)
+async def datamoll_catalog(
+    body: schemas.DatamollCredentialsRequest,
+) -> schemas.DatamollCatalogOut:
+    try:
+        products = await fetch_datamoll_telegram_catalog(
+            body.api_key,
+            body.api_secret,
+        )
+    except (DatamollApiError, ValueError) as exc:
+        logger.warning("Datamoll catalog request failed: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.DatamollCatalogOut(
+        items=[schemas.DatamollProductOut(**product) for product in products]
+    )
+
+
+@app.post("/datamoll/orders", response_model=schemas.DatamollPurchaseOut)
+async def datamoll_purchase(
+    body: schemas.DatamollPurchaseRequest,
+) -> schemas.DatamollPurchaseOut:
+    try:
+        order = await create_datamoll_order(
+            body.api_key,
+            body.api_secret,
+            product_id=body.product_id,
+            quantity=body.quantity,
+            external_order_id=body.external_order_id,
+        )
+        items = order.get("items")
+        if not isinstance(items, list):
+            raise DatamollApiError(
+                "Datamoll returned an order without delivered account data"
+            )
+        receipt_file = save_datamoll_order_receipt(
+            order,
+            app.state.datamoll_receipts_dir,
+        )
+        imported = await import_datamoll_deliveries(
+            items,
+            accounts_dir=app.state.accounts_dir,
+            tdata_dir=app.state.tdata_accounts_dir,
+        )
+        new_accounts = await _rescan_account_storage()
+        return schemas.DatamollPurchaseOut(
+            order_id=int(order["order_id"]),
+            external_order_id=str(
+                order.get("external_order_id") or body.external_order_id
+            ),
+            status=str(order.get("status") or ""),
+            payment_status=str(order.get("payment_status") or ""),
+            product_id=int(order["product_id"]),
+            quantity=int(order["quantity"]),
+            unit_price=str(order.get("unit_price") or "0"),
+            total_amount=str(order.get("total_amount") or "0"),
+            currency=str(order.get("currency") or "USD"),
+            delivered_count=len(items),
+            receipt_file=receipt_file,
+            reused_existing=bool(order.get("reused_existing")),
+            downloaded_files=imported.downloaded_files,
+            imported_sessions=imported.imported_sessions,
+            imported_tdata=imported.imported_tdata,
+            skipped_existing=imported.skipped_existing,
+            registered_accounts=new_accounts,
+        )
+    except (
+        DatamollApiError,
+        DatamollDeliveryError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        logger.warning(
+            "Datamoll order %s failed or its delivery could not be imported: %s",
+            body.external_order_id,
+            exc,
+        )
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/hero_sms/countries", response_model=List[schemas.HeroSmsCountryOut])
@@ -879,28 +1033,7 @@ async def recheck_accounts(body: schemas.RecheckRequest) -> schemas.RecheckRespo
 @app.post("/accounts/rescan", response_model=schemas.RescanResponse)
 async def rescan_accounts() -> schemas.RescanResponse:
     """Re-scans the accounts directories for new .session+.json pairs and registers them."""
-    registry: AccountRegistry = app.state.registry
-    primary: list = app.state.primary_accounts
-    spares: list = app.state.spare_accounts
-
-    fresh_primary, fresh_spares = bootstrap.load_accounts()
-    proxy_inventory = await _load_proxy_inventory(app.state.proxy_repository)
-    fresh_primary = _apply_proxy_inventory(fresh_primary, proxy_inventory)
-    fresh_spares = _apply_proxy_inventory(fresh_spares, proxy_inventory)
-    known_phones = {a.phone for a in primary} | {a.phone for a in spares}
-
-    new_primary = [a for a in fresh_primary if a.phone not in known_phones]
-    new_spares = [a for a in fresh_spares if a.phone not in known_phones]
-
-    primary.extend(new_primary)
-    spares.extend(new_spares)
-    await registry.register_many(new_primary + new_spares)
-    invite_manager: InviteByNumberManager = app.state.invite_by_number_manager
-    for account in new_primary + new_spares:
-        invite_manager.register_account(account)
-        app.state.send_by_numbers_manager.register_account(account)
-
-    return schemas.RescanResponse(new_accounts=len(new_primary) + len(new_spares))
+    return schemas.RescanResponse(new_accounts=await _rescan_account_storage())
 
 
 @app.post("/send_by_numbers/start", response_model=schemas.SendByNumbersStartResponse)

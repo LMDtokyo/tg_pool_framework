@@ -72,6 +72,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<HeroSmsViewModel>();
                 services.AddSingleton<SmsPoolViewModel>();
                 services.AddSingleton<GrizzlySmsViewModel>();
+                services.AddSingleton<DatamollViewModel>();
 
                 services.AddSingleton<DashboardView>();
                 services.AddSingleton<AccountsView>();
@@ -87,6 +88,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<HeroSmsView>();
                 services.AddSingleton<SmsPoolView>();
                 services.AddSingleton<GrizzlySmsView>();
+                services.AddSingleton<DatamollView>();
                 services.AddSingleton<InviteByNumberView>();
                 services.AddSingleton<SendByNumbersView>();
                 services.AddSingleton<NumberCheckerView>();

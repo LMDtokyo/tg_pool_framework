@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import inspect
 import json
 import os
 import secrets
@@ -8,14 +9,14 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 from openpyxl import load_workbook
 from telethon.errors import PhoneNumberUnoccupiedError, SessionPasswordNeededError
 
 from src.accounts.connection_manager import ClientFactory
 from src.accounts.session_crypto import ensure_encrypted
-from src.config import AccountConfig
+from src.config import AccountConfig, ProxyConfig
 
 import logging
 logger = logging.getLogger(__name__)
@@ -206,11 +207,15 @@ class TelegramAuthenticator:
         fingerprint_file: str,
         accounts_dir: str,
         encryption_key: bytes | None = None,
+        proxy_provider: Callable[
+            [], ProxyConfig | None | Awaitable[ProxyConfig | None]
+        ] | None = None,
     ) -> None:
         self._fingerprint_file = fingerprint_file
         self._accounts_dir = Path(accounts_dir)
         self._encryption_key = encryption_key
         self._catalog: FingerprintCatalog | None = None
+        self._proxy_provider = proxy_provider
 
     def validate_ready(self) -> None:
         try:
@@ -236,8 +241,9 @@ class TelegramAuthenticator:
         temp_dir = Path(
             tempfile.mkdtemp(prefix=".telegram-login-", dir=self._accounts_dir)
         )
+        proxy = await self._next_proxy()
         account = self._account_from_fingerprint(
-            normalized, fingerprint, session_dir=str(temp_dir)
+            normalized, fingerprint, session_dir=str(temp_dir), proxy=proxy
         )
         logger.debug("TelegramAuthenticator: building client for account %s", account)
         client = ClientFactory.build(account)
@@ -343,7 +349,10 @@ class TelegramAuthenticator:
             shutil.rmtree(login.temp_dir, ignore_errors=True)
 
         account = self._account_from_fingerprint(
-            login.phone, login.fingerprint, session_dir=str(self._accounts_dir)
+            login.phone,
+            login.fingerprint,
+            session_dir=str(self._accounts_dir),
+            proxy=login.account.proxy,
         )
         session_file = str(target)
         if self._encryption_key is not None:
@@ -367,6 +376,14 @@ class TelegramAuthenticator:
             self._catalog = FingerprintCatalog.load(self._fingerprint_file)
         return self._catalog
 
+    async def _next_proxy(self) -> ProxyConfig | None:
+        if self._proxy_provider is None:
+            return None
+        proxy = self._proxy_provider()
+        if inspect.isawaitable(proxy):
+            proxy = await proxy
+        return proxy
+
     @staticmethod
     def _normalize_phone(phone: str) -> str:
         digits = "".join(character for character in phone if character.isdigit())
@@ -376,12 +393,17 @@ class TelegramAuthenticator:
 
     @staticmethod
     def _account_from_fingerprint(
-        phone: str, fingerprint: TelegramFingerprint, *, session_dir: str
+        phone: str,
+        fingerprint: TelegramFingerprint,
+        *,
+        session_dir: str,
+        proxy: ProxyConfig | None = None,
     ) -> AccountConfig:
         return AccountConfig(
             api_id=fingerprint.app_id,
             api_hash=fingerprint.app_hash,
             phone=phone,
+            proxy=proxy,
             device_model=fingerprint.device,
             system_version=f"SDK {fingerprint.sdk}",
             app_version=fingerprint.app_version,

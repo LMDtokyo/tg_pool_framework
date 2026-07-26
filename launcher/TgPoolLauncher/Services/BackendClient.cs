@@ -59,6 +59,56 @@ public sealed class BackendClient
         return result ?? [];
     }
 
+    public async Task<DatamollBalanceDto> GetDatamollBalanceAsync(
+        string apiKey,
+        string apiSecret,
+        CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync(
+            "/datamoll/balance",
+            new DatamollCredentialsRequest { ApiKey = apiKey, ApiSecret = apiSecret },
+            ct);
+        await EnsureDatamollSuccessAsync(resp, "load the balance", ct);
+        return await resp.Content.ReadFromJsonAsync<DatamollBalanceDto>(ct)
+            ?? throw new InvalidOperationException("Datamoll returned an empty balance response");
+    }
+
+    public async Task<DatamollCatalogDto> GetDatamollCatalogAsync(
+        string apiKey,
+        string apiSecret,
+        CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync(
+            "/datamoll/catalog",
+            new DatamollCredentialsRequest { ApiKey = apiKey, ApiSecret = apiSecret },
+            ct);
+        await EnsureDatamollSuccessAsync(resp, "load the Telegram catalog", ct);
+        return await resp.Content.ReadFromJsonAsync<DatamollCatalogDto>(ct)
+            ?? new DatamollCatalogDto();
+    }
+
+    public async Task<DatamollPurchaseDto> PurchaseDatamollAccountsAsync(
+        DatamollPurchaseRequest request,
+        CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync("/datamoll/orders", request, ct);
+        await EnsureDatamollSuccessAsync(resp, "purchase the selected accounts", ct);
+        return await resp.Content.ReadFromJsonAsync<DatamollPurchaseDto>(ct)
+            ?? throw new InvalidOperationException("Datamoll returned an empty order response");
+    }
+
+    private static async Task EnsureDatamollSuccessAsync(
+        HttpResponseMessage response,
+        string operation,
+        CancellationToken ct)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+        var detail = await response.Content.ReadAsStringAsync(ct);
+        throw new InvalidOperationException(
+            $"Unable to {operation} ({(int)response.StatusCode}): {detail}");
+    }
+
     public async Task<List<HeroSmsCountryDto>> GetHeroSmsCountriesAsync(
         string apiKey, CancellationToken ct = default) =>
         await GetSmsProviderCountriesAsync("hero_sms", "Hero SMS", apiKey, ct);

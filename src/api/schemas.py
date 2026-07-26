@@ -134,6 +134,62 @@ class HeroSmsActivationStatusResponse(BaseModel):
     active_count: int = 0
 
 
+class DatamollCredentialsRequest(BaseModel):
+    api_key: str = Field(min_length=1)
+    api_secret: str = Field(min_length=1)
+
+
+class DatamollBalanceOut(BaseModel):
+    balance: str
+    credit_limit: str
+    available_balance: str
+    currency: str
+
+
+class DatamollProductOut(BaseModel):
+    product_id: int
+    name: str
+    price: str
+    currency: str
+    stock: int = Field(ge=0)
+    min_order: int = Field(ge=1)
+    max_order: Optional[int] = Field(default=None, ge=1)
+    category_name: Optional[str] = None
+    description: Optional[str] = None
+    country: Optional[str] = None
+    content_language: str = ""
+
+
+class DatamollCatalogOut(BaseModel):
+    items: List[DatamollProductOut] = Field(default_factory=list)
+
+
+class DatamollPurchaseRequest(DatamollCredentialsRequest):
+    product_id: int = Field(ge=1)
+    quantity: int = Field(ge=1)
+    external_order_id: str = Field(min_length=1, max_length=255)
+
+
+class DatamollPurchaseOut(BaseModel):
+    order_id: int
+    external_order_id: str
+    status: str
+    payment_status: str
+    product_id: int
+    quantity: int
+    unit_price: str
+    total_amount: str
+    currency: str
+    delivered_count: int = Field(ge=0)
+    receipt_file: str
+    reused_existing: bool = False
+    downloaded_files: int = Field(default=0, ge=0)
+    imported_sessions: int = Field(default=0, ge=0)
+    imported_tdata: int = Field(default=0, ge=0)
+    skipped_existing: int = Field(default=0, ge=0)
+    registered_accounts: int = Field(default=0, ge=0)
+
+
 class RecheckResponse(BaseModel):
     checked: int
     alive: int

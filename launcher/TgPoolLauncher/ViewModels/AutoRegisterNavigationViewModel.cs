@@ -19,6 +19,7 @@ public partial class AutoRegisterNavigationViewModel : ObservableObject
         HeroSmsView heroSmsView,
         SmsPoolView smsPoolView,
         GrizzlySmsView grizzlySmsView,
+        DatamollView datamollView,
         InviteByNumberView inviteByNumberView,
         SendByNumbersView sendByNumbersView,
         NumberCheckerView numberCheckerView)
@@ -29,6 +30,7 @@ public partial class AutoRegisterNavigationViewModel : ObservableObject
             new("hero-sms", "hero-sms", heroSmsView),
             new("sms-pool", "SMSpool", smsPoolView),
             new("grizzly-sms", "GrizzlySMS", grizzlySmsView),
+            new("datamoll", "Datamoll", datamollView),
         ];
         InvitePages =
         [

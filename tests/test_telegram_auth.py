@@ -12,6 +12,7 @@ from openpyxl import Workbook
 
 from src.api.hero_sms_activation import HeroSmsActivationManager
 from src.api.telegram_auth import FingerprintCatalog, TelegramAuthenticator
+from src.config import ProxyConfig
 
 
 pytestmark = pytest.mark.unit
@@ -135,6 +136,58 @@ async def test_authenticator_saves_reusable_session_and_metadata(
     assert metadata["phone"] == "+15550001111"
     assert metadata["sdk"] == 31
     assert metadata["lang_pack"] == "android"
+
+
+@pytest.mark.asyncio
+async def test_authenticator_uses_registration_proxy_provider(tmp_path, monkeypatch):
+    source = tmp_path / "fingerprints.csv"
+    accounts_dir = tmp_path / "accounts"
+    _write_fingerprints(source)
+    proxy = ProxyConfig(
+        host="10.10.10.10",
+        port=1080,
+        username="user",
+        password="pass",
+        proxy_type="socks5",
+    )
+    built_accounts = []
+
+    class FakeClient:
+        def __init__(self, account):
+            self.account = account
+            self.connected = False
+
+        async def connect(self):
+            self.connected = True
+
+        def is_connected(self):
+            return self.connected
+
+        async def disconnect(self):
+            self.connected = False
+
+        async def send_code_request(self, phone):
+            return SimpleNamespace(phone_code_hash="hash")
+
+    async def proxy_provider():
+        return proxy
+
+    def build_client(account):
+        built_accounts.append(account)
+        return FakeClient(account)
+
+    monkeypatch.setattr("src.api.telegram_auth.ClientFactory.build", build_client)
+    authenticator = TelegramAuthenticator(
+        fingerprint_file=str(source),
+        accounts_dir=str(accounts_dir),
+        proxy_provider=proxy_provider,
+    )
+
+    login = await authenticator.begin("15550001111")
+
+    assert built_accounts[0].proxy is proxy
+    assert login.account.proxy is proxy
+    await authenticator.discard(login)
 
 
 @pytest.mark.asyncio
