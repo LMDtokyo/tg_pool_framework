@@ -228,40 +228,40 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="WORK WITH TEXT" Style="{StaticResource SectionHeaderStyle}" Margin="0" />
+                                <TextBlock Text="{tr:Tr SendByNumbers.WorkWithTextHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="0" />
                                 <Button Grid.Column="1" Style="{StaticResource DangerIconButtonStyle}" Margin="0"
-                                        ToolTip="Clear message" Click="ClearMessageButton_Click">
+                                        ToolTip="{tr:Tr SendByNumbers.ClearMessageTooltip}" Click="ClearMessageButton_Click">
                                     <iconPacks:PackIconMaterial Kind="TrashCanOutline" Width="14" Height="14" />
                                 </Button>
                             </Grid>
 
                             <WrapPanel Margin="0,0,0,10">
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Bold" Click="BoldButton_Click">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr SendByNumbers.BoldTooltip}" Click="BoldButton_Click">
                                     <iconPacks:PackIconMaterial Kind="FormatBold" Width="15" Height="15" />
                                 </Button>
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Italic" Click="ItalicButton_Click">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr SendByNumbers.ItalicTooltip}" Click="ItalicButton_Click">
                                     <iconPacks:PackIconMaterial Kind="FormatItalic" Width="15" Height="15" />
                                 </Button>
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Code" Click="CodeButton_Click">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr SendByNumbers.CodeTooltip}" Click="CodeButton_Click">
                                     <iconPacks:PackIconMaterial Kind="CodeTags" Width="15" Height="15" />
                                 </Button>
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Add link" Click="LinkButton_Click">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr SendByNumbers.AddLinkTooltip}" Click="LinkButton_Click">
                                     <iconPacks:PackIconMaterial Kind="LinkVariant" Width="16" Height="16" />
                                 </Button>
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Repost from channel" Click="ForwardButton_Click">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr SendByNumbers.RepostFromChannelTooltip}" Click="ForwardButton_Click">
                                     <iconPacks:PackIconMaterial Kind="Repeat" Width="16" Height="16" />
                                 </Button>
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Attach file" Click="AttachFileButton_Click">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr SendByNumbers.AttachFileTooltip}" Click="AttachFileButton_Click">
                                     <iconPacks:PackIconMaterial Kind="FileDownloadOutline" Width="16" Height="16" />
                                 </Button>
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Repost via Postbot" Click="PostbotButton_Click">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr SendByNumbers.RepostViaPostbotTooltip}" Click="PostbotButton_Click">
                                     <iconPacks:PackIconMaterial Kind="RobotOutline" Width="16" Height="16" />
                                 </Button>
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Text randomizer" Click="RandomizerButton_Click">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr SendByNumbers.TextRandomizerTooltip}" Click="RandomizerButton_Click">
                                     <iconPacks:PackIconMaterial Kind="ShuffleVariant" Width="16" Height="16" />
                                 </Button>
                                 <Button Style="{StaticResource ToolbarIconButtonStyle}" Margin="0"
-                                        ToolTip="Insert recipient phone" Click="PhoneButton_Click">
+                                        ToolTip="{tr:Tr SendByNumbers.InsertRecipientPhoneTooltip}" Click="PhoneButton_Click">
                                     <iconPacks:PackIconMaterial Kind="AccountOutline" Width="16" Height="16" />
                                 </Button>
                             </WrapPanel>
@@ -286,12 +286,12 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="SETTINGS" Style="{StaticResource SectionHeaderStyle}" Margin="2,0,0,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{tr:Tr SendByNumbers.SettingsHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="2,0,0,0" VerticalAlignment="Center" />
                         <Button Grid.Column="1" Style="{StaticResource CompactActionButtonStyle}"
-                                ToolTip="Reset settings" Click="ResetButton_Click">
+                                ToolTip="{tr:Tr SendByNumbers.ResetTooltip}" Click="ResetButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Margin="0,0,6,0" />
-                                <TextBlock Text="Reset" FontSize="12" FontWeight="SemiBold" />
+                                <TextBlock Text="{tr:Tr SendByNumbers.ResetButton}" FontSize="12" FontWeight="SemiBold" />
                             </StackPanel>
                         </Button>
                     </Grid>
@@ -300,36 +300,36 @@
                         <StackPanel>
                             <UniformGrid Columns="2">
                                 <StackPanel Style="{StaticResource SettingCellStyle}">
-                                    <TextBlock Text="Phone numbers" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.PhoneNumbersLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="42" />
                                         </Grid.ColumnDefinitions>
                                         <TextBox x:Name="PhoneNumbersTextBox" Height="44"
-                                                 ToolTip="Enter phone numbers separated by commas, spaces, or new lines" />
+                                                 ToolTip="{tr:Tr SendByNumbers.PhoneNumbersTooltip}" />
                                         <Button Grid.Column="1" Margin="6,0,0,0" Padding="0"
-                                                ToolTip="Import phone numbers from a text or CSV file" Click="BrowsePhoneNumbersButton_Click">
+                                                ToolTip="{tr:Tr SendByNumbers.ImportPhoneNumbersTooltip}" Click="BrowsePhoneNumbersButton_Click">
                                             <iconPacks:PackIconMaterial Kind="FolderOpenOutline" Width="16" Height="16" />
                                         </Button>
                                     </Grid>
                                 </StackPanel>
                                 <StackPanel Style="{StaticResource SettingCellStyle}" Margin="0,0,0,14">
-                                    <TextBlock Text="SMS per account" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.SmsPerAccountLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <UniformGrid Columns="2">
                                         <TextBox x:Name="SmsMinTextBox" Height="44" Margin="0,0,7,0" />
                                         <TextBox x:Name="SmsMaxTextBox" Height="44" />
                                     </UniformGrid>
                                 </StackPanel>
                                 <StackPanel Style="{StaticResource SettingCellStyle}">
-                                    <TextBlock Text="Delay" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.DelayLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <UniformGrid Columns="2">
                                         <TextBox x:Name="DelayMinTextBox" Height="44" Margin="0,0,7,0" />
                                         <TextBox x:Name="DelayMaxTextBox" Height="44" />
                                     </UniformGrid>
                                 </StackPanel>
                                 <StackPanel Style="{StaticResource SettingCellStyle}" Margin="0,0,0,14">
-                                    <TextBlock Text="Maximum timeout (FloodWait)" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.FloodWaitLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <TextBox x:Name="FloodWaitTextBox" Height="44" />
                                 </StackPanel>
                             </UniformGrid>
@@ -341,62 +341,62 @@
                                     <ColumnDefinition Width="220" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
-                                    <TextBlock Text="Select Accounts" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.SelectAccountsLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <TextBox x:Name="SelectedAccountsTextBox" Height="44" IsReadOnly="True" />
                                 </StackPanel>
                                 <Button Grid.Column="2" Height="44" VerticalAlignment="Bottom"
                                         Style="{StaticResource PrimaryButtonStyle}" Click="SelectAccountsButton_Click">
                                     <StackPanel Orientation="Horizontal">
                                         <iconPacks:PackIconMaterial Kind="AccountOutline" Width="16" Height="16" Margin="0,0,8,0" />
-                                        <TextBlock Text="Select Accounts" />
+                                        <TextBlock Text="{tr:Tr SendByNumbers.SelectAccountsButton}" />
                                     </StackPanel>
                                 </Button>
                             </Grid>
 
                             <UniformGrid Columns="2">
                                 <StackPanel Style="{StaticResource SettingCellStyle}">
-                                    <TextBlock Text="Delete dialog after messaging" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.DeleteDialogLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="DeleteDialogToggle" Style="{StaticResource OptionToggleStyle}" />
                                 </StackPanel>
                                 <StackPanel Style="{StaticResource SettingCellStyle}" Margin="0,0,0,14">
-                                    <TextBlock Text="Preview links" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.PreviewLinksLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="PreviewLinksToggle" Style="{StaticResource OptionToggleStyle}" />
                                 </StackPanel>
                                 <StackPanel Style="{StaticResource SettingCellStyle}">
-                                    <TextBlock Text="Silent mode" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.SilentModeLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="SilentModeToggle" Style="{StaticResource OptionToggleStyle}" />
                                 </StackPanel>
                                 <StackPanel Style="{StaticResource SettingCellStyle}" Margin="0,0,0,14">
-                                    <TextBlock Text="Auto repost" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.AutoRepostLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="AutoRepostToggle" Style="{StaticResource OptionToggleStyle}" />
                                 </StackPanel>
                                 <StackPanel Style="{StaticResource SettingCellStyle}" Margin="0,0,14,0">
-                                    <TextBlock Text="Remove imported contacts" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.RemoveImportedContactsLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="RemoveImportedContactsToggle" Style="{StaticResource OptionToggleStyle}" />
                                 </StackPanel>
                                 <StackPanel Margin="0">
-                                    <TextBlock Text="Pin message in chat" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.PinMessageLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="PinMessageToggle" Style="{StaticResource OptionToggleStyle}" />
                                 </StackPanel>
                             </UniformGrid>
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Text="SENDING FILES" Style="{StaticResource SectionHeaderStyle}" Margin="2,0,0,12" />
+                    <TextBlock Text="{tr:Tr SendByNumbers.SendingFilesHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="2,0,0,12" />
                     <Border Style="{StaticResource SectionCardStyle}">
                         <UniformGrid Columns="2">
                             <StackPanel Style="{StaticResource SettingCellStyle}" Margin="0,0,14,0">
-                                <TextBlock Text="Send video in a circle (*.mp4)" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBlock Text="{tr:Tr SendByNumbers.VideoCircleLabel}" Style="{StaticResource FieldLabelStyle}" />
                                 <ToggleButton x:Name="VideoCircleToggle" Style="{StaticResource OptionToggleStyle}" />
                             </StackPanel>
                             <StackPanel>
-                                <TextBlock Text="File self-destruct in 60 seconds" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBlock Text="{tr:Tr SendByNumbers.SelfDestructLabel}" Style="{StaticResource FieldLabelStyle}" />
                                 <ToggleButton x:Name="SelfDestructToggle" Style="{StaticResource OptionToggleStyle}" />
                             </StackPanel>
                         </UniformGrid>
                     </Border>
 
-                    <TextBlock Text="ADDITIONAL SETTINGS" Style="{StaticResource SectionHeaderStyle}" Margin="2,0,0,12" />
+                    <TextBlock Text="{tr:Tr SendByNumbers.AdditionalSettingsHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="2,0,0,12" />
                     <Border Style="{StaticResource SectionCardStyle}">
                         <StackPanel>
                             <Grid Margin="0,0,0,14">
@@ -406,20 +406,20 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Sending by time" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.SendingByTimeLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="SendingByTimeToggle" Style="{StaticResource OptionToggleStyle}" />
                                     <TextBox x:Name="ScheduleAtTextBox"
                                              Style="{StaticResource OptionValueTextBoxStyle}"
                                              IsEnabled="{Binding IsChecked, ElementName=SendingByTimeToggle}"
-                                             ToolTip="Local time: yyyy-MM-dd HH:mm" />
+                                             ToolTip="{tr:Tr SendByNumbers.ScheduleAtTooltip}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Streams control" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.StreamsControlLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="StreamsControlToggle" Style="{StaticResource OptionToggleStyle}" />
                                     <TextBox x:Name="StreamsTextBox"
                                              Style="{StaticResource OptionValueTextBoxStyle}"
                                              IsEnabled="{Binding IsChecked, ElementName=StreamsControlToggle}"
-                                             ToolTip="Number of accounts working simultaneously" />
+                                             ToolTip="{tr:Tr SendByNumbers.StreamsTooltip}" />
                                 </StackPanel>
                             </Grid>
 
@@ -430,11 +430,11 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Auto stop" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.AutoStopLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="AutoStopToggle" Style="{StaticResource OptionToggleStyle}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Run control" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.RunControlLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ToggleButton x:Name="RunControlToggle" Style="{StaticResource OptionToggleStyle}" />
                                 </StackPanel>
                             </Grid>
@@ -450,33 +450,33 @@
                                     <ColumnDefinition Width="3.3*" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="BAN" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.AutoStopBanLabel}" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
                                     <TextBox x:Name="AutoStopBanTextBox"
                                              Style="{StaticResource AutoStopFieldStyle}"
                                              IsEnabled="{Binding IsChecked, ElementName=AutoStopToggle}"
-                                             ToolTip="Stop after this many banned accounts" />
+                                             ToolTip="{tr:Tr SendByNumbers.AutoStopBanTooltip}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="SpamBlock" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
                                     <TextBox x:Name="AutoStopSpamblockTextBox"
                                              Style="{StaticResource AutoStopFieldStyle}"
                                              IsEnabled="{Binding IsChecked, ElementName=AutoStopToggle}"
-                                             ToolTip="Stop after this many SpamBlock accounts" />
+                                             ToolTip="{tr:Tr SendByNumbers.AutoStopSpamBlockTooltip}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="4">
                                     <TextBlock Text="FloodWait" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
                                     <TextBox x:Name="AutoStopFloodWaitTextBox"
                                              Style="{StaticResource AutoStopFieldStyle}"
                                              IsEnabled="{Binding IsChecked, ElementName=AutoStopToggle}"
-                                             ToolTip="Stop after this many FloodWait events" />
+                                             ToolTip="{tr:Tr SendByNumbers.AutoStopFloodWaitTooltip}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="6">
-                                    <TextBlock Text="Repeat hours" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
+                                    <TextBlock Text="{tr:Tr SendByNumbers.RepeatHoursLabel}" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
                                     <TextBox x:Name="RepeatHoursTextBox"
                                              Style="{StaticResource AutoStopFieldStyle}"
                                              HorizontalContentAlignment="Left"
                                              IsEnabled="{Binding IsChecked, ElementName=RunControlToggle}"
-                                             ToolTip="Repeat interval in hours" />
+                                             ToolTip="{tr:Tr SendByNumbers.RepeatHoursTooltip}" />
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
@@ -486,7 +486,7 @@
                 <StackPanel Grid.Column="2">
                     <Border Style="{StaticResource SectionCardStyle}">
                         <StackPanel>
-                            <TextBlock Text="MESSAGE VIEW" Style="{StaticResource SectionHeaderStyle}" />
+                            <TextBlock Text="{tr:Tr SendByNumbers.MessageViewHeader}" Style="{StaticResource SectionHeaderStyle}" />
                             <Border Height="216"
                                     Padding="14"
                                     Background="{StaticResource SurfaceAltBrush}"
@@ -511,7 +511,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="PROGRAM ACTIONS" Style="{StaticResource SectionHeaderStyle}" Margin="0" VerticalAlignment="Center" />
+                                <TextBlock Text="{tr:Tr SendByNumbers.ProgramActionsHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="0" VerticalAlignment="Center" />
                                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                                     <Button x:Name="StartButton"
                                             Style="{StaticResource ToolbarIconButtonStyle}"
@@ -540,9 +540,9 @@
                                       HeadersVisibility="Column"
                                       GridLinesVisibility="Horizontal">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="82" />
-                                    <DataGridTextColumn Header="Account" Binding="{Binding Account}" Width="140" />
-                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
+                                    <DataGridTextColumn Header="{tr:Tr SendByNumbers.LogColTime}" Binding="{Binding Time}" Width="82" />
+                                    <DataGridTextColumn Header="{tr:Tr SendByNumbers.LogColAccount}" Binding="{Binding Account}" Width="140" />
+                                    <DataGridTextColumn Header="{tr:Tr SendByNumbers.LogColMessage}" Binding="{Binding Message}" Width="*" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </StackPanel>
@@ -557,7 +557,7 @@
                             <StackPanel>
                                 <TextBlock Text="{tr:Tr Common.ResultsHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="0,0,0,6" />
                                 <TextBlock x:Name="ResultsSummaryText"
-                                           Text="No results yet"
+                                           Text="{tr:Tr SendByNumbers.NoResultsYet}"
                                            FontSize="12"
                                            Foreground="{StaticResource TextFaintBrush}" />
                             </StackPanel>
@@ -595,7 +595,7 @@
                         <Button Grid.Column="1"
                                 Style="{StaticResource ToolbarIconButtonStyle}"
                                 Margin="0"
-                                ToolTip="Close"
+                                ToolTip="{tr:Tr SendByNumbers.ModalCloseTooltip}"
                                 Click="CloseModalButton_Click">
                             <iconPacks:PackIconMaterial Kind="Close" Width="16" Height="16" />
                         </Button>
@@ -613,7 +613,7 @@
                         <Button Height="48" Click="ChooseLocalFileButton_Click">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Laptop" Width="18" Height="18" Margin="0,0,9,0" />
-                                <TextBlock Text="Choose local file" FontWeight="SemiBold" />
+                                <TextBlock Text="{tr:Tr SendByNumbers.ChooseLocalFileButton}" FontWeight="SemiBold" />
                             </StackPanel>
                         </Button>
                         <TextBox x:Name="AttachmentLinkTextBox"
@@ -625,9 +625,9 @@
                     </StackPanel>
 
                     <StackPanel x:Name="PostbotModalPanel" Visibility="Collapsed">
-                        <TextBlock Text="Bot username" Style="{StaticResource FieldLabelStyle}" />
+                        <TextBlock Text="{tr:Tr SendByNumbers.BotUsernameLabel}" Style="{StaticResource FieldLabelStyle}" />
                         <TextBox x:Name="PostbotNameTextBox" Height="44" />
-                        <TextBlock Text="Post ID(s), one per line" Style="{StaticResource FieldLabelStyle}" Margin="0,14,0,6" />
+                        <TextBlock Text="{tr:Tr SendByNumbers.PostIdsLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,14,0,6" />
                         <TextBox x:Name="PostbotIdsTextBox"
                                  Height="132"
                                  AcceptsReturn="True"
@@ -659,7 +659,7 @@
                             Margin="0,22,0,0"
                             Height="46"
                             Style="{StaticResource PrimaryButtonStyle}"
-                            Content="Apply"
+                            Content="{tr:Tr SendByNumbers.ModalApplyButton}"
                             Click="ModalApplyButton_Click" />
                 </StackPanel>
             </Border>

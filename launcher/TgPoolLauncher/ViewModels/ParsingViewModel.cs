@@ -1,4 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -61,6 +64,22 @@ public partial class ParsingViewModel : ObservableObject
 
     public ObservableCollection<string> Sources { get; } = new();
 
+    // --- Source picker (browse joined chats/channels instead of typing them) ---
+    [ObservableProperty]
+    private bool isSourcePickerOpen;
+
+    [ObservableProperty]
+    private string sourceSearchText = "";
+
+    [ObservableProperty]
+    private string sourcePickerStatus = "";
+
+    private List<SelectableSourceRow> _allSourceRows = new();
+
+    public ObservableCollection<SelectableSourceRow> FilteredSources { get; } = new();
+
+    private string? _lastOpenedReportPath;
+
     public ParsingViewModel(BackendClient backend)
     {
         _backend = backend;
@@ -74,11 +93,44 @@ public partial class ParsingViewModel : ObservableObject
         OnPropertyChanged(nameof(IsRunning));
         StartCommand.NotifyCanExecuteChanged();
         StopCommand.NotifyCanExecuteChanged();
+        DownloadTxtCommand.NotifyCanExecuteChanged();
 
         Sources.Clear();
         if (value is not null)
             foreach (var source in value.Sources)
                 Sources.Add(source);
+
+        // A console opens with this run's numbers the moment it finishes --
+        // guarded by report path so a still-finished status from later polls
+        // doesn't reopen it, but a genuinely new run (new report path) does.
+        if (value?.Finished == true && !string.IsNullOrWhiteSpace(value.ReportPath)
+            && value.ReportPath != _lastOpenedReportPath)
+        {
+            _lastOpenedReportPath = value.ReportPath;
+            OpenReportConsole(value.ReportPath);
+        }
+    }
+
+    private static void OpenReportConsole(string reportPath)
+    {
+        try
+        {
+            var fullPath = Path.IsPathRooted(reportPath) ? reportPath : Path.Combine(AppPaths.Root, reportPath);
+            // The report file is UTF-16 (with BOM) specifically so `type` renders Cyrillic
+            // correctly here without any chcp/codepage juggling -- cmd.exe's `type` reads
+            // UTF-16-with-BOM via its native wide-char path, sidestepping the legacy OEM
+            // byte-translation that garbles multi-byte UTF-8 even under `chcp 65001`.
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/k type \"{fullPath}\"",
+                UseShellExecute = true,
+            });
+        }
+        catch
+        {
+            // best-effort -- a failed console popup must not disrupt the rest of the UI
+        }
     }
 
     private async Task RefreshStatusAsync()
@@ -128,6 +180,7 @@ public partial class ParsingViewModel : ObservableObject
                 },
                 ExportMode = ExportMode,
                 ExportPath = string.IsNullOrWhiteSpace(ExportPath) ? null : ExportPath,
+                Language = LocalizationService.Instance.CurrentLanguage.ToString().ToLowerInvariant(),
             });
             await RefreshStatusAsync();
         }
@@ -151,6 +204,26 @@ public partial class ParsingViewModel : ObservableObject
             ExportPath = dialog.FolderName;
     }
 
+    private bool CanDownloadTxt() => !string.IsNullOrWhiteSpace(LatestStatus?.TxtPath);
+
+    [RelayCommand(CanExecute = nameof(CanDownloadTxt))]
+    private void DownloadTxt()
+    {
+        var source = LatestStatus?.TxtPath;
+        if (string.IsNullOrWhiteSpace(source) || !File.Exists(source))
+            return;
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = LocalizationService.Instance["Parsing.DownloadTxtDialogTitle"],
+            FileName = Path.GetFileName(source),
+            Filter = "Text files (*.txt)|*.txt|All files|*.*",
+            InitialDirectory = AppPaths.Exports,
+        };
+        if (dialog.ShowDialog() == true)
+            File.Copy(source, dialog.FileName, overwrite: true);
+    }
+
     [RelayCommand(CanExecute = nameof(IsRunning))]
     private async Task StopAsync()
     {
@@ -163,5 +236,62 @@ public partial class ParsingViewModel : ObservableObject
         {
             StatusMessage = ex.Message;
         }
+    }
+
+    [RelayCommand]
+    private async Task OpenSourcePickerAsync()
+    {
+        IsSourcePickerOpen = true;
+        SourceSearchText = "";
+        SourcePickerStatus = LocalizationService.Instance["Parsing.SourcesLoading"];
+        _allSourceRows.Clear();
+        FilteredSources.Clear();
+
+        try
+        {
+            var sources = await _backend.GetParsingSourcesAsync();
+            _allSourceRows = sources.Select(s => new SelectableSourceRow(s)).ToList();
+            ApplySourceFilter();
+            SourcePickerStatus = string.Format(
+                LocalizationService.Instance["Parsing.SourcesLoadedFormat"], _allSourceRows.Count);
+        }
+        catch (Exception ex)
+        {
+            SourcePickerStatus = string.Format(
+                LocalizationService.Instance["Parsing.SourcesLoadErrorFormat"], ex.Message);
+        }
+    }
+
+    partial void OnSourceSearchTextChanged(string value) => ApplySourceFilter();
+
+    private void ApplySourceFilter()
+    {
+        FilteredSources.Clear();
+        var query = SourceSearchText?.Trim() ?? "";
+        var matches = query.Length == 0
+            ? _allSourceRows
+            : _allSourceRows.Where(row =>
+                row.Source.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || row.Source.Identifier.Contains(query, StringComparison.OrdinalIgnoreCase));
+        foreach (var row in matches)
+            FilteredSources.Add(row);
+    }
+
+    [RelayCommand]
+    private void CloseSourcePicker() => IsSourcePickerOpen = false;
+
+    [RelayCommand]
+    private void UseSelectedSources()
+    {
+        var selected = _allSourceRows.Where(row => row.IsSelected).Select(row => row.Source.Identifier).ToList();
+        if (selected.Count > 0)
+        {
+            var existing = EntitiesText
+                .Split(new[] { '\n', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+            var combined = existing.Concat(selected).Distinct();
+            EntitiesText = string.Join("\n", combined);
+        }
+        IsSourcePickerOpen = false;
     }
 }

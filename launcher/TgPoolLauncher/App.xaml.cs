@@ -40,6 +40,23 @@ public partial class App : System.Windows.Application
         var repoRoot = ResolveRepoRoot();
         AppPaths.Initialize(repoRoot);
 
+        // License gate runs before anything else: a console window (TgPoolActivator.exe,
+        // a separate process from this app) prompts for the key when there's no locally
+        // valid cached activation. No point starting the Python backend for a customer
+        // who isn't licensed.
+        if (!LicenseGateway.HasLocallyValidLicense(AppPaths.Data))
+        {
+            var activated = await LicenseGateway.RunActivatorAsync(repoRoot, AppPaths.Data);
+            if (!activated || !LicenseGateway.HasLocallyValidLicense(AppPaths.Data))
+            {
+                MessageBox.Show(
+                    Localization.LocalizationService.Instance["App.LicenseActivationFailedMessage"],
+                    "TgPoolLauncher", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown(-1);
+                return;
+            }
+        }
+
         _host = Host.CreateDefaultBuilder()
             .ConfigureServices((_, services) =>
             {
@@ -120,6 +137,11 @@ public partial class App : System.Windows.Application
             Shutdown(-1);
             return;
         }
+
+        // Forward the console activator's cached key+hwid to the local backend, which now
+        // owns its own periodic re-validation against the license server (src/licensing) --
+        // this call just seeds that state, it doesn't gate this WPF process itself.
+        await LicenseGateway.SyncBackendAsync(_host.Services.GetRequiredService<BackendClient>(), AppPaths.Data);
 
         _host.Services.GetRequiredService<EventStreamClient>().Start();
 

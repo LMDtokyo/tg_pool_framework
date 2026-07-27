@@ -39,6 +39,9 @@ public sealed class ParseStartRequest
 
     [JsonPropertyName("export_path")]
     public string? ExportPath { get; init; }
+
+    [JsonPropertyName("language")]
+    public string Language { get; init; } = "ru";
 }
 
 public sealed class ParseStartResponse
@@ -70,9 +73,45 @@ public sealed class ParseStatusDto
     [JsonPropertyName("export_path")]
     public string? ExportPath { get; init; }
 
+    [JsonPropertyName("db_path")]
+    public string? DbPath { get; init; }
+
+    [JsonPropertyName("report_path")]
+    public string? ReportPath { get; init; }
+
+    [JsonPropertyName("txt_path")]
+    public string? TxtPath { get; init; }
+
+    [JsonPropertyName("accounts_used")]
+    public int AccountsUsed { get; init; }
+
+    [JsonPropertyName("stats")]
+    public Dictionary<string, int>? Stats { get; init; }
+
     [JsonPropertyName("finished")]
     public bool Finished { get; init; }
 
     [JsonPropertyName("error")]
     public string? Error { get; init; }
+}
+
+public sealed class ParseSourceOut
+{
+    [JsonPropertyName("identifier")]
+    public string Identifier { get; init; } = "";
+
+    [JsonPropertyName("title")]
+    public string Title { get; init; } = "";
+
+    [JsonPropertyName("kind")]
+    public string Kind { get; init; } = "";
+
+    [JsonPropertyName("members_count")]
+    public int? MembersCount { get; init; }
+}
+
+public sealed class ParseSourcesResponse
+{
+    [JsonPropertyName("sources")]
+    public List<ParseSourceOut> Sources { get; init; } = new();
 }

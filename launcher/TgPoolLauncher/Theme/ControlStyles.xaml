@@ -134,6 +134,43 @@
         <Setter Property="Margin" Value="0,0,0,16" />
     </Style>
 
+    <!-- Empty "liquid glass" placeholder card (Dashboard) -->
+    <Style x:Key="GlassCardStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Background" Value="{StaticResource GlassBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="18" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="28" ShadowDepth="8" Direction="270" Opacity="0.30" Color="#000000" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="GlassAccentCardStyle" TargetType="Border" BasedOn="{StaticResource GlassCardStyle}">
+        <Setter Property="Background" Value="{StaticResource GlassAccentBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GlassAccentBorderBrush}" />
+    </Style>
+
+    <!-- Small round icon well used inside glass cards -->
+    <Style x:Key="GlassIconBadgeStyle" TargetType="Border">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="CornerRadius" Value="20" />
+        <Setter Property="Background" Value="{StaticResource GlassBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- Thin rounded bar standing in for a line of text in an empty glass card -->
+    <Style x:Key="SkeletonLineStyle" TargetType="Rectangle">
+        <Setter Property="Fill" Value="{StaticResource SkeletonBrush}" />
+        <Setter Property="Height" Value="8" />
+        <Setter Property="RadiusX" Value="4" />
+        <Setter Property="RadiusY" Value="4" />
+    </Style>
+
     <Style x:Key="StatPillStyle" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />

@@ -22,6 +22,9 @@ public sealed class AccountDto
     [JsonPropertyName("phone")]
     public string Phone { get; init; } = "";
 
+    [JsonPropertyName("session_path")]
+    public string SessionPath { get; init; } = "";
+
     [JsonPropertyName("status")]
     public string Status { get; init; } = "unknown";
 

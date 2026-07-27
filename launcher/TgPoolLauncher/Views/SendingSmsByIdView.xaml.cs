@@ -12,14 +12,17 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using Microsoft.Win32;
+using TgPoolLauncher.Localization;
 using TgPoolLauncher.Models;
 using TgPoolLauncher.Services;
+using TgPoolLauncher.ViewModels;
 
 namespace TgPoolLauncher.Views;
 
 public partial class SendingSmsByIdView : UserControl
 {
     private readonly BackendClient _backend;
+    private readonly ParsingViewModel _parsing;
     private readonly ObservableCollection<ProgramActionRow> _programActions = new();
     private readonly ObservableCollection<SelectableSenderAccount> _availableAccounts = new();
     private readonly List<string> _senderPhones = new();
@@ -29,18 +32,54 @@ public partial class SendingSmsByIdView : UserControl
     private string? _lastExportPath;
     private Random _random = new();
 
-    public SendingSmsByIdView(BackendClient backend)
+    public SendingSmsByIdView(BackendClient backend, ParsingViewModel parsing)
     {
         _backend = backend;
+        _parsing = parsing;
         InitializeComponent();
         ProgramActionsGrid.ItemsSource = _programActions;
         AccountsListBox.ItemsSource = _availableAccounts;
         ResetForm();
+        _parsing.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ParsingViewModel.LatestStatus))
+                RefreshParsedHint();
+        };
         Loaded += async (_, _) =>
         {
+            RefreshParsedHint();
             await LoadAccountsAsync(logFailure: false);
             await RestoreJobStatusAsync();
         };
+    }
+
+    private void RefreshParsedHint()
+    {
+        var status = _parsing.LatestStatus;
+        var path = status?.ExportPath;
+        var hasFreshExport = status?.Finished == true
+            && !string.IsNullOrWhiteSpace(path)
+            && string.Equals(Path.GetExtension(path), ".xlsx", StringComparison.OrdinalIgnoreCase)
+            && File.Exists(path);
+
+        ParsedHintBanner.Visibility = hasFreshExport ? Visibility.Visible : Visibility.Collapsed;
+        if (hasFreshExport)
+        {
+            var total = status!.Stats is not null && status.Stats.TryGetValue("total", out var count) ? count : 0;
+            ParsedHintText.Text = string.Format(
+                LocalizationService.Instance["SendById.ParsedDatabaseHintFormat"],
+                total,
+                Path.GetFileName(path));
+        }
+    }
+
+    private void UseParsedDatabaseButton_Click(object sender, RoutedEventArgs e)
+    {
+        var path = _parsing.LatestStatus?.ExportPath;
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+        DatabasePathTextBox.Text = path;
+        AddAction("Database", $"Using freshly parsed database: {Path.GetFileName(path)}.");
     }
 
     private void BoldButton_Click(object sender, RoutedEventArgs e) =>

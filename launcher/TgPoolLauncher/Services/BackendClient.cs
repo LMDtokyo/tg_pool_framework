@@ -32,6 +32,21 @@ public sealed class BackendClient
         }
     }
 
+    /// <summary>
+    /// Forwards the cached license key + hwid to the local backend so its own
+    /// gate (src/api/license_gate.py) picks up the activation. Never throws
+    /// on a rejection -- the returned DTO's Valid/Reason describe it instead,
+    /// matching the backend's always-200 /license/activate contract.
+    /// </summary>
+    public async Task<LicenseStatusDto> ActivateLicenseAsync(
+        string licenseKey, string hwid, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync(
+            "/license/activate", new LicenseActivateRequest { LicenseKey = licenseKey, Hwid = hwid }, ct);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadFromJsonAsync<LicenseStatusDto>(ct) ?? new LicenseStatusDto();
+    }
+
     public async Task<List<AccountDto>> GetAccountsAsync(
         string? status = null,
         string? role = null,
@@ -549,6 +564,19 @@ public sealed class BackendClient
     {
         var result = await _http.GetFromJsonAsync<ParseStatusDto>("/parsing/status", ct);
         return result ?? new ParseStatusDto();
+    }
+
+    public async Task<List<ParseSourceOut>> GetParsingSourcesAsync(int limit = 200, CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync($"/parsing/sources?limit={limit}", ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var detail = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"Unable to load parsing sources ({(int)resp.StatusCode}): {detail}");
+        }
+        var result = await resp.Content.ReadFromJsonAsync<ParseSourcesResponse>(ct);
+        return result?.Sources ?? new List<ParseSourceOut>();
     }
 
     public async Task<InviteByNumberStartResponse> StartInviteByNumberAsync(

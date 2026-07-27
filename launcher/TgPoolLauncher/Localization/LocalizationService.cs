@@ -34,6 +34,10 @@ public sealed class LocalizationService : INotifyPropertyChanged
         AccountsStrings.Register(_table);
         ProxyStrings.Register(_table);
         ToolsStrings.Register(_table);
+        DatamollStrings.Register(_table);
+        NumberCheckerStrings.Register(_table);
+        SendByNumbersStrings.Register(_table);
+        SendByIdStrings.Register(_table);
 
         _current = LoadSavedLanguage();
     }

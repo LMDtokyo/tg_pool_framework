@@ -3,53 +3,367 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
              xmlns:loc="clr-namespace:TgPoolLauncher.Localization"
              mc:Ignorable="d"
-             d:DesignHeight="500" d:DesignWidth="700">
+             d:DesignHeight="900" d:DesignWidth="1100">
     <UserControl.Resources>
         <loc:BoolToConnectionLabelConverter x:Key="BoolToConnectionLabelConverter" />
+
+        <!-- One quick-links row: icon well + two skeleton lines + a round action well. -->
+        <Style x:Key="QuickLinkCardStyle" TargetType="Border" BasedOn="{StaticResource GlassCardStyle}">
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+
+        <!-- One news/guide card: header icon+lines, body lines, footer tag pills. -->
+        <Style x:Key="NewsCardStyle" TargetType="Border" BasedOn="{StaticResource GlassCardStyle}">
+            <Setter Property="Height" Value="168" />
+        </Style>
+
+        <Style x:Key="TagPillStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{StaticResource GlassBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource GlassBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
     </UserControl.Resources>
-    <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-            <TextBlock Text="Backend: " Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
-            <Ellipse Width="10" Height="10" Margin="4,0,4,0" VerticalAlignment="Center">
-                <Ellipse.Style>
-                    <Style TargetType="Ellipse">
-                        <Setter Property="Fill" Value="{StaticResource DangerBrush}" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Connected}" Value="True">
-                                <Setter Property="Fill" Value="{StaticResource SuccessBrush}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Ellipse.Style>
-            </Ellipse>
-            <TextBlock Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center">
-                <Run Text="{tr:Tr Dashboard.LiveFeed}" /><Run Text=": " />
-                <Run>
-                    <Run.Text>
-                        <MultiBinding Converter="{StaticResource BoolToConnectionLabelConverter}" Mode="OneWay">
-                            <Binding Path="Connected" />
-                            <Binding Source="{x:Static loc:LocalizationService.Instance}" Path="CurrentLanguage" />
-                        </MultiBinding>
-                    </Run.Text>
-                </Run>
-            </TextBlock>
-        </StackPanel>
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20">
+            <StackPanel>
 
-        <DataGrid Grid.Row="1" ItemsSource="{Binding AccountStatuses}" AutoGenerateColumns="False"
-                  IsReadOnly="True" CanUserAddRows="False" GridLinesVisibility="Horizontal">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="{tr:Tr Dashboard.ColPhone}" Binding="{Binding Phone}" Width="160" />
-                <DataGridTextColumn Header="{tr:Tr Dashboard.ColStatus}" Binding="{Binding Status}" Width="120" />
-                <DataGridTextColumn Header="{tr:Tr Dashboard.ColDetail}" Binding="{Binding Detail}" Width="*" />
-            </DataGrid.Columns>
-        </DataGrid>
+                <!-- Hero banner + quick-links sidebar -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="1*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource GlassCardStyle}" MinHeight="230">
+                        <Grid>
+                            <Ellipse Width="220" Height="220" Fill="{StaticResource AccentTintBrush}" Opacity="0.45"
+                                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-60,-60,0">
+                                <Ellipse.Effect>
+                                    <BlurEffect Radius="50" />
+                                </Ellipse.Effect>
+                            </Ellipse>
+
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Border Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Center"
+                                        Background="{StaticResource GlassBackgroundBrush}"
+                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
+                                    <iconPacks:PackIconMaterial Kind="Web" Width="28" Height="28"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="{tr:Tr Dashboard.HeroCaption}" Foreground="{StaticResource TextFaintBrush}"
+                                           FontSize="13" Margin="0,14,0,0" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{tr:Tr Dashboard.QuickLinksHeader}" Style="{StaticResource FieldLabelStyle}"
+                                   FontSize="11" Margin="4,0,0,10" />
+
+                        <Border Style="{StaticResource QuickLinkCardStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource GlassIconBadgeStyle}">
+                                    <iconPacks:PackIconMaterial Kind="FileDocumentOutline" Width="18" Height="18"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="120" Margin="0,0,0,6" />
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="70" Height="6" Opacity="0.6" />
+                                </StackPanel>
+                                <Border Grid.Column="2" Width="28" Height="28" CornerRadius="14"
+                                        Background="{StaticResource GlassBackgroundBrush}"
+                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
+                                    <iconPacks:PackIconMaterial Kind="Download" Width="13" Height="13"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource QuickLinkCardStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource GlassIconBadgeStyle}">
+                                    <iconPacks:PackIconMaterial Kind="FileDocumentOutline" Width="18" Height="18"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="100" Margin="0,0,0,6" />
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="60" Height="6" Opacity="0.6" />
+                                </StackPanel>
+                                <Border Grid.Column="2" Width="28" Height="28" CornerRadius="14"
+                                        Background="{StaticResource GlassBackgroundBrush}"
+                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
+                                    <iconPacks:PackIconMaterial Kind="Download" Width="13" Height="13"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource QuickLinkCardStyle}" Margin="0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource GlassIconBadgeStyle}">
+                                    <iconPacks:PackIconMaterial Kind="FileDocumentOutline" Width="18" Height="18"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="110" Margin="0,0,0,6" />
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="65" Height="6" Opacity="0.6" />
+                                </StackPanel>
+                                <Border Grid.Column="2" Width="28" Height="28" CornerRadius="14"
+                                        Background="{StaticResource GlassBackgroundBrush}"
+                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
+                                    <iconPacks:PackIconMaterial Kind="Download" Width="13" Height="13"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <!-- News / guides row -->
+                <TextBlock Text="{tr:Tr Dashboard.NewsHeader}" Style="{StaticResource FieldLabelStyle}"
+                           FontSize="11" Margin="4,0,0,10" />
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="14" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="14" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="14" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource NewsCardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                <Border Width="32" Height="32" CornerRadius="16"
+                                        Background="{StaticResource GlassBackgroundBrush}"
+                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
+                                    <iconPacks:PackIconMaterial Kind="MessageText" Width="15" Height="15"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="90" Margin="0,0,0,5" />
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="50" Height="6" Opacity="0.55" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="200" Margin="0,0,0,6" />
+                                <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="150" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Orientation="Horizontal">
+                                <Border Style="{StaticResource TagPillStyle}">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="34" Height="6" Opacity="0.6" />
+                                </Border>
+                                <Border Style="{StaticResource TagPillStyle}" Margin="0">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="34" Height="6" Opacity="0.6" />
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource NewsCardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                <Border Width="32" Height="32" CornerRadius="16"
+                                        Background="{StaticResource GlassBackgroundBrush}"
+                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
+                                    <iconPacks:PackIconMaterial Kind="MessageText" Width="15" Height="15"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="80" Margin="0,0,0,5" />
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="55" Height="6" Opacity="0.55" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="190" Margin="0,0,0,6" />
+                                <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="140" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Orientation="Horizontal">
+                                <Border Style="{StaticResource TagPillStyle}">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="34" Height="6" Opacity="0.6" />
+                                </Border>
+                                <Border Style="{StaticResource TagPillStyle}" Margin="0">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="34" Height="6" Opacity="0.6" />
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="4" Style="{StaticResource NewsCardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                <Border Width="32" Height="32" CornerRadius="16"
+                                        Background="{StaticResource GlassBackgroundBrush}"
+                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
+                                    <iconPacks:PackIconMaterial Kind="MessageText" Width="15" Height="15"
+                                                                 Foreground="{StaticResource TextFaintBrush}"
+                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="95" Margin="0,0,0,5" />
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="45" Height="6" Opacity="0.55" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="180" Margin="0,0,0,6" />
+                                <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="130" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Orientation="Horizontal">
+                                <Border Style="{StaticResource TagPillStyle}">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="34" Height="6" Opacity="0.6" />
+                                </Border>
+                                <Border Style="{StaticResource TagPillStyle}" Margin="0">
+                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="34" Height="6" Opacity="0.6" />
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="6" Style="{StaticResource GlassAccentCardStyle}" Height="168">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="44" Height="44" CornerRadius="22" HorizontalAlignment="Center"
+                                    Background="{StaticResource AccentTintBrush}">
+                                <iconPacks:PackIconMaterial Kind="Link" Width="20" Height="20"
+                                                             Foreground="{StaticResource AccentBrush}"
+                                                             HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="{tr:Tr Dashboard.ComingSoon}" Foreground="{StaticResource TextMutedBrush}"
+                                       FontSize="12" Margin="0,12,0,0" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Live feed (real data: account status events over the WebSocket) -->
+                <Border Style="{StaticResource GlassCardStyle}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="MessageText" Width="16" Height="16" Margin="0,0,8,0"
+                                                             Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="{tr:Tr Dashboard.LiveFeed}" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <Border Grid.Column="2" CornerRadius="10" Padding="10,4" BorderThickness="1">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{StaticResource DangerTintBrush}" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Connected}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource SuccessTintBrush}" />
+                                                <Setter Property="BorderBrush" Value="{StaticResource SuccessBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource DangerBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Connected}" Value="True">
+                                                        <Setter Property="Fill" Value="{StaticResource SuccessBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Connected}" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                        <Run>
+                                            <Run.Text>
+                                                <MultiBinding Converter="{StaticResource BoolToConnectionLabelConverter}" Mode="OneWay">
+                                                    <Binding Path="Connected" />
+                                                    <Binding Source="{x:Static loc:LocalizationService.Instance}" Path="CurrentLanguage" />
+                                                </MultiBinding>
+                                            </Run.Text>
+                                        </Run>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <DataGrid Height="280" ItemsSource="{Binding AccountStatuses}" AutoGenerateColumns="False"
+                                  IsReadOnly="True" CanUserAddRows="False" GridLinesVisibility="Horizontal"
+                                  Background="Transparent" BorderThickness="0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{tr:Tr Dashboard.ColPhone}" Binding="{Binding Phone}" Width="160" />
+                                <DataGridTextColumn Header="{tr:Tr Dashboard.ColStatus}" Binding="{Binding Status}" Width="120" />
+                                <DataGridTextColumn Header="{tr:Tr Dashboard.ColDetail}" Binding="{Binding Detail}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </UserControl>

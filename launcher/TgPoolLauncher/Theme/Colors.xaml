@@ -31,6 +31,22 @@
     <SolidColorBrush x:Key="WarningBrush" Color="#FBBF24" />
     <SolidColorBrush x:Key="WarningTintBrush" Color="#24F59E0B" />
 
+    <!-- Liquid-glass surfaces: semi-transparent gradients standing in for real
+         backdrop blur (WPF has no live blur-behind), used by empty placeholder
+         cards on the Dashboard. -->
+    <LinearGradientBrush x:Key="GlassBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#1AFFFFFF" Offset="0" />
+        <GradientStop Color="#0AFFFFFF" Offset="0.55" />
+        <GradientStop Color="#04FFFFFF" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="GlassBorderBrush" Color="#22FFFFFF" />
+    <LinearGradientBrush x:Key="GlassAccentBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#333B82F6" Offset="0" />
+        <GradientStop Color="#0F3B82F6" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="GlassAccentBorderBrush" Color="#4D3B82F6" />
+    <SolidColorBrush x:Key="SkeletonBrush" Color="#16FFFFFF" />
+
     <!-- Soften the native selection chrome on every DataGrid app-wide -->
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2A3B82F6" />
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#F4F4F5" />

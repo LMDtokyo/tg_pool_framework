@@ -10,6 +10,7 @@ internal static class CommonStrings
         table.Add("Common.Reset", "Сбросить", "Reset", "重置");
         table.Add("Common.Start", "Старт", "Start", "开始");
         table.Add("Common.Stop", "Стоп", "Stop", "停止");
+        table.Add("Common.Cancel", "Отмена", "Cancel", "取消");
         table.Add("Common.Done", "Готово", "Done", "完成");
         table.Add("Common.Open", "Открыть", "Open", "打开");
         table.Add("Common.Delete", "Удалить", "Delete", "删除");
@@ -44,5 +45,9 @@ internal static class CommonStrings
             "Check that Python and the requirements.txt dependencies are installed.",
             "无法启动后端服务（python -m uvicorn src.api.app:app）。\n" +
             "请检查是否已安装 Python 及 requirements.txt 中的依赖。");
+        table.Add("App.LicenseActivationFailedMessage",
+            "Активация лицензии не выполнена. Запусти TgPoolActivator.exe вручную и введи ключ.",
+            "License activation was not completed. Run TgPoolActivator.exe manually and enter your key.",
+            "许可证激活未完成。请手动运行 TgPoolActivator.exe 并输入密钥。");
     }
 }

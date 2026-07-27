@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
              mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="1080">
     <UserControl.Resources>
         <Style x:Key="CardStyle" TargetType="Border">
@@ -39,23 +40,23 @@
         <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="0">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="20">
-                    <TextBlock Text="DATAMOLL PROVIDER" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,12" />
-                    <TextBlock Text="Service" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBlock Text="{tr:Tr Datamoll.SectionProvider}" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,12" />
+                    <TextBlock Text="{tr:Tr Datamoll.ServiceLabel}" Style="{StaticResource FieldLabelStyle}" />
                     <TextBox Text="datamollcore.com" Height="44" IsReadOnly="True" Margin="0,0,0,12" />
 
-                    <TextBlock Text="API key" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBlock Text="{tr:Tr Datamoll.ApiKeyLabel}" Style="{StaticResource FieldLabelStyle}" />
                     <PasswordBox Height="44" Margin="0,0,0,10"
                                  PasswordChanged="ApiKeyBox_OnPasswordChanged"
-                                 ToolTip="Datamoll Provider API key" />
-                    <TextBlock Text="API secret" Style="{StaticResource FieldLabelStyle}" />
+                                 ToolTip="{tr:Tr Datamoll.ApiKeyTooltip}" />
+                    <TextBlock Text="{tr:Tr Datamoll.ApiSecretLabel}" Style="{StaticResource FieldLabelStyle}" />
                     <PasswordBox Height="44" Margin="0,0,0,6"
                                  PasswordChanged="ApiSecretBox_OnPasswordChanged"
-                                 ToolTip="Datamoll Provider API secret" />
-                    <TextBlock Text="Credentials stay in memory and are sent only to the local backend and Datamoll."
+                                 ToolTip="{tr:Tr Datamoll.ApiSecretTooltip}" />
+                    <TextBlock Text="{tr:Tr Datamoll.CredentialsNote}"
                                Foreground="{StaticResource TextFaintBrush}" FontSize="11"
                                TextWrapping="Wrap" Margin="0,0,0,14" />
 
-                    <TextBlock Text="Available balance" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBlock Text="{tr:Tr Datamoll.BalanceLabel}" Style="{StaticResource FieldLabelStyle}" />
                     <Grid Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
@@ -63,15 +64,15 @@
                         </Grid.ColumnDefinitions>
                         <TextBox Text="{Binding BalanceDisplay, Mode=OneWay}" Height="44" IsReadOnly="True" />
                         <Button Grid.Column="1" Style="{StaticResource IconButtonStyle}" Margin="10,5,0,5"
-                                Command="{Binding LoadBalanceCommand}" ToolTip="Refresh balance">
+                                Command="{Binding LoadBalanceCommand}" ToolTip="{tr:Tr Datamoll.RefreshBalanceTooltip}">
                             <iconPacks:PackIconMaterial Kind="Refresh" Width="16" Height="16" />
                         </Button>
                     </Grid>
                     <TextBlock Text="{Binding BalanceErrorMessage}" Foreground="{StaticResource DangerBrush}"
                                FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
 
-                    <TextBlock Text="TELEGRAM PRODUCT" Style="{StaticResource SectionTitleStyle}" Margin="0,4,0,12" />
-                    <TextBlock Text="Search country" Style="{StaticResource FieldLabelStyle}" />
+                    <TextBlock Text="{tr:Tr Datamoll.SectionTelegramProduct}" Style="{StaticResource SectionTitleStyle}" Margin="0,4,0,12" />
+                    <TextBlock Text="{tr:Tr Datamoll.SearchCountryLabel}" Style="{StaticResource FieldLabelStyle}" />
                     <Grid Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
@@ -80,9 +81,9 @@
                         <TextBox Height="44"
                                  Text="{Binding CountrySearchText, UpdateSourceTrigger=PropertyChanged}"
                                  VerticalContentAlignment="Center"
-                                 ToolTip="Search by country name" />
+                                 ToolTip="{tr:Tr Datamoll.SearchCountryTooltip}" />
                         <Button Grid.Column="1" Style="{StaticResource IconButtonStyle}" Margin="10,5,0,5"
-                                Command="{Binding LoadCatalogCommand}" ToolTip="Load live catalog">
+                                Command="{Binding LoadCatalogCommand}" ToolTip="{tr:Tr Datamoll.LoadCatalogTooltip}">
                             <iconPacks:PackIconMaterial Kind="Download" Width="16" Height="16" />
                         </Button>
                     </Grid>
@@ -95,10 +96,10 @@
                               GridLinesVisibility="Horizontal" SelectionMode="Single"
                               SelectionUnit="FullRow">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Country" Binding="{Binding CountryName}" Width="*" MinWidth="110" />
-                            <DataGridTextColumn Header="Age" Binding="{Binding AccountAge}" Width="82" />
-                            <DataGridTextColumn Header="Price" Binding="{Binding PriceDisplay}" Width="74" />
-                            <DataGridTextColumn Header="Available" Binding="{Binding AvailableDisplay}" Width="76" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ColumnCountry}" Binding="{Binding CountryName}" Width="*" MinWidth="110" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ColumnAge}" Binding="{Binding AccountAge}" Width="82" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ColumnPrice}" Binding="{Binding PriceDisplay}" Width="74" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ColumnAvailable}" Binding="{Binding AvailableDisplay}" Width="76" />
                         </DataGrid.Columns>
                     </DataGrid>
                     <TextBlock Text="{Binding CatalogStatusMessage}" Foreground="{StaticResource TextMutedBrush}"
@@ -108,23 +109,23 @@
 
                     <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="8" Padding="12" Margin="0,0,0,12">
                         <StackPanel>
-                            <TextBlock Text="SELECTED PRODUCT" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,10" />
+                            <TextBlock Text="{tr:Tr Datamoll.SectionSelectedProduct}" Style="{StaticResource SectionTitleStyle}" Margin="0,0,0,10" />
                             <UniformGrid Columns="4" Margin="0,0,0,12">
                                 <StackPanel Margin="0,0,8,0">
-                                    <TextBlock Text="Country" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr Datamoll.SelectedCountryLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <TextBlock Text="{Binding CountryDisplay}" FontWeight="SemiBold"
                                                TextTrimming="CharacterEllipsis" ToolTip="{Binding CountryDisplay}" />
                                 </StackPanel>
                                 <StackPanel Margin="0,0,8,0">
-                                    <TextBlock Text="Age" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr Datamoll.SelectedAgeLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <TextBlock Text="{Binding AccountAgeDisplay}" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <StackPanel Margin="0,0,8,0">
-                                    <TextBlock Text="Price" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr Datamoll.SelectedPriceLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <TextBlock Text="{Binding UnitPriceDisplay}" FontWeight="SemiBold" />
                                 </StackPanel>
                                 <StackPanel>
-                                    <TextBlock Text="Available" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr Datamoll.SelectedAvailableLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <TextBlock Text="{Binding StockDisplay}" FontWeight="SemiBold" />
                                 </StackPanel>
                             </UniformGrid>
@@ -135,11 +136,11 @@
 
                     <UniformGrid Columns="2" Margin="0,0,0,12">
                         <StackPanel Margin="0,0,8,0">
-                            <TextBlock Text="Quantity" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{tr:Tr Datamoll.QuantityLabel}" Style="{StaticResource FieldLabelStyle}" />
                             <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Height="44" />
                         </StackPanel>
                         <StackPanel Margin="8,0,0,0">
-                            <TextBlock Text="Allowed quantity" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{tr:Tr Datamoll.AllowedQuantityLabel}" Style="{StaticResource FieldLabelStyle}" />
                             <TextBox Text="{Binding OrderRangeDisplay, Mode=OneWay}" Height="44" IsReadOnly="True" />
                         </StackPanel>
                     </UniformGrid>
@@ -150,10 +151,10 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="Order total" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{tr:Tr Datamoll.OrderTotalLabel}" Style="{StaticResource FieldLabelStyle}" />
                             <TextBlock Text="{Binding TotalDisplay}" FontSize="18" FontWeight="SemiBold" />
                         </StackPanel>
-                        <Button Grid.Column="1" Content="Purchase" Height="42" MinWidth="112"
+                        <Button Grid.Column="1" Content="{tr:Tr Datamoll.PurchaseButton}" Height="42" MinWidth="112"
                                 Style="{StaticResource PrimaryButtonStyle}"
                                 Command="{Binding PurchaseCommand}" />
                     </Grid>
@@ -186,12 +187,12 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="PURCHASE ACTIVITY" Style="{StaticResource SectionTitleStyle}" />
-                            <TextBlock Text="Live Datamoll order status"
+                            <TextBlock Text="{tr:Tr Datamoll.SectionActivity}" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="{tr:Tr Datamoll.ActivitySubtitle}"
                                        Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,5,0,0" />
                         </StackPanel>
                         <Button Grid.Column="1" Style="{StaticResource IconButtonStyle}"
-                                Command="{Binding ClearCommand}" ToolTip="Clear activity">
+                                Command="{Binding ClearCommand}" ToolTip="{tr:Tr Datamoll.ClearActivityTooltip}">
                             <iconPacks:PackIconMaterial Kind="TrashCanOutline" Width="16" Height="16" />
                         </Button>
                     </Grid>
@@ -202,19 +203,19 @@
                               AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                               GridLinesVisibility="Horizontal" SelectionMode="Single">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Time" Binding="{Binding TimeDisplay}" Width="76" />
-                            <DataGridTextColumn Header="Order" Binding="{Binding OrderId}" Width="74" />
-                            <DataGridTextColumn Header="Product" Binding="{Binding Product}" Width="*" MinWidth="150" />
-                            <DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="50" />
-                            <DataGridTextColumn Header="Total" Binding="{Binding Total}" Width="90" />
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="92" />
-                            <DataGridTextColumn Header="Delivered" Binding="{Binding Delivered}" Width="74" />
-                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="1.4*" MinWidth="180" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnTime}" Binding="{Binding TimeDisplay}" Width="76" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnOrder}" Binding="{Binding OrderId}" Width="74" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnProduct}" Binding="{Binding Product}" Width="*" MinWidth="150" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnQty}" Binding="{Binding Quantity}" Width="50" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnTotal}" Binding="{Binding Total}" Width="90" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnStatus}" Binding="{Binding Status}" Width="92" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnDelivered}" Binding="{Binding Delivered}" Width="74" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnMessage}" Binding="{Binding Message}" Width="1.4*" MinWidth="180" />
                         </DataGrid.Columns>
                     </DataGrid>
                     <TextBlock Grid.Row="3" Margin="20,12,20,16" HorizontalAlignment="Right"
                                Foreground="{StaticResource TextFaintBrush}" FontSize="12">
-                        <Run Text="{Binding EventCount, Mode=OneWay}" /><Run Text=" orders" />
+                        <Run Text="{Binding EventCount, Mode=OneWay}" /><Run Text="{tr:Tr Datamoll.OrdersCountSuffix}" />
                     </TextBlock>
                 </Grid>
             </Border>
@@ -237,20 +238,20 @@
                                                         HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="DATAMOLL DELIVERY" Style="{StaticResource SectionTitleStyle}" />
-                            <TextBlock Text="Prepared Telegram account products are purchased directly from the catalog."
+                            <TextBlock Text="{tr:Tr Datamoll.SectionDelivery}" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="{tr:Tr Datamoll.DeliverySubtitle}"
                                        Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,4,0,0" />
                         </StackPanel>
                     </Grid>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,0,14,18">
                         <StackPanel>
-                            <TextBlock Text="Purchases are real and deduct the displayed Datamoll balance. Stock and price are checked again when the order is placed."
+                            <TextBlock Text="{tr:Tr Datamoll.DeliveryNote1}"
                                        Foreground="{StaticResource TextMutedBrush}" FontSize="12"
                                        TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,10" />
-                            <TextBlock Text="A retry reuses the same order identity, allowing Datamoll to recover delayed orders without charging twice."
+                            <TextBlock Text="{tr:Tr Datamoll.DeliveryNote2}"
                                        Foreground="{StaticResource TextMutedBrush}" FontSize="12"
                                        TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,10" />
-                            <TextBlock Text="Delivered packages are downloaded automatically. Session accounts are added to Accounts, Telegram Desktop data is added to Tdata, and the private order receipt is retained."
+                            <TextBlock Text="{tr:Tr Datamoll.DeliveryNote3}"
                                        Foreground="{StaticResource TextMutedBrush}" FontSize="12"
                                        TextWrapping="Wrap" LineHeight="18" />
                         </StackPanel>

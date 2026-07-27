@@ -5,183 +5,357 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
+             xmlns:conv="clr-namespace:TgPoolLauncher.Converters"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="980">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="24" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+    <UserControl.Resources>
+        <conv:ParsingSourceKindConverter x:Key="ParsingSourceKindConverter" />
+    </UserControl.Resources>
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-            <!-- Form -->
-            <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="12" Padding="28" Width="420" VerticalAlignment="Top">
-                <StackPanel>
-                    <TextBlock Text="{tr:Tr Parsing.NewParsing}" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" />
+                <!-- Form -->
+                <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="12" Padding="28" Width="420" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="{tr:Tr Parsing.NewParsing}" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" />
 
-                    <StackPanel Style="{StaticResource FieldGroupStyle}">
-                        <TextBlock Text="{tr:Tr Parsing.SourcesLabel}" Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding EntitiesText, UpdateSourceTrigger=PropertyChanged}"
-                                 AcceptsReturn="True" TextWrapping="Wrap" Height="64" VerticalScrollBarVisibility="Auto" />
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{tr:Tr Parsing.SourcesLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0" />
+                                <Button Grid.Column="1" Content="{tr:Tr Parsing.SelectSourcesButton}" Padding="8,3" FontSize="11"
+                                        Command="{Binding OpenSourcePickerCommand}" />
+                            </Grid>
+                            <TextBox Text="{Binding EntitiesText, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap" Height="64" VerticalScrollBarVisibility="Auto" />
+                        </StackPanel>
 
-                    <StackPanel Style="{StaticResource FieldGroupStyle}">
-                        <TextBlock Text="{tr:Tr Parsing.StrategyLabel}" Style="{StaticResource FieldLabelStyle}" />
-                        <ComboBox SelectedValue="{Binding Strategy}" SelectedValuePath="Content" HorizontalAlignment="Left" MinWidth="160">
-                            <ComboBoxItem Content="members" />
-                            <ComboBoxItem Content="comments" />
-                            <ComboBoxItem Content="messages" />
-                            <ComboBoxItem Content="reactions" />
-                            <ComboBoxItem Content="polls" />
-                            <ComboBoxItem Content="system" />
-                            <ComboBoxItem Content="topic" />
-                        </ComboBox>
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Parsing.StrategyLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox SelectedValue="{Binding Strategy}" SelectedValuePath="Content" HorizontalAlignment="Left" MinWidth="160">
+                                <ComboBoxItem Content="auto" />
+                                <ComboBoxItem Content="members" />
+                                <ComboBoxItem Content="comments" />
+                                <ComboBoxItem Content="messages" />
+                                <ComboBoxItem Content="reactions" />
+                                <ComboBoxItem Content="polls" />
+                                <ComboBoxItem Content="system" />
+                                <ComboBoxItem Content="topic" />
+                            </ComboBox>
+                        </StackPanel>
 
-                    <StackPanel Style="{StaticResource FieldGroupStyle}">
-                        <TextBlock Text="{tr:Tr Parsing.TopicIdLabel}" Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding TopicId, UpdateSourceTrigger=PropertyChanged}" />
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Parsing.TopicIdLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding TopicId, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
 
-                    <TextBlock Text="{tr:Tr Parsing.FiltersHeader}" FontSize="13" FontWeight="Bold" Margin="0,4,0,12" />
+                        <TextBlock Text="{tr:Tr Parsing.FiltersHeader}" FontSize="13" FontWeight="Bold" Margin="0,4,0,12" />
 
-                    <StackPanel Style="{StaticResource FieldGroupStyle}">
-                        <TextBlock Text="{tr:Tr Parsing.LastSeenLabel}" Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding LastSeenDays, UpdateSourceTrigger=PropertyChanged}" />
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Parsing.LastSeenLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding LastSeenDays, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
 
-                    <StackPanel Style="{StaticResource FieldGroupStyle}">
-                        <TextBlock Text="{tr:Tr Parsing.GenderLabel}" Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Gender, UpdateSourceTrigger=PropertyChanged}" />
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Parsing.GenderLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding Gender, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                        <CheckBox Content="{tr:Tr Parsing.HasAvatarCheckbox}" IsChecked="{Binding HasAvatar}" Margin="0,0,18,0" />
-                        <CheckBox Content="{tr:Tr Parsing.PremiumCheckbox}" IsChecked="{Binding Premium}" Margin="0,0,18,0" />
-                        <CheckBox Content="{tr:Tr Parsing.ExcludeBotsCheckbox}" IsChecked="{Binding ExcludeBots}" />
-                    </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                            <CheckBox Content="{tr:Tr Parsing.HasAvatarCheckbox}" IsChecked="{Binding HasAvatar}" Margin="0,0,18,0" />
+                            <CheckBox Content="{tr:Tr Parsing.PremiumCheckbox}" IsChecked="{Binding Premium}" Margin="0,0,18,0" />
+                            <CheckBox Content="{tr:Tr Parsing.ExcludeBotsCheckbox}" IsChecked="{Binding ExcludeBots}" />
+                        </StackPanel>
 
-                    <StackPanel Style="{StaticResource FieldGroupStyle}">
-                        <TextBlock Text="{tr:Tr Parsing.ExportModeLabel}" Style="{StaticResource FieldLabelStyle}" />
-                        <ComboBox SelectedValue="{Binding ExportMode}" SelectedValuePath="Content" HorizontalAlignment="Left" MinWidth="160">
-                            <ComboBoxItem Content="full" />
-                            <ComboBoxItem Content="summary" />
-                            <ComboBoxItem Content="by_source" />
-                        </ComboBox>
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Parsing.ExportModeLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox SelectedValue="{Binding ExportMode}" SelectedValuePath="Content" HorizontalAlignment="Left" MinWidth="160">
+                                <ComboBoxItem Content="full" />
+                                <ComboBoxItem Content="summary" />
+                                <ComboBoxItem Content="by_source" />
+                            </ComboBox>
+                        </StackPanel>
 
-                    <StackPanel Style="{StaticResource FieldGroupStyle}" Margin="0,0,0,20">
-                        <TextBlock Text="{tr:Tr Parsing.ExportPathLabel}" Style="{StaticResource FieldLabelStyle}" />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" Text="{Binding ExportPath, UpdateSourceTrigger=PropertyChanged}" />
-                            <Button Grid.Column="1" Content="{tr:Tr Common.Browse}" Padding="12,6" Margin="8,0,0,0"
-                                    Command="{Binding BrowseExportPathCommand}" />
-                        </Grid>
-                    </StackPanel>
+                        <StackPanel Style="{StaticResource FieldGroupStyle}" Margin="0,0,0,20">
+                            <TextBlock Text="{tr:Tr Parsing.ExportPathLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Text="{Binding ExportPath, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Column="1" Content="{tr:Tr Common.Browse}" Padding="12,6" Margin="8,0,0,0"
+                                        Command="{Binding BrowseExportPathCommand}" />
+                            </Grid>
+                        </StackPanel>
 
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="{tr:Tr Parsing.StartButton}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartCommand}" />
-                        <Button Content="{tr:Tr Common.Stop}" Margin="10,0,0,0" Command="{Binding StopCommand}" />
-                    </StackPanel>
-
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource DangerBrush}"
-                               Margin="0,14,0,0" TextWrapping="Wrap"
-                               Visibility="{Binding StatusMessage, Converter={StaticResource EmptyStringToVisibilityConverter}, ConverterParameter=Invert}" />
-                </StackPanel>
-            </Border>
-
-            <!-- Results -->
-            <StackPanel Grid.Column="2" VerticalAlignment="Top">
-                <TextBlock Text="{tr:Tr Parsing.ProgressHeader}" FontSize="13" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextMutedBrush}" Margin="4,0,0,10" />
-
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                    <Border Style="{StaticResource StatPillStyle}">
                         <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="{StaticResource TextFaintBrush}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                                <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
-                            <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold">
+                            <Button Content="{tr:Tr Parsing.StartButton}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartCommand}" />
+                            <Button Content="{tr:Tr Common.Stop}" Margin="10,0,0,0" Command="{Binding StopCommand}" />
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource DangerBrush}"
+                                   Margin="0,14,0,0" TextWrapping="Wrap"
+                                   Visibility="{Binding StatusMessage, Converter={StaticResource EmptyStringToVisibilityConverter}, ConverterParameter=Invert}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Results -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                    <TextBlock Text="{tr:Tr Parsing.ProgressHeader}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}" Margin="4,0,0,10" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <Border Style="{StaticResource StatPillStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource TextFaintBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                    <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                                                    <DataTrigger.EnterActions>
+                                                        <BeginStoryboard Name="PulseStoryboard">
+                                                            <Storyboard>
+                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                  From="1.0" To="0.25" Duration="0:0:0.7"
+                                                                                  AutoReverse="True" RepeatBehavior="Forever" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </DataTrigger.EnterActions>
+                                                    <DataTrigger.ExitActions>
+                                                        <StopStoryboard BeginStoryboardName="PulseStoryboard" />
+                                                    </DataTrigger.ExitActions>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{tr:Tr Parsing.NotRunning}" />
+                                            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                    <Setter Property="Text" Value="{tr:Tr Parsing.Running}" />
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource StatPillStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Package" Width="13" Height="13" Margin="0,0,8,0"
+                                           Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                <TextBlock VerticalAlignment="Center" FontSize="13">
+                                    <Run Text="{Binding LatestStatus.TotalCollected, Mode=OneWay}" FontWeight="Bold"
+                                         Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <Run Text="{tr:Tr Parsing.CollectedSuffix}" Foreground="{StaticResource TextMutedBrush}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource StatPillStyle}" Margin="0">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="AccountGroup" Width="13" Height="13" Margin="0,0,8,0"
+                                           Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                <TextBlock VerticalAlignment="Center" FontSize="13">
+                                    <Run Text="{Binding LatestStatus.AccountsUsed, Mode=OneWay}" FontWeight="Bold"
+                                         Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <Run Text=" " />
+                                    <Run Text="{tr:Tr Parsing.AccountsUsedLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Animated while a job is running: an unmistakable "this is actively
+                         working, not frozen" cue, separate from the static status pill above. -->
+                    <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,16"
+                                 Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Border Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="{tr:Tr Parsing.ExportFileLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,0,0,2" />
+                            <TextBlock FontSize="13" TextWrapping="Wrap" Margin="0,0,0,10">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="{tr:Tr Parsing.NotRunning}" />
-                                        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                        <Setter Property="Text" Value="{Binding LatestStatus.ExportPath}" />
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                                <Setter Property="Text" Value="{tr:Tr Parsing.Running}" />
-                                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                            <DataTrigger Binding="{Binding LatestStatus.ExportPath}" Value="{x:Null}">
+                                                <Setter Property="Text" Value="{tr:Tr Parsing.ExportFilePending}" />
+                                                <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-                        </StackPanel>
-                    </Border>
 
-                    <Border Style="{StaticResource StatPillStyle}" Margin="0">
-                        <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Package" Width="13" Height="13" Margin="0,0,8,0"
-                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
-                            <TextBlock VerticalAlignment="Center" FontSize="13">
-                                <Run Text="{Binding LatestStatus.TotalCollected, Mode=OneWay}" FontWeight="Bold"
-                                     Foreground="{StaticResource TextPrimaryBrush}" />
-                                <Run Text="{tr:Tr Parsing.CollectedSuffix}" Foreground="{StaticResource TextMutedBrush}" />
-                            </TextBlock>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-
-                <Border Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,0,0,16">
-                    <StackPanel>
-                        <TextBlock Text="{tr:Tr Parsing.ExportFileLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,0,0,2" />
-                        <TextBlock FontSize="13" TextWrapping="Wrap">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="{Binding LatestStatus.ExportPath}" />
-                                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding LatestStatus.ExportPath}" Value="{x:Null}">
-                                            <Setter Property="Text" Value="{tr:Tr Parsing.ExportFilePending}" />
-                                            <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </StackPanel>
-                </Border>
-
-                <TextBlock Text="{tr:Tr Parsing.SourcesInProgress}" FontSize="13" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextMutedBrush}" Margin="4,0,0,10" />
-
-                <ListBox ItemsSource="{Binding Sources}" MinHeight="200" MaxHeight="420">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Link" Width="12" Height="12" Margin="0,0,8,0"
-                                           Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <StackPanel Visibility="{Binding LatestStatus.DbPath, Converter={StaticResource NullToVisibilityConverter}}">
+                                <TextBlock Text="{tr:Tr Parsing.DbFileLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,0,0,2" />
+                                <TextBlock Text="{Binding LatestStatus.DbPath}" FontSize="13" TextWrapping="Wrap"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10" />
                             </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </StackPanel>
+
+                            <StackPanel Visibility="{Binding LatestStatus.TxtPath, Converter={StaticResource NullToVisibilityConverter}}">
+                                <TextBlock Text="{tr:Tr Parsing.TxtFileLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,0,0,2" />
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding LatestStatus.TxtPath}" FontSize="13" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Content="{tr:Tr Parsing.DownloadTxtButton}" Padding="8,3" FontSize="11"
+                                            Margin="8,0,0,0" Command="{Binding DownloadTxtCommand}" />
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Visibility="{Binding LatestStatus.Stats, Converter={StaticResource NullToVisibilityConverter}}">
+                                <TextBlock Text="{tr:Tr Parsing.StatsHeader}" Style="{StaticResource FieldLabelStyle}" Margin="0,0,0,4" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock FontSize="12" Margin="0,0,0,3">
+                                            <Run Text="{tr:Tr Parsing.StatsWithUsername}" Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text="{Binding LatestStatus.Stats[with_username], Mode=OneWay}" FontWeight="SemiBold" />
+                                        </TextBlock>
+                                        <TextBlock FontSize="12" Margin="0,0,0,3">
+                                            <Run Text="{tr:Tr Parsing.StatsWithoutUsername}" Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text="{Binding LatestStatus.Stats[without_username], Mode=OneWay}" FontWeight="SemiBold" />
+                                        </TextBlock>
+                                        <TextBlock FontSize="12">
+                                            <Run Text="{tr:Tr Parsing.StatsWithPhone}" Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text="{Binding LatestStatus.Stats[with_phone], Mode=OneWay}" FontWeight="SemiBold" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock FontSize="12" Margin="0,0,0,3">
+                                            <Run Text="{tr:Tr Parsing.StatsPremium}" Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text="{Binding LatestStatus.Stats[premium], Mode=OneWay}" FontWeight="SemiBold" />
+                                        </TextBlock>
+                                        <TextBlock FontSize="12">
+                                            <Run Text="{tr:Tr Parsing.StatsBots}" Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                            <Run Text="{Binding LatestStatus.Stats[bots], Mode=OneWay}" FontWeight="SemiBold" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="{tr:Tr Parsing.SourcesInProgress}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}" Margin="4,0,0,10" />
+
+                    <ListBox ItemsSource="{Binding Sources}" MinHeight="200" MaxHeight="420">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="Link" Width="12" Height="12" Margin="0,0,8,0"
+                                               Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Source picker overlay -->
+        <Grid Background="#B8000000" Panel.ZIndex="20"
+              Visibility="{Binding IsSourcePickerOpen, Converter={StaticResource BoolToVisibility}}">
+            <Border Width="560" MaxHeight="600" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="12" Padding="24">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{tr:Tr Parsing.SourcePickerTitle}" FontSize="18" FontWeight="SemiBold" />
+                        <Button Grid.Column="1" Width="34" Height="34" Padding="0"
+                                Command="{Binding CloseSourcePickerCommand}">
+                            <iconPacks:PackIconMaterial Kind="Close" Width="15" Height="15" />
+                        </Button>
+                    </Grid>
+
+                    <TextBlock Grid.Row="1" Margin="0,8,0,14" TextWrapping="Wrap"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               Text="{tr:Tr Parsing.SourcePickerSubtitle}" />
+
+                    <StackPanel Grid.Row="2" Margin="0,0,0,12">
+                        <TextBlock Text="{tr:Tr Parsing.SourceSearchPlaceholder}" Style="{StaticResource FieldLabelStyle}" />
+                        <TextBox Text="{Binding SourceSearchText, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+
+                    <ListBox Grid.Row="3" ItemsSource="{Binding FilteredSources}" MinHeight="240" MaxHeight="360">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Padding="6">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Source.Title}" FontWeight="SemiBold" />
+                                        <TextBlock Margin="0,3,0,0" FontSize="11" Foreground="{StaticResource TextMutedBrush}">
+                                            <Run Text="{Binding Source.Identifier}" />
+                                            <Run Text=" · " />
+                                            <Run Text="{Binding Source.Kind, Converter={StaticResource ParsingSourceKindConverter}}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Grid Grid.Row="4" Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding SourcePickerStatus}" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12" />
+                        <Button Grid.Column="1" Margin="0,0,10,0" Content="{tr:Tr Common.Cancel}"
+                                Command="{Binding CloseSourcePickerCommand}" />
+                        <Button Grid.Column="2" Style="{StaticResource PrimaryButtonStyle}"
+                                Content="{tr:Tr Parsing.UseSelectedSourcesButton}" Command="{Binding UseSelectedSourcesCommand}" />
+                    </Grid>
+                </Grid>
+            </Border>
         </Grid>
-    </ScrollViewer>
+    </Grid>
 </UserControl>

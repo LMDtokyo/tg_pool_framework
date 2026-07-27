@@ -290,7 +290,8 @@
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
-                                    <Button Style="{StaticResource IconButtonStyle}" ToolTip="{tr:Tr Accounts.TooltipFolder}">
+                                    <Button Style="{StaticResource IconButtonStyle}" ToolTip="{tr:Tr Accounts.TooltipFolder}"
+                                            Click="OpenAccountFolderButton_Click">
                                         <iconPacks:PackIconMaterial Kind="Folder" Width="14" Height="14" />
                                     </Button>
                                     <Button Style="{StaticResource IconButtonStyle}" ToolTip="{tr:Tr Accounts.TooltipUsername}">

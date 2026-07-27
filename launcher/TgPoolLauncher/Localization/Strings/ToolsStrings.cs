@@ -53,6 +53,35 @@ internal static class ToolsStrings
         table.Add("Parsing.BrowseExportDialogTitle", "Выберите папку для экспорта",
             "Select the export folder", "选择导出文件夹");
 
+        table.Add("Parsing.SelectSourcesButton", "Выбрать источники...", "Select sources...", "选择来源...");
+        table.Add("Parsing.SourcePickerTitle", "Выбор источников для парсинга", "Select parsing sources", "选择解析来源");
+        table.Add("Parsing.SourcePickerSubtitle",
+            "Список чатов/каналов, в которых уже состоит выбранный аккаунт.",
+            "Chats/channels the selected account already belongs to.",
+            "所选账户已加入的聊天/频道列表。");
+        table.Add("Parsing.SourceSearchPlaceholder", "Поиск по названию...", "Search by name...", "按名称搜索...");
+        table.Add("Parsing.SourcesLoading", "Загрузка списка чатов...", "Loading chat list...", "正在加载聊天列表...");
+        table.Add("Parsing.SourcesLoadedFormat", "Найдено источников: {0}", "Found {0} sources", "找到 {0} 个来源");
+        table.Add("Parsing.SourcesLoadErrorFormat", "Не удалось загрузить список: {0}",
+            "Failed to load the list: {0}", "无法加载列表：{0}");
+        table.Add("Parsing.SourceKindChannel", "Канал", "Channel", "频道");
+        table.Add("Parsing.SourceKindSupergroup", "Супергруппа", "Supergroup", "超级群组");
+        table.Add("Parsing.SourceKindChat", "Группа", "Group", "群组");
+        table.Add("Parsing.UseSelectedSourcesButton", "Добавить выбранные", "Add selected", "添加所选");
+
+        table.Add("Parsing.AccountsUsedLabel", "Аккаунтов задействовано", "Accounts used", "使用的账户");
+        table.Add("Parsing.StatsHeader", "Разбивка по аудитории", "Audience breakdown", "受众细分");
+        table.Add("Parsing.StatsWithUsername", "С юзернеймом", "With username", "有用户名");
+        table.Add("Parsing.StatsWithoutUsername", "Без юзернейма", "Without username", "无用户名");
+        table.Add("Parsing.StatsWithPhone", "С номером телефона", "With phone number", "有电话号码");
+        table.Add("Parsing.StatsPremium", "Premium", "Premium", "Premium");
+        table.Add("Parsing.StatsBots", "Ботов", "Bots", "机器人");
+        table.Add("Parsing.DbFileLabel", "База результатов (SQLite)", "Results database (SQLite)", "结果数据库（SQLite）");
+        table.Add("Parsing.TxtFileLabel", "Список (.txt)", "List (.txt)", "列表（.txt）");
+        table.Add("Parsing.DownloadTxtButton", "Скачать блокнотом", "Download as .txt", "下载为 .txt");
+        table.Add("Parsing.DownloadTxtDialogTitle", "Сохранить список пользователей",
+            "Save the user list", "保存用户列表");
+
         table.Add("SessionConvert.ListLabel",
             "Список сессий (по одной на строку: session_path|json_path|output_subdir)",
             "Session list (one per line: session_path|json_path|output_subdir)",
