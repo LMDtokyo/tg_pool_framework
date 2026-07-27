@@ -1,9 +1,9 @@
 """
 src/api/proxy_check.py — Background proxy-check job lifecycle.
 
-Same shape as CampaignManager (src/api/campaign.py): a single in-flight run,
+Same one-in-flight-run shape as the other API job managers,
 a _Run dataclass holding the task/results, status() as a plain dict. Simpler
-than the campaign/parsing managers though -- check_all_proxies() (src/proxy/
+than parsing though -- check_all_proxies() (src/proxy/
 proxy_checker.py) has no shutdown_event/event_bus hook, so there's no stop()
 and no live progress tracker, only start()/status().
 """

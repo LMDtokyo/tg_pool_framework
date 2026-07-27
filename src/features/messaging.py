@@ -10,14 +10,6 @@ import src.bootstrap as bootstrap
 from src.config import AccountConfig
 
 
-def build_campaign_repository(session_factory=None):
-    session_factory = session_factory if session_factory is not None else bootstrap.build_db_session_factory()
-    if session_factory is None:
-        return None
-    from src.db.campaign_repository import CampaignRepository
-    return CampaignRepository(session_factory)
-
-
 def build_rate_limiter(redis_client=None):
     """Reuses redis_client if given (shared with the warm-up ramp) instead of opening a new connection."""
     client = redis_client if redis_client is not None else bootstrap.build_redis_client()
@@ -236,14 +228,6 @@ async def run(shutdown_event: asyncio.Event, logger: logging.Logger) -> None:
     warmup_redis_client = redis_client if warmup_policy is not None else None
     auto_responder = build_auto_responder()
 
-    campaign_recorder = None
-    campaign_repository = build_campaign_repository(db_session_factory)
-    if campaign_repository is not None:
-        from src.messaging.campaign_recorder import CampaignRecorder
-        campaign_recorder = CampaignRecorder(campaign_repository, target, payload.text)
-        await campaign_recorder.start()
-        campaign_recorder.subscribe_to(event_bus)
-
     messages_per_account_max_raw = os.getenv("CAMPAIGN_MESSAGES_PER_ACCOUNT_MAX", "").strip()
     messages_per_account_max = int(messages_per_account_max_raw) if messages_per_account_max_raw else None
 
@@ -287,9 +271,6 @@ async def run(shutdown_event: asyncio.Event, logger: logging.Logger) -> None:
             report = await run_with_repeat(_run_campaign, shutdown_event, repeat_every_hours)
     else:
         report = await run_with_repeat(_run_campaign, shutdown_event, repeat_every_hours)
-
-    if campaign_recorder is not None:
-        await campaign_recorder.finish(report, event_bus)
 
     was_interrupted = shutdown_event.is_set()
 

@@ -75,6 +75,15 @@ class ProxyAllocator:
 # Format loaders
 # ---------------------------------------------------------------------------
 
+def _optional_int(value: object, default: int = 0) -> int:
+    """Return an int for optional metadata fields, falling back on invalid exports."""
+    if value is None or value == "":
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
 def load_from_session_file(
     session_path: str,
     api_id: int,
@@ -154,9 +163,9 @@ def load_from_session_json_pair(
         lang_code=str(data.get("lang_code", "en")),
         system_lang_code=str(data.get("system_lang_code", "en")),
         lang_pack=str(data.get("lang_pack", "android")),
-        sdk=int(data.get("sdk", 0)),
-        tz_offset=int(data.get("tz_offset", 0)),
-        perf_cat=int(data.get("perf_cat", 0)),
+        sdk=_optional_int(data.get("sdk"), 0),
+        tz_offset=_optional_int(data.get("tz_offset"), 0),
+        perf_cat=_optional_int(data.get("perf_cat"), 0),
         session_dir=str(session_file.parent),
     )
 

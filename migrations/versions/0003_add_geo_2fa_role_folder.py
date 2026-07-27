@@ -1,7 +1,7 @@
 """add geo, 2fa, role, folder, proxy_type to accounts
 
 Revision ID: 0003
-Revises: 0002
+Revises: 0001
 Create Date: 2026-07-10
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "0003"
-down_revision: Union[str, Sequence[str], None] = "0002"
+down_revision: Union[str, Sequence[str], None] = "0001"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

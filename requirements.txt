@@ -54,6 +54,7 @@ uvicorn[standard]>=0.30.0
 # Excel export
 pandas>=2.0.0
 openpyxl>=3.1.0
+xlrd>=2.0.1
 
 # ================================================================
 # Testing

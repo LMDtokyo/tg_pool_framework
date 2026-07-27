@@ -143,3 +143,11 @@ class AccountRepository:
             account=account, state=state, last_checked=row.last_checked, first_seen=row.created_at,
             role=row.role, folder=row.folder,
         )
+
+
+async def ensure_durable_tables(session_factory: async_sessionmaker) -> None:
+    """Create local durable-store tables when they do not exist yet."""
+    engine = session_factory.kw["bind"]
+    async with engine.begin() as connection:
+        for table in (AccountRow.__table__,):
+            await connection.run_sync(table.create, checkfirst=True)

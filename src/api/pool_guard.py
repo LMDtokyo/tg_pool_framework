@@ -1,13 +1,11 @@
 """
 src/api/pool_guard.py — Mutual exclusion between jobs that share the account pool.
 
-CampaignManager and ParsingManager both build a ClientPool over the same
-`primary` accounts loaded once in app.py's lifespan(). Telethon's default
-SQLiteSession requires exclusive access to a .session file from a single
-connection -- if a campaign and a parsing job connected the same accounts
-concurrently, both would try to open the same .session files at once.
-PoolAccessGuard gives both managers a shared, explicit "who's using the
-pool right now" check before they start.
+Some API jobs build a ClientPool over the same `primary` accounts loaded once
+in app.py's lifespan(). Telethon's default SQLiteSession requires exclusive
+access to a .session file from a single connection, so PoolAccessGuard gives
+jobs a shared, explicit "who's using the pool right now" check before they
+start.
 """
 
 from __future__ import annotations

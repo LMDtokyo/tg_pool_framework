@@ -13,7 +13,6 @@
     <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -44,52 +43,7 @@
             </TextBlock>
         </StackPanel>
 
-        <UniformGrid Grid.Row="1" Rows="1" Columns="4" Margin="0,0,0,16">
-            <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="1" Margin="0,0,8,0" Padding="14,12" CornerRadius="10">
-                <StackPanel>
-                    <TextBlock Text="{tr:Tr Dashboard.Total}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                    <TextBlock Text="{Binding Total}" FontSize="24" FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}" />
-                </StackPanel>
-            </Border>
-            <Border Background="{StaticResource SuccessTintBrush}" BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="1" Margin="0,0,8,0" Padding="14,12" CornerRadius="10">
-                <StackPanel>
-                    <TextBlock Text="{tr:Tr Dashboard.Sent}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                    <TextBlock Text="{Binding Sent}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" />
-                </StackPanel>
-            </Border>
-            <Border Background="{StaticResource DangerTintBrush}" BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="1" Margin="0,0,8,0" Padding="14,12" CornerRadius="10">
-                <StackPanel>
-                    <TextBlock Text="{tr:Tr Dashboard.Failed}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                    <TextBlock Text="{Binding Failed}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource DangerBrush}" />
-                </StackPanel>
-            </Border>
-            <Border Background="{StaticResource AccentTintBrush}" BorderBrush="{StaticResource BorderBrush}"
-                    BorderThickness="1" Padding="14,12" CornerRadius="10">
-                <StackPanel>
-                    <TextBlock Text="{tr:Tr Dashboard.Status}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                    <TextBlock FontSize="18" FontWeight="Bold">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Text" Value="{tr:Tr Dashboard.NotRunning}" />
-                                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Running}" Value="True">
-                                        <Setter Property="Text" Value="{tr:Tr Dashboard.Running}" />
-                                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </StackPanel>
-            </Border>
-        </UniformGrid>
-
-        <DataGrid Grid.Row="2" ItemsSource="{Binding AccountStatuses}" AutoGenerateColumns="False"
+        <DataGrid Grid.Row="1" ItemsSource="{Binding AccountStatuses}" AutoGenerateColumns="False"
                   IsReadOnly="True" CanUserAddRows="False" GridLinesVisibility="Horizontal">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{tr:Tr Dashboard.ColPhone}" Binding="{Binding Phone}" Width="160" />

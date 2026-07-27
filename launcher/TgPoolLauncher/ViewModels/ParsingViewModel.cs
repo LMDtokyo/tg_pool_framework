@@ -11,7 +11,7 @@ namespace TgPoolLauncher.ViewModels;
 
 /// <summary>
 /// Owns parsing job start/stop and the /parsing/status polling loop. Same
-/// skeleton as CampaignViewModel (DispatcherTimer + Start/Stop RelayCommands),
+/// skeleton as the other job view-models (DispatcherTimer + Start/Stop RelayCommands),
 /// since parsing jobs -- unlike proxy check / tdata convert -- support
 /// graceful cancellation via the shared PoolAccessGuard/shutdown_event.
 /// </summary>

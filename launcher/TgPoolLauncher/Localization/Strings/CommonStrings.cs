@@ -22,8 +22,6 @@ internal static class CommonStrings
         table.Add("Common.NotImplementedTooltip", "Скоро — пока не реализовано в бэкенде",
             "Soon — not implemented in the backend yet", "即将推出——后端尚未实现");
 
-        table.Add("BackendClient.StartCampaignErrorFormat", "Не удалось запустить кампанию ({0}): {1}",
-            "Failed to start the campaign ({0}): {1}", "无法启动群发（{0}）：{1}");
         table.Add("BackendClient.StartProxyCheckErrorFormat", "Не удалось запустить проверку прокси ({0}): {1}",
             "Failed to start the proxy check ({0}): {1}", "无法启动代理检测（{0}）：{1}");
         table.Add("BackendClient.StartConversionErrorFormat", "Не удалось запустить конвертацию ({0}): {1}",
@@ -33,7 +31,6 @@ internal static class CommonStrings
 
         table.Add("Nav.Dashboard", "Дашборд", "Dashboard", "仪表盘");
         table.Add("Nav.Accounts", "Аккаунты", "Accounts", "账户");
-        table.Add("Nav.Campaign", "Рассылка", "Campaign", "群发");
         table.Add("Nav.AutoRegister", "Авто-регистрация", "Auto Register", "自动注册");
         table.Add("Nav.ProxyCheck", "Прокси", "Proxy", "代理");
         table.Add("Nav.ProxyPoolChecker", "Чекер пула прокси", "Proxy Pool Checker", "代理池检查器");

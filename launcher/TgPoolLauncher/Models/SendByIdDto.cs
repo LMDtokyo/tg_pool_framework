@@ -2,10 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace TgPoolLauncher.Models;
 
-public sealed class SendByNumbersStartRequest
+public sealed class SendByIdStartRequest
 {
-    [JsonPropertyName("phone_numbers")]
-    public List<string> PhoneNumbers { get; init; } = [];
+    [JsonPropertyName("database_path")]
+    public string DatabasePath { get; init; } = "";
 
     [JsonPropertyName("message")]
     public string Message { get; init; } = "";
@@ -52,8 +52,8 @@ public sealed class SendByNumbersStartRequest
     [JsonPropertyName("auto_repost")]
     public bool AutoRepost { get; init; }
 
-    [JsonPropertyName("remove_imported_contacts")]
-    public bool RemoveImportedContacts { get; init; } = true;
+    [JsonPropertyName("leave_donor_groups")]
+    public bool LeaveDonorGroups { get; init; }
 
     [JsonPropertyName("pin_message")]
     public bool PinMessage { get; init; }
@@ -86,7 +86,7 @@ public sealed class SendByNumbersStartRequest
     public string ResultsDir { get; init; } = "";
 }
 
-public sealed class SendByNumbersStartResponse
+public sealed class SendByIdStartResponse
 {
     [JsonPropertyName("job_id")]
     public string JobId { get; init; } = "";
@@ -95,13 +95,19 @@ public sealed class SendByNumbersStartResponse
     public bool Started { get; init; }
 }
 
-public sealed class SendByNumbersResultDto
+public sealed class SendByIdResultDto
 {
-    [JsonPropertyName("recipient_phone")]
-    public string RecipientPhone { get; init; } = "";
+    [JsonPropertyName("recipient_id")]
+    public long RecipientId { get; init; }
 
     [JsonPropertyName("sender_phone")]
     public string SenderPhone { get; init; } = "";
+
+    [JsonPropertyName("username")]
+    public string Username { get; init; } = "";
+
+    [JsonPropertyName("donor")]
+    public string Donor { get; init; } = "";
 
     [JsonPropertyName("state")]
     public string State { get; init; } = "";
@@ -113,7 +119,7 @@ public sealed class SendByNumbersResultDto
     public int Cycle { get; init; } = 1;
 }
 
-public sealed class SendByNumbersStatusDto
+public sealed class SendByIdStatusDto
 {
     [JsonPropertyName("running")]
     public bool Running { get; init; }
@@ -155,5 +161,6 @@ public sealed class SendByNumbersStatusDto
     public string? ExportPath { get; init; }
 
     [JsonPropertyName("results")]
-    public List<SendByNumbersResultDto> Results { get; init; } = [];
+    public List<SendByIdResultDto> Results { get; init; } = [];
 }
+

@@ -1,21 +1,20 @@
 """
 src/api/parsing.py — Single-parsing-job task lifecycle + headless progress tracking.
 
-Same shape as CampaignManager (src/api/campaign.py): keep the task handle,
+Keeps the task handle,
 set shutdown_event to stop (never cancel() it -- that would skip
 orchestrator.py's Phase 4 cleanup), await the task to know it's actually
-finished. Shares a PoolAccessGuard (src/api/pool_guard.py) with
-CampaignManager since both build a ClientPool over the same account list.
+finished. Uses PoolAccessGuard (src/api/pool_guard.py) to reserve the
+account pool while parsing is active.
 
-ParsingProgressTracker is CampaignProgressTracker's sibling for the parsing
-pipeline's own events: AccountStatusEvent (worker pool status) and
+ParsingProgressTracker listens to the parsing pipeline's own events:
+AccountStatusEvent (worker pool status) and
 MetricUpdateEvent(key="total_recipients", ...) (users collected so far) --
 orchestrate_extraction_only() (src/orchestrator.py) publishes both when
 given an event_bus.
 
 Unlike the CLI's src/features/parsing.py (which reads PARSE_* env vars),
-strategy/filters/entities all come from explicit request fields -- same
-reasoning as CampaignManager not reusing src/features/messaging.py.
+strategy/filters/entities all come from explicit request fields.
 """
 
 from __future__ import annotations
@@ -49,7 +48,7 @@ class _ProgressState:
 
 
 class ParsingProgressTracker:
-    """Headless sibling of CampaignProgressTracker (src/api/campaign.py)."""
+    """Headless progress tracker for one parsing job."""
 
     def __init__(self) -> None:
         self._state = _ProgressState()

@@ -355,31 +355,6 @@ public sealed class BackendClient
         return (await resp.Content.ReadFromJsonAsync<RescanResponse>(ct))!;
     }
 
-    public async Task<CampaignStartResponse> StartCampaignAsync(
-        CampaignStartRequest request, CancellationToken ct = default)
-    {
-        var resp = await _http.PostAsJsonAsync("/campaign/start", request, ct);
-        if (!resp.IsSuccessStatusCode)
-        {
-            var detail = await resp.Content.ReadAsStringAsync(ct);
-            throw new InvalidOperationException(string.Format(
-                LocalizationService.Instance["BackendClient.StartCampaignErrorFormat"], (int)resp.StatusCode, detail));
-        }
-        return (await resp.Content.ReadFromJsonAsync<CampaignStartResponse>(ct))!;
-    }
-
-    public async Task StopCampaignAsync(CancellationToken ct = default)
-    {
-        var resp = await _http.PostAsync("/campaign/stop", content: null, ct);
-        resp.EnsureSuccessStatusCode();
-    }
-
-    public async Task<CampaignStatusDto> GetCampaignStatusAsync(CancellationToken ct = default)
-    {
-        var result = await _http.GetFromJsonAsync<CampaignStatusDto>("/campaign/status", ct);
-        return result ?? new CampaignStatusDto();
-    }
-
     private async Task PostVoidAsync<T>(string path, T body, CancellationToken ct)
     {
         var resp = await _http.PostAsJsonAsync(path, body, ct);
@@ -624,5 +599,57 @@ public sealed class BackendClient
     {
         var result = await _http.GetFromJsonAsync<SendByNumbersStatusDto>("/send_by_numbers/status", ct);
         return result ?? new SendByNumbersStatusDto();
+    }
+
+    public async Task<NumberCheckerStartResponse> StartNumberCheckerAsync(
+        NumberCheckerStartRequest request, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync("/number_checker/start", request, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var detail = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"Number checker start failed ({(int)resp.StatusCode}): {detail}");
+        }
+        return (await resp.Content.ReadFromJsonAsync<NumberCheckerStartResponse>(ct))!;
+    }
+
+    public async Task StopNumberCheckerAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsync("/number_checker/stop", content: null, ct);
+        resp.EnsureSuccessStatusCode();
+    }
+
+    public async Task<NumberCheckerStatusDto> GetNumberCheckerStatusAsync(
+        CancellationToken ct = default)
+    {
+        var result = await _http.GetFromJsonAsync<NumberCheckerStatusDto>(
+            "/number_checker/status", ct);
+        return result ?? new NumberCheckerStatusDto();
+    }
+
+    public async Task<SendByIdStartResponse> StartSendByIdAsync(
+        SendByIdStartRequest request, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync("/send_by_id/start", request, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var detail = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"Sending SMS by ID start failed ({(int)resp.StatusCode}): {detail}");
+        }
+        return (await resp.Content.ReadFromJsonAsync<SendByIdStartResponse>(ct))!;
+    }
+
+    public async Task StopSendByIdAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsync("/send_by_id/stop", content: null, ct);
+        resp.EnsureSuccessStatusCode();
+    }
+
+    public async Task<SendByIdStatusDto> GetSendByIdStatusAsync(CancellationToken ct = default)
+    {
+        var result = await _http.GetFromJsonAsync<SendByIdStatusDto>("/send_by_id/status", ct);
+        return result ?? new SendByIdStatusDto();
     }
 }

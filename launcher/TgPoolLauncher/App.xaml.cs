@@ -58,7 +58,6 @@ public partial class App : System.Windows.Application
                     return new EventStreamClient(processManager.BaseUri);
                 });
 
-                services.AddSingleton<CampaignViewModel>();
                 services.AddSingleton<DashboardViewModel>();
                 services.AddSingleton<AccountsViewModel>();
                 services.AddSingleton<ProxyCheckViewModel>();
@@ -76,7 +75,6 @@ public partial class App : System.Windows.Application
 
                 services.AddSingleton<DashboardView>();
                 services.AddSingleton<AccountsView>();
-                services.AddSingleton<CampaignView>();
                 services.AddSingleton<ProxyCheckView>();
                 services.AddSingleton<ProxyPoolCheckerView>();
                 services.AddSingleton<TdataConvertView>();
@@ -90,6 +88,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<GrizzlySmsView>();
                 services.AddSingleton<DatamollView>();
                 services.AddSingleton<InviteByNumberView>();
+                services.AddSingleton<SendingSmsByIdView>();
                 services.AddSingleton<SendByNumbersView>();
                 services.AddSingleton<NumberCheckerView>();
                 services.AddSingleton<AutoRegisterHostView>();

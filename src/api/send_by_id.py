@@ -1,4 +1,4 @@
-"""Send Telegram messages to recipients resolved by phone number."""
+"""Send Telegram messages to user IDs from an exported audience database."""
 
 from __future__ import annotations
 
@@ -24,9 +24,9 @@ from telethon.errors import (
     UserIsBlockedError,
     UserPrivacyRestrictedError,
 )
-from telethon.tl.functions.contacts import DeleteContactsRequest, ImportContactsRequest
+from telethon.tl.functions.channels import JoinChannelRequest, LeaveChannelRequest
 from telethon.tl.functions.messages import DeleteHistoryRequest
-from telethon.tl.types import InputPhoneContact, PeerUser, User
+from telethon.tl.types import InputPeerUser, PeerUser, User
 
 from src.accounts.connection_manager import ClientFactory
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
@@ -41,8 +41,8 @@ logger = logging.getLogger(__name__)
 _INT_RE = re.compile(r"-?\d+")
 
 
-class SendByNumbersAlreadyRunningError(RuntimeError):
-    """Raised when another phone-number messaging job owns the account pool."""
+class SendByIdAlreadyRunningError(RuntimeError):
+    """Raised when another ID messaging job owns the account pool."""
 
 
 class _StopRequested(RuntimeError):
@@ -50,14 +50,7 @@ class _StopRequested(RuntimeError):
 
 
 @dataclass(frozen=True)
-class PhoneRecipient:
-    phone: str
-
-
-@dataclass(frozen=True)
 class IdRecipient:
-    """Internal compatibility type used by the shared tabular parser helpers."""
-
     user_id: int
     access_hash: Optional[int] = None
     username: str = ""
@@ -67,16 +60,18 @@ class IdRecipient:
 
 
 @dataclass
-class SendByNumbersResultRow:
-    recipient_phone: str
+class SendByIdResultRow:
+    recipient_id: int
     sender_phone: str = ""
+    username: str = ""
+    donor: str = ""
     state: str = "pending"
     message: str = ""
     cycle: int = 1
 
 
 @dataclass(frozen=True)
-class SendByNumbersOptions:
+class SendByIdOptions:
     message: str
     media_paths: List[str]
     forward_links: List[str]
@@ -91,7 +86,7 @@ class SendByNumbersOptions:
     link_preview: bool
     silent: bool
     auto_repost: bool
-    remove_imported_contacts: bool
+    leave_donor_groups: bool
     pin_message: bool
     video_note: bool
     self_destruct_sec: Optional[int]
@@ -108,8 +103,8 @@ class SendByNumbersOptions:
 class _Run:
     job_id: str
     shutdown_event: asyncio.Event
-    recipients: List[PhoneRecipient]
-    results: List[SendByNumbersResultRow] = field(default_factory=list)
+    recipients: List[IdRecipient]
+    results: List[SendByIdResultRow] = field(default_factory=list)
     task: Optional[asyncio.Task] = None
     sent: int = 0
     failed: int = 0
@@ -260,14 +255,7 @@ def load_id_database(database_path: str) -> List[IdRecipient]:
     return recipients
 
 
-def normalize_phone(value: str) -> Optional[str]:
-    digits = re.sub(r"[^0-9]", "", value or "")
-    if len(digits) < 7 or len(digits) > 16:
-        return None
-    return f"+{digits}"
-
-
-class SendByNumbersManager:
+class SendByIdManager:
     """Owns one cancellable, optionally repeating Telegram ID messaging job."""
 
     def __init__(
@@ -295,7 +283,7 @@ class SendByNumbersManager:
     def start(
         self,
         *,
-        phone_numbers: List[str],
+        database_path: str,
         message: str = "",
         sender_phones: Optional[List[str]] = None,
         media_paths: Optional[List[str]] = None,
@@ -311,7 +299,7 @@ class SendByNumbersManager:
         link_preview: bool = True,
         silent: bool = False,
         auto_repost: bool = False,
-        remove_imported_contacts: bool = True,
+        leave_donor_groups: bool = False,
         pin_message: bool = False,
         video_note: bool = False,
         self_destruct_sec: Optional[int] = None,
@@ -324,17 +312,9 @@ class SendByNumbersManager:
         results_dir: str = "exports",
     ) -> str:
         if self.is_running:
-            raise SendByNumbersAlreadyRunningError("A send-by-numbers job is already running.")
+            raise SendByIdAlreadyRunningError("A send-by-ID job is already running.")
 
-        recipients: List[PhoneRecipient] = []
-        seen_recipients: set[str] = set()
-        for raw in phone_numbers:
-            normalized = normalize_phone(raw)
-            if normalized and normalized not in seen_recipients:
-                recipients.append(PhoneRecipient(phone=normalized))
-                seen_recipients.add(normalized)
-        if not recipients:
-            raise ValueError("No valid phone numbers provided.")
+        recipients = load_id_database(database_path)
         senders = self._normalize_senders(sender_phones)
         if not senders:
             raise ValueError("No valid sender accounts available.")
@@ -360,11 +340,11 @@ class SendByNumbersManager:
             raise ValueError("Scheduled sending time must be in the future.")
 
         try:
-            self._pool_guard.try_acquire("send_by_numbers")
+            self._pool_guard.try_acquire("send_by_id")
         except PoolBusyError as exc:
-            raise SendByNumbersAlreadyRunningError(str(exc)) from exc
+            raise SendByIdAlreadyRunningError(str(exc)) from exc
 
-        options = SendByNumbersOptions(
+        options = SendByIdOptions(
             message=message,
             media_paths=clean_media,
             forward_links=clean_links,
@@ -379,7 +359,7 @@ class SendByNumbersManager:
             link_preview=link_preview,
             silent=silent,
             auto_repost=auto_repost,
-            remove_imported_contacts=remove_imported_contacts,
+            leave_donor_groups=leave_donor_groups,
             pin_message=pin_message,
             video_note=video_note,
             self_destruct_sec=self_destruct_sec,
@@ -402,16 +382,16 @@ class SendByNumbersManager:
             try:
                 await self._run_cycles(run, senders, options)
             except Exception as exc:
-                logger.exception("Send-by-numbers job %s failed", job_id)
+                logger.exception("Send-by-ID job %s failed", job_id)
                 run.error = str(exc)
             finally:
                 try:
                     run.export_path = self._export_results(run, options.results_dir)
                 except Exception as exc:
-                    logger.exception("Could not export send-by-numbers results")
+                    logger.exception("Could not export send-by-ID results")
                     run.error = run.error or f"Result export failed: {exc}"
                 run.finished = True
-                self._pool_guard.release("send_by_numbers")
+                self._pool_guard.release("send_by_id")
 
         run.task = asyncio.create_task(_runner(), name=f"api-send-by-id-{job_id}")
         self._run = run
@@ -457,8 +437,10 @@ class SendByNumbersManager:
             "export_path": run.export_path,
             "results": [
                 {
-                    "recipient_phone": row.recipient_phone,
+                    "recipient_id": row.recipient_id,
                     "sender_phone": row.sender_phone,
+                    "username": row.username,
+                    "donor": row.donor,
                     "state": row.state,
                     "message": row.message,
                     "cycle": row.cycle,
@@ -471,7 +453,7 @@ class SendByNumbersManager:
         self,
         run: _Run,
         senders: List[str],
-        options: SendByNumbersOptions,
+        options: SendByIdOptions,
     ) -> None:
         while not run.shutdown_event.is_set():
             assignments = self._assign_recipients(
@@ -481,9 +463,11 @@ class SendByNumbersManager:
                 options.sms_per_account_max,
             )
             cycle_rows = [
-                SendByNumbersResultRow(
-                    recipient_phone=recipient.phone,
+                SendByIdResultRow(
+                    recipient_id=recipient.user_id,
                     sender_phone=sender or "",
+                    username=recipient.username,
+                    donor=recipient.donor,
                     state="pending" if sender else "skipped",
                     message="Queued" if sender else "All selected accounts reached their quota.",
                     cycle=run.cycle,
@@ -493,14 +477,14 @@ class SendByNumbersManager:
             run.results.extend(cycle_rows)
             run.failed += sum(row.state == "skipped" for row in cycle_rows)
 
-            per_sender: Dict[str, List[tuple[PhoneRecipient, SendByNumbersResultRow]]] = {}
+            per_sender: Dict[str, List[tuple[IdRecipient, SendByIdResultRow]]] = {}
             for (recipient, sender), row in zip(assignments, cycle_rows):
                 if sender:
                     per_sender.setdefault(sender, []).append((recipient, row))
 
             semaphore = asyncio.Semaphore(options.streams)
 
-            async def worker(phone: str, items: List[tuple[PhoneRecipient, SendByNumbersResultRow]]) -> None:
+            async def worker(phone: str, items: List[tuple[IdRecipient, SendByIdResultRow]]) -> None:
                 async with semaphore:
                     await self._run_sender(run, phone, items, options)
 
@@ -520,15 +504,15 @@ class SendByNumbersManager:
 
     @staticmethod
     def _assign_recipients(
-        recipients: List[PhoneRecipient],
+        recipients: List[IdRecipient],
         senders: List[str],
         minimum: int,
         maximum: int,
-    ) -> List[tuple[PhoneRecipient, Optional[str]]]:
+    ) -> List[tuple[IdRecipient, Optional[str]]]:
         quotas = {sender: random.randint(minimum, maximum) for sender in senders}
         counts = {sender: 0 for sender in senders}
         sender_index = 0
-        assignments: List[tuple[PhoneRecipient, Optional[str]]] = []
+        assignments: List[tuple[IdRecipient, Optional[str]]] = []
         for recipient in recipients:
             sender: Optional[str] = None
             for _ in range(len(senders)):
@@ -545,10 +529,12 @@ class SendByNumbersManager:
         self,
         run: _Run,
         phone: str,
-        items: List[tuple[PhoneRecipient, SendByNumbersResultRow]],
-        options: SendByNumbersOptions,
+        items: List[tuple[IdRecipient, SendByIdResultRow]],
+        options: SendByIdOptions,
     ) -> None:
         client = None
+        donor_cache: Dict[str, Dict[int, User]] = {}
+        donor_entities: Dict[str, Any] = {}
         try:
             client = await self._connect(phone)
             for recipient, row in items:
@@ -557,7 +543,7 @@ class SendByNumbersManager:
                     row.message = "Stopped before send."
                     run.failed += 1
                     continue
-                await self._deliver(run, client, phone, recipient, row, options)
+                await self._deliver(run, client, phone, recipient, row, options, donor_cache, donor_entities)
                 if not run.shutdown_event.is_set():
                     try:
                         await asyncio.wait_for(
@@ -575,6 +561,8 @@ class SendByNumbersManager:
         except Exception as exc:
             self._fail_pending(items, f"Sender unavailable: {type(exc).__name__}: {exc}", run)
         finally:
+            if client is not None and options.leave_donor_groups:
+                await self._leave_donors(client, donor_entities.values())
             if client is not None:
                 await self._disconnect(phone, client)
 
@@ -583,17 +571,20 @@ class SendByNumbersManager:
         run: _Run,
         client,
         phone: str,
-        recipient: PhoneRecipient,
-        row: SendByNumbersResultRow,
-        options: SendByNumbersOptions,
+        recipient: IdRecipient,
+        row: SendByIdResultRow,
+        options: SendByIdOptions,
+        donor_cache: Dict[str, Dict[int, User]],
+        donor_entities: Dict[str, Any],
     ) -> None:
         row.state = "resolving"
-        row.message = f"Resolving {recipient.phone}"
+        row.message = f"Resolving user {recipient.user_id}"
         try:
             peer = await self._resolve_recipient(
                 client,
                 recipient,
-                remove_imported_contact=options.remove_imported_contacts,
+                donor_cache,
+                donor_entities,
             )
             sent_messages = await self._send_with_flood_wait(
                 run,
@@ -608,18 +599,18 @@ class SendByNumbersManager:
                     try:
                         await client.pin_message(peer, sent, notify=False)
                     except Exception as exc:
-                        logger.debug("Could not pin message for %s: %s", recipient.phone, exc)
+                        logger.debug("Could not pin message for %s: %s", recipient.user_id, exc)
             if options.delete_dialog:
                 try:
                     await client(DeleteHistoryRequest(peer=peer, max_id=0, revoke=False))
                 except Exception as exc:
-                    logger.debug("Could not delete dialog for %s: %s", recipient.phone, exc)
+                    logger.debug("Could not delete dialog for %s: %s", recipient.user_id, exc)
 
             row.state = "scheduled" if options.schedule_at is not None else "sent"
             row.message = (
                 f"Scheduled for {options.schedule_at.isoformat(sep=' ', timespec='minutes')}"
                 if options.schedule_at is not None
-                else f"Delivered to {recipient.phone}"
+                else f"Delivered to user {recipient.user_id}"
             )
             run.sent += 1
             run.per_account[phone] = run.per_account.get(phone, 0) + 1
@@ -649,16 +640,16 @@ class SendByNumbersManager:
             row.state = "failed"
             row.message = f"{type(exc).__name__}: {exc}"
             run.failed += 1
-            logger.warning("Send-by-numbers failed %s -> %s: %s", phone, recipient.phone, exc)
+            logger.warning("Send-by-ID failed %s -> %s: %s", phone, recipient.user_id, exc)
 
     async def _send_with_flood_wait(
         self,
         run: _Run,
         client,
         peer,
-        recipient: PhoneRecipient,
-        options: SendByNumbersOptions,
-        row: SendByNumbersResultRow,
+        recipient: IdRecipient,
+        options: SendByIdOptions,
+        row: SendByIdResultRow,
     ) -> List[Any]:
         while True:
             try:
@@ -684,15 +675,14 @@ class SendByNumbersManager:
         self,
         client,
         peer,
-        recipient: PhoneRecipient,
-        options: SendByNumbersOptions,
+        recipient: IdRecipient,
+        options: SendByIdOptions,
     ) -> List[Any]:
         variables = {
-            "phone": recipient.phone,
-            "username": getattr(peer, "username", "") or "",
-            "first_name": getattr(peer, "first_name", "") or "",
-            "last_name": getattr(peer, "last_name", "") or "",
-            "id": str(getattr(peer, "id", "")),
+            "username": recipient.username or "",
+            "first_name": recipient.first_name,
+            "last_name": recipient.last_name,
+            "id": str(recipient.user_id),
         }
         text = render_template(resolve_spintax(options.message), variables)
         forward_link = random.choice(options.forward_links) if options.forward_links else None
@@ -769,92 +759,61 @@ class SendByNumbersManager:
     async def _resolve_recipient(
         self,
         client,
-        recipient: PhoneRecipient,
-        *,
-        remove_imported_contact: bool,
-    ) -> User:
-        me = await client.get_me()
-        me_id = int(me.id)
-        digits = re.sub(r"[^0-9]", "", recipient.phone)
-        candidates = list(dict.fromkeys([recipient.phone, digits, f"+{digits}"]))
-        errors: List[str] = []
-
-        for candidate in candidates:
+        recipient: IdRecipient,
+        donor_cache: Dict[str, Dict[int, User]],
+        donor_entities: Dict[str, Any],
+    ):
+        if recipient.access_hash is not None:
+            return InputPeerUser(recipient.user_id, recipient.access_hash)
+        if recipient.username:
             try:
-                return self._as_phone_user(await client.get_entity(candidate), me_id)
-            except Exception as exc:
-                errors.append(f"get_entity({candidate}): {exc}")
-
-        for candidate in candidates:
-            contact = InputPhoneContact(
-                client_id=random.randrange(1, 2**31 - 1),
-                phone=candidate,
-                first_name=candidate,
-                last_name="",
+                return await client.get_input_entity(recipient.username)
+            except Exception:
+                pass
+        try:
+            entity = await client.get_entity(recipient.user_id)
+            if isinstance(entity, User):
+                return entity
+        except Exception:
+            pass
+        if not recipient.donor:
+            raise ValueError(
+                "ID is unknown to this session; add access_hash, username, or donor/source chat."
             )
-            try:
-                imported = await client(ImportContactsRequest([contact]))
-                users = [
-                    user
-                    for user in (getattr(imported, "users", None) or [])
-                    if isinstance(user, User)
-                ]
-                matched = self._select_imported_phone_user(
-                    users,
-                    expected_digits=digits,
-                    me_id=me_id,
-                )
-                if matched is None:
-                    errors.append(f"import({candidate}): no matching Telegram user")
-                    continue
-                if remove_imported_contact:
-                    try:
-                        await client(DeleteContactsRequest(id=[matched]))
-                    except Exception as exc:
-                        logger.debug("Could not remove temporary contact %s: %s", recipient.phone, exc)
-                return matched
-            except Exception as exc:
-                errors.append(f"import({candidate}): {exc}")
 
-        raise LookupError(
-            f"Could not resolve Telegram user for {recipient.phone}. Telegram may not "
-            "allow this sender account to discover the number. Details: "
-            + "; ".join(errors[-4:])
-        )
-
-    @classmethod
-    def _select_imported_phone_user(
-        cls,
-        users: List[User],
-        *,
-        expected_digits: str,
-        me_id: int,
-    ) -> Optional[User]:
-        fallback: Optional[User] = None
-        for entity in users:
-            try:
-                user = cls._as_phone_user(entity, me_id)
-            except LookupError:
-                continue
-            user_digits = re.sub(r"[^0-9]", "", getattr(user, "phone", "") or "")
-            if user_digits and user_digits == expected_digits:
-                return user
-            fallback = fallback or user
-        return fallback
+        donor_key = recipient.donor.casefold()
+        if donor_key not in donor_cache:
+            entity = await self._join_or_resolve_donor(client, recipient.donor)
+            donor_entities[donor_key] = entity
+            members: Dict[int, User] = {}
+            async for user in client.iter_participants(entity, aggressive=False):
+                if isinstance(user, User):
+                    members[int(user.id)] = user
+            donor_cache[donor_key] = members
+        user = donor_cache[donor_key].get(recipient.user_id)
+        if user is None:
+            raise ValueError(f"User {recipient.user_id} was not found in donor {recipient.donor}.")
+        return user
 
     @staticmethod
-    def _as_phone_user(entity, me_id: int) -> User:
-        if not isinstance(entity, User):
-            raise LookupError(f"Resolved entity is {type(entity).__name__}, expected User")
-        if int(entity.id) == me_id:
-            raise LookupError("Resolved recipient is the sender account itself")
-        if getattr(entity, "bot", False):
-            raise LookupError("Resolved recipient is a bot")
-        if getattr(entity, "deleted", False):
-            raise LookupError("Resolved recipient is a deleted account")
+    async def _join_or_resolve_donor(client, donor: str):
+        resolved = await UniversalEntityResolver(client).resolve(donor.strip())
+        entity = resolved.entity
+        try:
+            await client(JoinChannelRequest(entity))
+        except Exception:
+            pass
         return entity
 
-    def _auto_stop_reached(self, run: _Run, options: SendByNumbersOptions) -> bool:
+    @staticmethod
+    async def _leave_donors(client, entities: Iterable[Any]) -> None:
+        for entity in entities:
+            try:
+                await client(LeaveChannelRequest(entity))
+            except Exception as exc:
+                logger.debug("Could not leave donor %s: %s", entity, exc)
+
+    def _auto_stop_reached(self, run: _Run, options: SendByIdOptions) -> bool:
         reached = (
             (options.auto_stop_ban > 0 and run.ban_count >= options.auto_stop_ban)
             or (
@@ -872,7 +831,7 @@ class SendByNumbersManager:
 
     @staticmethod
     def _fail_pending(
-        items: List[tuple[PhoneRecipient, SendByNumbersResultRow]],
+        items: List[tuple[IdRecipient, SendByIdResultRow]],
         message: str,
         run: _Run,
     ) -> None:
@@ -912,12 +871,14 @@ class SendByNumbersManager:
     def _export_results(run: _Run, results_dir: str) -> str:
         output_dir = Path(results_dir).expanduser()
         output_dir.mkdir(parents=True, exist_ok=True)
-        path = output_dir / f"send-by-numbers-{run.job_id}.xlsx"
+        path = output_dir / f"sending-sms-by-id-{run.job_id}.xlsx"
         pd.DataFrame(
             [
                 {
                     "Cycle": row.cycle,
-                    "Phone": row.recipient_phone,
+                    "ID": row.recipient_id,
+                    "Username": row.username,
+                    "Donor": row.donor,
                     "Sender": row.sender_phone,
                     "Status": row.state,
                     "Details": row.message,

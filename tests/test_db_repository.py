@@ -167,10 +167,7 @@ async def test_registry_survives_reload_via_repository(repository):
         AccountState(status=AccountStatus.FROZEN, error_message="frozen"),
     )
 
-    # fire-and-forget persistence tasks need one loop tick to complete
-    import asyncio
-    await asyncio.sleep(0)
-    await asyncio.sleep(0)
+    await registry.close()
 
     fresh_registry = AccountRegistry(repository=repository)
     await fresh_registry.load_from_repository()

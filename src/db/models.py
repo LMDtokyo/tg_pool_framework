@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Text, UniqueConstraint, false, func
+from sqlalchemy import Boolean, DateTime, Text, UniqueConstraint, false, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -72,41 +72,6 @@ class AccountRow(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
-    )
-
-
-class CampaignRow(Base):
-    """One row per send campaign (one orchestrate_multi_source() run)."""
-
-    __tablename__ = "campaigns"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    target: Mapped[str] = mapped_column(Text, nullable=False)
-    message_preview: Mapped[str] = mapped_column(Text, nullable=False)
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    total: Mapped[int] = mapped_column(nullable=False, default=0)
-    succeeded: Mapped[int] = mapped_column(nullable=False, default=0)
-    failed: Mapped[int] = mapped_column(nullable=False, default=0)
-
-
-class CampaignResultRow(Base):
-    """One row per message delivery attempt within a campaign."""
-
-    __tablename__ = "campaign_results"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    campaign_id: Mapped[int] = mapped_column(
-        ForeignKey("campaigns.id"), nullable=False, index=True
-    )
-    recipient: Mapped[str] = mapped_column(Text, nullable=False)
-    worker_phone: Mapped[str] = mapped_column(Text, nullable=False)
-    success: Mapped[bool] = mapped_column(nullable=False)
-    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
 

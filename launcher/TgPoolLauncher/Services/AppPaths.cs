@@ -60,8 +60,15 @@ public static class AppPaths
         ["SESSION_DIR"] = Sessions,
         ["TELEGRAM_FINGERPRINT_FILE"] = Path.Combine(Fingerprints, "telegram_devices.xlsx"),
         ["LOG_DIR"] = Logs,
+        ["ACCOUNT_DATABASE_URL"] = BuildAccountDatabaseUrl(),
         ["PROXY_DATABASE_URL"] = BuildProxyDatabaseUrl(),
     };
+
+    private static string BuildAccountDatabaseUrl()
+    {
+        var path = Path.Combine(Accounts, "accounts.db").Replace('\\', '/');
+        return $"sqlite+aiosqlite:///{path}";
+    }
 
     private static string BuildProxyDatabaseUrl()
     {

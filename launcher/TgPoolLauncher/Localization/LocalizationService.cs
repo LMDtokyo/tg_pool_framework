@@ -32,7 +32,6 @@ public sealed class LocalizationService : INotifyPropertyChanged
         CommonStrings.Register(_table);
         DashboardStrings.Register(_table);
         AccountsStrings.Register(_table);
-        CampaignStrings.Register(_table);
         ProxyStrings.Register(_table);
         ToolsStrings.Register(_table);
 

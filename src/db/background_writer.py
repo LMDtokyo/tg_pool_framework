@@ -1,8 +1,8 @@
 """
 src/db/background_writer.py — Sequential fire-and-forget background writer.
 
-Used by AccountRegistry and CampaignRecorder to persist durable-store writes
-without blocking their hot path. Fixes the two failure modes of a bare
+Used by AccountRegistry to persist durable-store writes without blocking its
+hot path. Fixes the two failure modes of a bare
 `asyncio.create_task(...)` per write: the task can be garbage-collected
 before it runs (nothing holds a strong reference to it), and independent
 concurrent tasks for the same key can commit to the database out of order.

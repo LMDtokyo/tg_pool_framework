@@ -166,6 +166,25 @@ class TestLoadFromSessionJsonPair:
         assert account.system_version == "Android 13"
         assert account.app_version == "9.9.9"
 
+    def test_non_numeric_desktop_sdk_does_not_block_loading(self, tmp_path):
+        data = {
+            "app_id": 2040,
+            "app_hash": "h",
+            "phone": "13438921715",
+            "device": "Asterope",
+            "system": "Windows 11",
+            "app_version": "6.9.4 x64",
+            "sdk": "Windows 11 x64",
+        }
+        sf = self._write_pair(tmp_path, data)
+
+        account = load_from_session_json_pair(str(sf))
+
+        assert account.phone == "+13438921715"
+        assert account.device_model == "Asterope"
+        assert account.system_version == "Windows 11"
+        assert account.sdk == 0
+
     def test_default_fingerprint_when_missing(self, tmp_path):
         data = {"app_id": 1, "app_hash": "h", "phone": "+7"}
         sf = self._write_pair(tmp_path, data)

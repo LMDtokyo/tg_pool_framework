@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import sqlite3
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import replace
@@ -18,7 +19,6 @@ from src.accounts.account_registry import AccountRegistry, RegistryEntry
 from src.accounts.health_checker import AccountStatus
 from src.accounts.session_crypto import load_key_from_env
 from src.api import schemas
-from src.api.campaign import CampaignAlreadyRunningError, CampaignManager
 from src.api.datamoll import (
     DatamollApiError,
     DatamollDeliveryError,
@@ -58,6 +58,10 @@ from src.api.invite_by_number import (
     InviteRecipient,
     InviteSenderLink,
 )
+from src.api.number_checker import (
+    NumberCheckerAlreadyRunningError,
+    NumberCheckerManager,
+)
 from src.api.json_generator import JsonGeneratorAlreadyRunningError, JsonGeneratorManager
 from src.api.parsing import ParsingAlreadyRunningError, ParsingManager
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
@@ -75,6 +79,7 @@ from src.api.send_by_numbers import (
     SendByNumbersAlreadyRunningError,
     SendByNumbersManager,
 )
+from src.api.send_by_id import SendByIdAlreadyRunningError, SendByIdManager
 from src.api.sms_pool import (
     SMSPOOL_API_URL,
     SMSPOOL_PROVIDER_NAME,
@@ -91,7 +96,7 @@ from src.api.tdata_convert import TdataConvertAlreadyRunningError, TdataConvertM
 from src.api.telegram_auth import TelegramAuthenticator
 from src.config import AccountConfig, ProxyConfig, TimingPolicy
 from src.db.proxy_repository import ProxyRepository, ensure_proxy_table
-from src.messaging.messaging_service import MessagePayload
+from src.db.repository import ensure_durable_tables
 from src.monitoring.event_bus import EventBus
 from src.proxy.proxy_parser import parse_proxy_lines
 
@@ -183,10 +188,14 @@ async def _refresh_account_proxy_assignments() -> None:
     await registry.register_many(updated_accounts)
 
     invite_manager: InviteByNumberManager = app.state.invite_by_number_manager
+    number_checker_manager: NumberCheckerManager = app.state.number_checker_manager
     send_manager: SendByNumbersManager = app.state.send_by_numbers_manager
+    send_by_id_manager: SendByIdManager = app.state.send_by_id_manager
     for account in updated_accounts:
         invite_manager.register_account(account)
+        number_checker_manager.register_account(account)
         send_manager.register_account(account)
+        send_by_id_manager.register_account(account)
 
 
 @asynccontextmanager
@@ -196,6 +205,8 @@ async def lifespan(app: FastAPI):
 
     event_bus = EventBus()
     session_factory = bootstrap.build_db_session_factory()
+    if session_factory is not None:
+        await ensure_durable_tables(session_factory)
     proxy_session_factory = bootstrap.build_proxy_db_session_factory(session_factory)
     owns_proxy_engine = (
         proxy_session_factory is not None and proxy_session_factory is not session_factory
@@ -230,15 +241,6 @@ async def lifespan(app: FastAPI):
 
     pool_guard = PoolAccessGuard()
 
-    campaign_manager = CampaignManager(
-        event_bus=event_bus,
-        registry=registry,
-        accounts=primary,
-        spare_accounts=spares,
-        policy=policy,
-        session_encryption_key=session_encryption_key,
-        pool_guard=pool_guard,
-    )
     parsing_manager = ParsingManager(
         event_bus=event_bus,
         accounts=primary,
@@ -252,7 +254,6 @@ async def lifespan(app: FastAPI):
     app.state.registry = registry
     app.state.account_manager = account_manager
     app.state.pool_guard = pool_guard
-    app.state.campaign_manager = campaign_manager
     app.state.parsing_manager = parsing_manager
     app.state.primary_accounts = primary
     app.state.spare_accounts = spares
@@ -273,7 +274,17 @@ async def lifespan(app: FastAPI):
         pool_guard=pool_guard,
         session_encryption_key=session_encryption_key,
     )
+    app.state.number_checker_manager = NumberCheckerManager(
+        accounts=list(primary) + list(spares),
+        pool_guard=pool_guard,
+        session_encryption_key=session_encryption_key,
+    )
     app.state.send_by_numbers_manager = SendByNumbersManager(
+        accounts=list(primary) + list(spares),
+        pool_guard=pool_guard,
+        session_encryption_key=session_encryption_key,
+    )
+    app.state.send_by_id_manager = SendByIdManager(
         accounts=list(primary) + list(spares),
         pool_guard=pool_guard,
         session_encryption_key=session_encryption_key,
@@ -317,7 +328,9 @@ async def lifespan(app: FastAPI):
             primary.append(account)
             await registry.register_many([account])
             app.state.invite_by_number_manager.register_account(account)
+            app.state.number_checker_manager.register_account(account)
             app.state.send_by_numbers_manager.register_account(account)
+            app.state.send_by_id_manager.register_account(account)
 
     telegram_authenticator = TelegramAuthenticator(
         fingerprint_file=fingerprint_file,
@@ -354,7 +367,9 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         await app.state.invite_by_number_manager.stop()
+        await app.state.number_checker_manager.stop()
         await app.state.send_by_numbers_manager.stop()
+        await app.state.send_by_id_manager.stop()
         await app.state.hero_sms_activation_manager.stop()
         await app.state.sms_pool_activation_manager.stop()
         await app.state.grizzly_sms_activation_manager.stop()
@@ -388,6 +403,7 @@ async def _rescan_account_storage() -> int:
     invite_manager: InviteByNumberManager = app.state.invite_by_number_manager
     for account in new_primary + new_spares:
         invite_manager.register_account(account)
+        app.state.number_checker_manager.register_account(account)
         app.state.send_by_numbers_manager.register_account(account)
 
     return len(new_primary) + len(new_spares)
@@ -1036,6 +1052,48 @@ async def rescan_accounts() -> schemas.RescanResponse:
     return schemas.RescanResponse(new_accounts=await _rescan_account_storage())
 
 
+@app.post("/number_checker/start", response_model=schemas.NumberCheckerStartResponse)
+async def start_number_checker(
+    body: schemas.NumberCheckerStartRequest,
+) -> schemas.NumberCheckerStartResponse:
+    manager: NumberCheckerManager = app.state.number_checker_manager
+    try:
+        job_id = manager.start(
+            phone_numbers=body.phone_numbers,
+            database_path=body.database_path,
+            sender_phones=body.sender_phones,
+            request_profile_data=body.request_profile_data,
+            gender_detection=body.gender_detection,
+            delay_min_sec=body.delay_min_sec,
+            delay_max_sec=body.delay_max_sec,
+            max_flood_wait_sec=body.max_flood_wait_sec,
+            requests_per_account=body.requests_per_account,
+            streams=body.streams,
+            stream_delay_min_sec=body.stream_delay_min_sec,
+            stream_delay_max_sec=body.stream_delay_max_sec,
+            remove_imported_contacts=body.remove_imported_contacts,
+            results_dir=body.results_dir,
+        )
+    except NumberCheckerAlreadyRunningError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (OSError, sqlite3.Error, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.NumberCheckerStartResponse(job_id=job_id, started=True)
+
+
+@app.post("/number_checker/stop")
+async def stop_number_checker() -> dict:
+    manager: NumberCheckerManager = app.state.number_checker_manager
+    await manager.stop()
+    return {"ok": True}
+
+
+@app.get("/number_checker/status", response_model=schemas.NumberCheckerStatusResponse)
+async def number_checker_status() -> schemas.NumberCheckerStatusResponse:
+    manager: NumberCheckerManager = app.state.number_checker_manager
+    return schemas.NumberCheckerStatusResponse(**manager.status())
+
+
 @app.post("/send_by_numbers/start", response_model=schemas.SendByNumbersStartResponse)
 async def start_send_by_numbers(
     body: schemas.SendByNumbersStartRequest,
@@ -1046,23 +1104,30 @@ async def start_send_by_numbers(
             phone_numbers=body.phone_numbers,
             message=body.message,
             sender_phones=body.sender_phones,
+            media_paths=body.media_paths,
+            forward_links=body.forward_links,
+            bot_relay_username=body.bot_relay_username,
+            bot_relay_message_ids=body.bot_relay_message_ids,
             sms_per_account_min=body.sms_per_account_min,
             sms_per_account_max=body.sms_per_account_max,
             delay_min_sec=body.delay_min_sec,
             delay_max_sec=body.delay_max_sec,
             max_flood_wait_sec=body.max_flood_wait_sec,
-            use_base_data=body.use_base_data,
-            request_profile=body.request_profile,
             delete_dialog=body.delete_dialog,
             link_preview=body.link_preview,
             silent=body.silent,
             auto_repost=body.auto_repost,
+            remove_imported_contacts=body.remove_imported_contacts,
             pin_message=body.pin_message,
             video_note=body.video_note,
             self_destruct_sec=body.self_destruct_sec,
-            sending_by_time=body.sending_by_time,
-            streams_control=body.streams_control,
-            auto_stop=body.auto_stop,
+            schedule_at=body.schedule_at,
+            streams=body.streams,
+            auto_stop_ban=body.auto_stop_ban,
+            auto_stop_spamblock=body.auto_stop_spamblock,
+            auto_stop_floodwait=body.auto_stop_floodwait,
+            repeat_every_hours=body.repeat_every_hours,
+            results_dir=body.results_dir,
         )
     except SendByNumbersAlreadyRunningError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1082,6 +1147,59 @@ async def stop_send_by_numbers() -> dict:
 async def send_by_numbers_status() -> schemas.SendByNumbersStatusResponse:
     manager: SendByNumbersManager = app.state.send_by_numbers_manager
     return schemas.SendByNumbersStatusResponse(**manager.status())
+
+
+@app.post("/send_by_id/start", response_model=schemas.SendByIdStartResponse)
+async def start_send_by_id(body: schemas.SendByIdStartRequest) -> schemas.SendByIdStartResponse:
+    manager: SendByIdManager = app.state.send_by_id_manager
+    try:
+        job_id = manager.start(
+            database_path=body.database_path,
+            message=body.message,
+            sender_phones=body.sender_phones,
+            media_paths=body.media_paths,
+            forward_links=body.forward_links,
+            bot_relay_username=body.bot_relay_username,
+            bot_relay_message_ids=body.bot_relay_message_ids,
+            sms_per_account_min=body.sms_per_account_min,
+            sms_per_account_max=body.sms_per_account_max,
+            delay_min_sec=body.delay_min_sec,
+            delay_max_sec=body.delay_max_sec,
+            max_flood_wait_sec=body.max_flood_wait_sec,
+            delete_dialog=body.delete_dialog,
+            link_preview=body.link_preview,
+            silent=body.silent,
+            auto_repost=body.auto_repost,
+            leave_donor_groups=body.leave_donor_groups,
+            pin_message=body.pin_message,
+            video_note=body.video_note,
+            self_destruct_sec=body.self_destruct_sec,
+            schedule_at=body.schedule_at,
+            streams=body.streams,
+            auto_stop_ban=body.auto_stop_ban,
+            auto_stop_spamblock=body.auto_stop_spamblock,
+            auto_stop_floodwait=body.auto_stop_floodwait,
+            repeat_every_hours=body.repeat_every_hours,
+            results_dir=body.results_dir,
+        )
+    except SendByIdAlreadyRunningError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.SendByIdStartResponse(job_id=job_id, started=True)
+
+
+@app.post("/send_by_id/stop")
+async def stop_send_by_id() -> dict:
+    manager: SendByIdManager = app.state.send_by_id_manager
+    await manager.stop()
+    return {"ok": True}
+
+
+@app.get("/send_by_id/status", response_model=schemas.SendByIdStatusResponse)
+async def send_by_id_status() -> schemas.SendByIdStatusResponse:
+    manager: SendByIdManager = app.state.send_by_id_manager
+    return schemas.SendByIdStatusResponse(**manager.status())
 
 
 @app.post("/invite_by_number/start", response_model=schemas.InviteByNumberStartResponse)
@@ -1130,56 +1248,6 @@ async def stop_invite_by_number() -> dict:
 async def invite_by_number_status() -> schemas.InviteByNumberStatusResponse:
     manager: InviteByNumberManager = app.state.invite_by_number_manager
     return schemas.InviteByNumberStatusResponse(**manager.status())
-
-
-@app.post("/campaign/start", response_model=schemas.CampaignStartResponse)
-async def start_campaign(body: schemas.CampaignStartRequest) -> schemas.CampaignStartResponse:
-    manager: CampaignManager = app.state.campaign_manager
-    payload = MessagePayload(
-        text=body.message,
-        media_path=body.media_path,
-        media_paths=body.media_paths,
-        media_kind=body.media_kind,
-        buttons_raw=body.buttons_raw,
-        parse_mode=body.parse_mode,
-        silent=body.silent,
-        link_preview=body.link_preview,
-        forward_link=body.forward_link,
-        bot_relay_username=body.bot_relay_username,
-        bot_relay_message_ids=body.bot_relay_message_ids,
-        schedule_at=body.schedule_at,
-        pin_after_send=body.pin_after_send,
-    )
-    try:
-        campaign_id = manager.start(
-            body.target,
-            payload,
-            account_folder=body.account_folder,
-            messages_per_account_min=body.messages_per_account_min,
-            messages_per_account_max=body.messages_per_account_max,
-            exact_total_target=body.exact_total_target,
-            worker_batch_size=body.worker_batch_size,
-            worker_batch_delay_sec=body.worker_batch_delay_sec,
-            repeat_every_hours=body.repeat_every_hours,
-        )
-    except CampaignAlreadyRunningError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return schemas.CampaignStartResponse(campaign_id=campaign_id, started=True)
-
-
-@app.post("/campaign/stop")
-async def stop_campaign() -> dict:
-    manager: CampaignManager = app.state.campaign_manager
-    await manager.stop()
-    return {"ok": True}
-
-
-@app.get("/campaign/status", response_model=schemas.CampaignStatusResponse)
-async def campaign_status() -> schemas.CampaignStatusResponse:
-    manager: CampaignManager = app.state.campaign_manager
-    return schemas.CampaignStatusResponse(**manager.status())
 
 
 @app.post("/parsing/start", response_model=schemas.ParseStartResponse)

@@ -17,7 +17,7 @@ using TgPoolLauncher.Services;
 
 namespace TgPoolLauncher.Views;
 
-public partial class SendByNumbersView : UserControl
+public partial class SendingSmsByIdView : UserControl
 {
     private readonly BackendClient _backend;
     private readonly ObservableCollection<ProgramActionRow> _programActions = new();
@@ -29,7 +29,7 @@ public partial class SendByNumbersView : UserControl
     private string? _lastExportPath;
     private Random _random = new();
 
-    public SendByNumbersView(BackendClient backend)
+    public SendingSmsByIdView(BackendClient backend)
     {
         _backend = backend;
         InitializeComponent();
@@ -55,8 +55,8 @@ public partial class SendByNumbersView : UserControl
     private void LinkButton_Click(object sender, RoutedEventArgs e) =>
         InsertAtCaret("<a href=\"https://\">link text</a>");
 
-    private void PhoneButton_Click(object sender, RoutedEventArgs e) =>
-        InsertAtCaret("{phone}");
+    private void UsernameButton_Click(object sender, RoutedEventArgs e) =>
+        InsertAtCaret("{username}");
 
     private void RandomizerButton_Click(object sender, RoutedEventArgs e)
     {
@@ -95,25 +95,18 @@ public partial class SendByNumbersView : UserControl
 
     private void MessageTextBox_TextChanged(object sender, TextChangedEventArgs e) => UpdatePreview();
 
-    private void BrowsePhoneNumbersButton_Click(object sender, RoutedEventArgs e)
+    private void BrowseDatabaseButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Import Telegram phone numbers",
-            Filter = "Phone number lists|*.txt;*.csv|All files|*.*",
+            Title = "Select Telegram user ID database",
+            Filter = "Audience databases|*.txt;*.csv;*.xlsx;*.xls;*.json|All files|*.*",
             CheckFileExists = true,
         };
         if (dialog.ShowDialog() == true)
         {
-            try
-            {
-                PhoneNumbersTextBox.Text = File.ReadAllText(dialog.FileName);
-                AddAction("Phone numbers", $"Imported {ParsePhoneNumbers(PhoneNumbersTextBox.Text).Count} unique number(s).");
-            }
-            catch (Exception ex)
-            {
-                AddAction("Phone numbers", $"Could not import {Path.GetFileName(dialog.FileName)}: {ex.Message}");
-            }
+            DatabasePathTextBox.Text = dialog.FileName;
+            AddAction("Database", $"Selected {Path.GetFileName(dialog.FileName)}.");
         }
     }
 
@@ -135,15 +128,14 @@ public partial class SendByNumbersView : UserControl
         if (_isStarting || !StartButton.IsEnabled)
             return;
 
-        var phoneNumbers = ParsePhoneNumbers(PhoneNumbersTextBox.Text);
-        if (phoneNumbers.Count == 0)
+        if (string.IsNullOrWhiteSpace(DatabasePathTextBox.Text))
         {
-            AddAction("Send by numbers", "Enter at least one valid phone number.");
+            AddAction("Sending SMS by ID", "Select a user ID database before starting.");
             return;
         }
         if (_senderPhones.Count == 0)
         {
-            AddAction("Send by numbers", "Select at least one sender account.");
+            AddAction("Sending SMS by ID", "Select at least one sender account.");
             return;
         }
 
@@ -152,14 +144,14 @@ public partial class SendByNumbersView : UserControl
         {
             if (!TryParseSchedule(ScheduleAtTextBox.Text, out scheduleAt))
             {
-                AddAction("Send by numbers", "Enter a future local time as yyyy-MM-dd HH:mm.");
+                AddAction("Sending SMS by ID", "Enter a future local time as yyyy-MM-dd HH:mm.");
                 return;
             }
         }
 
-        var request = new SendByNumbersStartRequest
+        var request = new SendByIdStartRequest
         {
-            PhoneNumbers = phoneNumbers,
+            DatabasePath = DatabasePathTextBox.Text.Trim(),
             Message = MessageTextBox.Text,
             SenderPhones = [.. _senderPhones],
             MediaPaths = NonEmptyLines(AttachmentLinkTextBox.Text),
@@ -175,7 +167,7 @@ public partial class SendByNumbersView : UserControl
             LinkPreview = PreviewLinksToggle.IsChecked == true,
             Silent = SilentModeToggle.IsChecked == true,
             AutoRepost = AutoRepostToggle.IsChecked == true,
-            RemoveImportedContacts = RemoveImportedContactsToggle.IsChecked == true,
+            LeaveDonorGroups = LeaveDonorGroupsToggle.IsChecked == true,
             PinMessage = PinMessageToggle.IsChecked == true,
             VideoNote = VideoCircleToggle.IsChecked == true,
             SelfDestructSec = SelfDestructToggle.IsChecked == true ? 60 : null,
@@ -203,7 +195,7 @@ public partial class SendByNumbersView : UserControl
             && request.ForwardLinks.Count == 0
             && request.BotRelayMessageIds.Count == 0)
         {
-            AddAction("Send by numbers", "Add message text, media, a repost link, or a Postbot post.");
+            AddAction("Sending SMS by ID", "Add message text, media, a repost link, or a Postbot post.");
             return;
         }
 
@@ -216,17 +208,17 @@ public partial class SendByNumbersView : UserControl
         SetRunningState(true);
         try
         {
-            var response = await _backend.StartSendByNumbersAsync(request, ct);
-            AddAction("Send by numbers", $"Started job {response.JobId}.");
+            var response = await _backend.StartSendByIdAsync(request, ct);
+            AddAction("Sending SMS by ID", $"Started job {response.JobId}.");
             await PollStatusAsync(ct);
         }
         catch (OperationCanceledException)
         {
-            AddAction("Send by numbers", "Status polling stopped.");
+            AddAction("Sending SMS by ID", "Status polling stopped.");
         }
         catch (Exception ex)
         {
-            AddAction("Send by numbers", CleanApiError(ex.Message));
+            AddAction("Sending SMS by ID", CleanApiError(ex.Message));
             ResultsSummaryText.Text = "Could not start";
             SetRunningState(false);
         }
@@ -242,14 +234,14 @@ public partial class SendByNumbersView : UserControl
         _pollCancellation?.Cancel();
         try
         {
-            await _backend.StopSendByNumbersAsync();
-            AddAction("Send by numbers", "Stop completed.");
-            var status = await _backend.GetSendByNumbersStatusAsync();
+            await _backend.StopSendByIdAsync();
+            AddAction("Sending SMS by ID", "Stop completed.");
+            var status = await _backend.GetSendByIdStatusAsync();
             ApplyStatus(status);
         }
         catch (Exception ex)
         {
-            AddAction("Send by numbers", $"Stop failed: {CleanApiError(ex.Message)}");
+            AddAction("Sending SMS by ID", $"Stop failed: {CleanApiError(ex.Message)}");
             StopButton.IsEnabled = true;
         }
     }
@@ -331,7 +323,7 @@ public partial class SendByNumbersView : UserControl
     private void ResetForm()
     {
         MessageTextBox.Text = "";
-        PhoneNumbersTextBox.Text = "";
+        DatabasePathTextBox.Text = "";
         SmsMinTextBox.Text = "min  1";
         SmsMaxTextBox.Text = "max  40";
         DelayMinTextBox.Text = "min  1";
@@ -342,7 +334,7 @@ public partial class SendByNumbersView : UserControl
         PreviewLinksToggle.IsChecked = true;
         SilentModeToggle.IsChecked = false;
         AutoRepostToggle.IsChecked = false;
-        RemoveImportedContactsToggle.IsChecked = true;
+        LeaveDonorGroupsToggle.IsChecked = true;
         PinMessageToggle.IsChecked = false;
         VideoCircleToggle.IsChecked = false;
         SelfDestructToggle.IsChecked = false;
@@ -398,7 +390,7 @@ public partial class SendByNumbersView : UserControl
     {
         while (!ct.IsCancellationRequested)
         {
-            var status = await _backend.GetSendByNumbersStatusAsync(ct);
+            var status = await _backend.GetSendByIdStatusAsync(ct);
             ApplyStatus(status);
             if (status.Finished || (!status.Running && status.JobId is null))
                 return;
@@ -406,16 +398,19 @@ public partial class SendByNumbersView : UserControl
         }
     }
 
-    private void ApplyStatus(SendByNumbersStatusDto status)
+    private void ApplyStatus(SendByIdStatusDto status)
     {
         SetRunningState(status.Running);
         _programActions.Clear();
         foreach (var result in status.Results.AsEnumerable().Reverse())
         {
+            var identity = string.IsNullOrWhiteSpace(result.SenderPhone)
+                ? result.RecipientId.ToString(CultureInfo.InvariantCulture)
+                : result.SenderPhone;
             _programActions.Add(new ProgramActionRow(
                 $"C{result.Cycle}",
-                string.IsNullOrWhiteSpace(result.SenderPhone) ? result.RecipientPhone : result.SenderPhone,
-                $"{result.State}: {result.RecipientPhone} - {result.Message}"));
+                identity,
+                $"{result.State}: ID {result.RecipientId} - {result.Message}"));
         }
 
         ResultsSummaryText.Text =
@@ -425,7 +420,7 @@ public partial class SendByNumbersView : UserControl
         if (status.Finished)
         {
             AddAction(
-                "Send by numbers",
+                "Sending SMS by ID",
                 string.IsNullOrWhiteSpace(status.Error)
                     ? $"Finished: sent {status.Sent}, failed {status.Failed}."
                     : $"Finished with error: {status.Error}");
@@ -436,7 +431,7 @@ public partial class SendByNumbersView : UserControl
     {
         try
         {
-            var status = await _backend.GetSendByNumbersStatusAsync();
+            var status = await _backend.GetSendByIdStatusAsync();
             ApplyStatus(status);
             if (!status.Running)
                 return;
@@ -450,7 +445,7 @@ public partial class SendByNumbersView : UserControl
         }
         catch (Exception ex)
         {
-            AddAction("Send by numbers", $"Could not restore job status: {CleanApiError(ex.Message)}");
+            AddAction("Sending SMS by ID", $"Could not restore job status: {CleanApiError(ex.Message)}");
             SetRunningState(false);
         }
     }
@@ -649,14 +644,6 @@ public partial class SendByNumbersView : UserControl
             .Select(line => line.Trim())
             .Where(line => line.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-    private static List<string> ParsePhoneNumbers(string value) =>
-        Regex.Matches(value ?? "", @"\+?\d(?:[().-]?\d){6,15}")
-            .Select(match => Regex.Replace(match.Value, @"\D", ""))
-            .Where(digits => digits.Length is >= 7 and <= 16)
-            .Select(digits => $"+{digits}")
-            .Distinct(StringComparer.Ordinal)
             .ToList();
 
     private static List<int> ParsePositiveInts(string value) =>

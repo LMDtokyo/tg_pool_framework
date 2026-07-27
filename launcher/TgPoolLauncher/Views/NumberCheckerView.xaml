@@ -1,27 +1,553 @@
 <UserControl x:Class="TgPoolLauncher.Views.NumberCheckerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup">
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="1080">
+    <UserControl.Resources>
+        <Style x:Key="CheckerCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style x:Key="CheckerHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+            <Setter Property="Margin" Value="0,0,0,14" />
+        </Style>
+        <Style x:Key="CheckerToolbarButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#0C0C0E" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource AccentHoverBrush}" />
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CheckerTextButtonStyle" TargetType="Button"
+               BasedOn="{StaticResource CheckerToolbarButtonStyle}">
+            <Setter Property="Width" Value="82" />
+            <Setter Property="Padding" Value="8,0" />
+        </Style>
+        <Style x:Key="CheckerToggleShellStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceAltBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="6" />
+        </Style>
+        <Style x:Key="CheckerSegmentButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CheckerInputStyle" TargetType="TextBox"
+               BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Height" Value="46" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Opacity" Value="0.82" />
+        </Style>
+    </UserControl.Resources>
+
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Border Margin="24"
-                Padding="24"
-                MaxWidth="620"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="8">
-            <StackPanel>
-                <TextBlock Text="Number checker"
-                           FontSize="24"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}" />
-                <TextBlock Margin="0,12,0,0"
-                           Text="{tr:Tr Common.NotImplementedTooltip}"
-                           TextWrapping="Wrap"
-                           Foreground="{StaticResource TextMutedBrush}" />
-            </StackPanel>
-        </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+            <Grid Margin="16" MinWidth="1010">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.02*" MinWidth="470" />
+                    <ColumnDefinition Width="22" />
+                    <ColumnDefinition Width="1.08*" MinWidth="500" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="SETTINGS" Style="{StaticResource CheckerHeaderStyle}"
+                                   Margin="0" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Style="{StaticResource CheckerTextButtonStyle}"
+                                ToolTip="Reset checker settings" Click="ResetButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="Refresh" Width="15" Height="15"
+                                                            Margin="0,0,7,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Reset" VerticalAlignment="Center" FontSize="11"
+                                           FontWeight="SemiBold" Foreground="#0C0C0E" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Border Style="{StaticResource CheckerCardStyle}">
+                        <StackPanel>
+                            <UniformGrid Columns="2" Margin="0,0,0,16">
+                                <StackPanel Margin="0,0,14,0">
+                                    <TextBlock Text="Use existing results" Style="{StaticResource FieldLabelStyle}" />
+                                    <Border Style="{StaticResource CheckerToggleShellStyle}">
+                                        <UniformGrid Columns="2">
+                                            <Button x:Name="UseBaseDataOnButton"
+                                                    Style="{StaticResource CheckerSegmentButtonStyle}"
+                                                    Margin="0,0,5,0" ToolTip="Resume unfinished rows from number_checker.xlsx"
+                                                    Click="UseBaseDataOnButton_Click">
+                                                <iconPacks:PackIconMaterial x:Name="UseBaseDataOnIcon"
+                                                                            Kind="Check" Width="18" Height="18" />
+                                            </Button>
+                                            <Button x:Name="UseBaseDataOffButton"
+                                                    Style="{StaticResource CheckerSegmentButtonStyle}"
+                                                    Margin="5,0,0,0" ToolTip="Enter phone numbers manually"
+                                                    Click="UseBaseDataOffButton_Click">
+                                                <iconPacks:PackIconMaterial x:Name="UseBaseDataOffIcon"
+                                                                            Kind="CloseOctagon" Width="18" Height="18" />
+                                            </Button>
+                                        </UniformGrid>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Request First name, Last name, Bio"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <Border Style="{StaticResource CheckerToggleShellStyle}">
+                                        <UniformGrid Columns="2">
+                                            <Button x:Name="ProfileDataOnButton"
+                                                    Style="{StaticResource CheckerSegmentButtonStyle}"
+                                                    Margin="0,0,5,0" ToolTip="Include profile details in results"
+                                                    Click="ProfileDataOnButton_Click">
+                                                <iconPacks:PackIconMaterial x:Name="ProfileDataOnIcon"
+                                                                            Kind="Check" Width="18" Height="18" />
+                                            </Button>
+                                            <Button x:Name="ProfileDataOffButton"
+                                                    Style="{StaticResource CheckerSegmentButtonStyle}"
+                                                    Margin="5,0,0,0" ToolTip="Check registration only"
+                                                    Click="ProfileDataOffButton_Click">
+                                                <iconPacks:PackIconMaterial x:Name="ProfileDataOffIcon"
+                                                                            Kind="CloseOctagon" Width="18" Height="18" />
+                                            </Button>
+                                        </UniformGrid>
+                                    </Border>
+                                </StackPanel>
+                            </UniformGrid>
+
+                            <Border x:Name="DatabasePanel" Style="{StaticResource CheckerCardStyle}"
+                                    Background="{StaticResource AccentTintBrush}" BorderThickness="0"
+                                    Padding="18" Margin="0,0,0,16" Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="Use existing results" Foreground="{StaticResource AccentBrush}"
+                                               FontSize="13" FontWeight="Bold" Margin="0,0,0,14" />
+                                    <TextBlock Text="Results workbook" Style="{StaticResource FieldLabelStyle}" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="DatabasePathTextBox"
+                                                 Style="{StaticResource CheckerInputStyle}"
+                                                 IsReadOnly="True" Text="Path to number_checker.xlsx" />
+                                        <Button Grid.Column="1" Width="46" Height="46" Margin="8,0,0,0"
+                                                Style="{StaticResource CheckerToolbarButtonStyle}"
+                                                ToolTip="Choose number_checker.xlsx"
+                                                Click="BrowseDatabaseButton_Click">
+                                            <iconPacks:PackIconMaterial Kind="FolderOpenOutline" Width="18" Height="18" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="Delay between requests" Style="{StaticResource FieldLabelStyle}" />
+                            <UniformGrid Columns="2" Margin="0,0,0,14">
+                                <TextBox x:Name="DelayMinTextBox" Style="{StaticResource CheckerInputStyle}"
+                                         Text="min  5 sec" Margin="0,0,8,0" />
+                                <TextBox x:Name="DelayMaxTextBox" Style="{StaticResource CheckerInputStyle}"
+                                         Text="max  10 sec" Margin="8,0,0,0" />
+                            </UniformGrid>
+
+                            <UniformGrid Columns="2" Margin="0,0,0,14">
+                                <StackPanel Margin="0,0,8,0">
+                                    <TextBlock Text="Maximum timeout (FloodWait)"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox x:Name="FloodWaitTextBox"
+                                             Style="{StaticResource CheckerInputStyle}" Text="500 sec" />
+                                </StackPanel>
+                                <StackPanel Margin="8,0,0,0">
+                                    <TextBlock Text="Number of requests per account"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox x:Name="RequestsPerAccountTextBox"
+                                             Style="{StaticResource CheckerInputStyle}" Text="8 req" />
+                                </StackPanel>
+                            </UniformGrid>
+
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Select Accounts" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox x:Name="SelectedAccountsTextBox"
+                                             Style="{StaticResource CheckerInputStyle}"
+                                             IsReadOnly="True" Text="0" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Height="46" VerticalAlignment="Bottom"
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        Click="SelectAccountsButton_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <iconPacks:PackIconMaterial Kind="AccountOutline" Width="17" Height="17"
+                                                                    Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="Select Accounts" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <UniformGrid Columns="2">
+                                <StackPanel Margin="0,0,14,0">
+                                    <TextBlock Text="Gender determination"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <Border Style="{StaticResource CheckerToggleShellStyle}">
+                                        <UniformGrid Columns="2">
+                                            <Button x:Name="GenderOnButton"
+                                                    Style="{StaticResource CheckerSegmentButtonStyle}"
+                                                    Margin="0,0,5,0" Click="GenderOnButton_Click">
+                                                <iconPacks:PackIconMaterial x:Name="GenderOnIcon"
+                                                                            Kind="Check" Width="18" Height="18" />
+                                            </Button>
+                                            <Button x:Name="GenderOffButton"
+                                                    Style="{StaticResource CheckerSegmentButtonStyle}"
+                                                    Margin="5,0,0,0" Click="GenderOffButton_Click">
+                                                <iconPacks:PackIconMaterial x:Name="GenderOffIcon"
+                                                                            Kind="CloseOctagon" Width="18" Height="18" />
+                                            </Button>
+                                        </UniformGrid>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="Streams control" Style="{StaticResource FieldLabelStyle}" />
+                                    <Border Style="{StaticResource CheckerToggleShellStyle}">
+                                        <UniformGrid Columns="2">
+                                            <Button x:Name="StreamsOnButton"
+                                                    Style="{StaticResource CheckerSegmentButtonStyle}"
+                                                    Margin="0,0,5,0" Click="StreamsOnButton_Click">
+                                                <iconPacks:PackIconMaterial x:Name="StreamsOnIcon"
+                                                                            Kind="Check" Width="18" Height="18" />
+                                            </Button>
+                                            <Button x:Name="StreamsOffButton"
+                                                    Style="{StaticResource CheckerSegmentButtonStyle}"
+                                                    Margin="5,0,0,0" Click="StreamsOffButton_Click">
+                                                <iconPacks:PackIconMaterial x:Name="StreamsOffIcon"
+                                                                            Kind="CloseOctagon" Width="18" Height="18" />
+                                            </Button>
+                                        </UniformGrid>
+                                    </Border>
+                                </StackPanel>
+                            </UniformGrid>
+
+                            <Border x:Name="StreamsPanel" Background="{StaticResource AccentTintBrush}"
+                                    CornerRadius="10" Padding="16" Margin="0,16,0,0"
+                                    Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="Streams control" Foreground="{StaticResource AccentBrush}"
+                                               FontSize="13" FontWeight="Bold" Margin="0,0,0,12" />
+                                    <UniformGrid Columns="2">
+                                        <StackPanel Margin="0,0,8,0">
+                                            <TextBlock Text="Simultaneous accounts"
+                                                       Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox x:Name="StreamsCountTextBox"
+                                                     Style="{StaticResource CheckerInputStyle}"
+                                                     Text="4 streams" />
+                                        </StackPanel>
+                                        <StackPanel Margin="8,0,0,0">
+                                            <TextBlock Text="Delay between streams"
+                                                       Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox x:Name="StreamsDelayTextBox"
+                                                     Style="{StaticResource CheckerInputStyle}"
+                                                     Text="30–45 sec" />
+                                        </StackPanel>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <StackPanel x:Name="PhoneInputPanel">
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="PhoneNumbersHeaderText" Text="PHONE NUMBERS : 0"
+                                       Style="{StaticResource CheckerHeaderStyle}"
+                                       Margin="0" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Style="{StaticResource CheckerTextButtonStyle}"
+                                    ToolTip="Clear phone numbers" Click="ClearPhoneNumbersButton_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="TrashCanOutline" Width="15" Height="15"
+                                                                Margin="0,0,7,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Clear" VerticalAlignment="Center" FontSize="11"
+                                               FontWeight="SemiBold" Foreground="#0C0C0E" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        <TextBox x:Name="PhoneNumbersTextBox" Height="278" AcceptsReturn="True"
+                                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="18"
+                                 Foreground="{StaticResource TextMutedBrush}"
+                                 TextChanged="PhoneNumbersTextBox_TextChanged"
+                                 Text="List of phone numbers, each one from a new line, in any format:&#x0a;1(222) 333 4455&#x0a;1 222 333 4455&#x0a;1-222-333-4455&#x0a;12223334455&#x0a;&#x0a;The program removes extra spaces, brackets, and hyphens. New phone numbers are added to number_checker.xlsx and existing rows are updated.&#x0a;&#x0a;If work was interrupted, enable Use existing results and choose number_checker.xlsx." />
+                    </StackPanel>
+
+                    <Border Style="{StaticResource CheckerCardStyle}"
+                            Padding="16" Margin="0,18,0,16">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="PROGRAM ACTIONS"
+                                           Style="{StaticResource CheckerHeaderStyle}"
+                                           Margin="0" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button x:Name="StartButton"
+                                            Style="{StaticResource CheckerToolbarButtonStyle}"
+                                            ToolTip="Start number checker"
+                                            Click="StartButton_Click">
+                                        <iconPacks:PackIconMaterial Kind="Play" Width="15" Height="15" />
+                                    </Button>
+                                    <Button x:Name="StopButton"
+                                            Style="{StaticResource CheckerToolbarButtonStyle}"
+                                            ToolTip="Stop number checker"
+                                            IsEnabled="False"
+                                            Click="StopButton_Click">
+                                        <iconPacks:PackIconMaterial Kind="Stop" Width="15" Height="15" />
+                                    </Button>
+                                    <Button Style="{StaticResource CheckerToolbarButtonStyle}"
+                                            Margin="0"
+                                            ToolTip="Clear actions"
+                                            Click="ClearActionsButton_Click">
+                                        <iconPacks:PackIconMaterial Kind="TrashCanOutline"
+                                                                    Width="15" Height="15" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                            <Border Height="360"
+                                    Background="{StaticResource SurfaceBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    ClipToBounds="True">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="38" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <Border Background="{StaticResource SurfaceAltBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="0,0,0,1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="145" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="Time"
+                                                       Margin="12,0,8,0"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="Account"
+                                                       Margin="12,0,8,0"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Grid.Column="2"
+                                                       Text="Message"
+                                                       Margin="12,0,8,0"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                        </Grid>
+                                    </Border>
+
+                                    <ScrollViewer Grid.Row="1"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsControl x:Name="ProgramActionsList">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border MinHeight="38"
+                                                            BorderBrush="{StaticResource BorderBrush}"
+                                                            BorderThickness="0,0,0,1">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="90" />
+                                                                <ColumnDefinition Width="145" />
+                                                                <ColumnDefinition Width="*" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0"
+                                                                       Text="{Binding Time}"
+                                                                       Margin="12,9,8,9"
+                                                                       VerticalAlignment="Top"
+                                                                       FontSize="12"
+                                                                       Foreground="{StaticResource TextMutedBrush}" />
+                                                            <TextBlock Grid.Column="1"
+                                                                       Text="{Binding Account}"
+                                                                       Margin="12,9,8,9"
+                                                                       VerticalAlignment="Top"
+                                                                       FontSize="12"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                                            <TextBlock Grid.Column="2"
+                                                                       Text="{Binding Message}"
+                                                                       Margin="12,9,12,9"
+                                                                       VerticalAlignment="Top"
+                                                                       FontSize="12"
+                                                                       TextWrapping="Wrap"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CheckerCardStyle}" Padding="16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="RESULTS"
+                                           Style="{StaticResource CheckerHeaderStyle}"
+                                           Margin="0,0,0,6" />
+                                <TextBlock x:Name="ResultsSummaryText"
+                                           Text="No results yet"
+                                           FontSize="12"
+                                           Foreground="{StaticResource TextFaintBrush}" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource CheckerTextButtonStyle}"
+                                    ToolTip="Open results folder"
+                                    Click="OpenResultsButton_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <iconPacks:PackIconMaterial Kind="FolderOpenOutline"
+                                                                Width="15" Height="15"
+                                                                Margin="0,0,7,0"
+                                                                VerticalAlignment="Center" />
+                                    <TextBlock Text="Open" VerticalAlignment="Center" FontSize="11"
+                                               FontWeight="SemiBold" Foreground="#0C0C0E" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <Grid x:Name="AccountsOverlay" Background="#B8000000"
+              Visibility="Collapsed" Panel.ZIndex="20">
+            <Border Width="520" MaxHeight="590" HorizontalAlignment="Center"
+                    VerticalAlignment="Center" Style="{StaticResource CheckerCardStyle}" Padding="24">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Select Accounts" FontSize="20" FontWeight="SemiBold" />
+                        <Button Grid.Column="1" Width="34" Height="34" Padding="0"
+                                ToolTip="Close" Click="CloseAccountsButton_Click">
+                            <iconPacks:PackIconMaterial Kind="Close" Width="15" Height="15" />
+                        </Button>
+                    </Grid>
+                    <TextBlock Grid.Row="1" Margin="0,8,0,16"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               Text="Choose the active accounts that will check phone numbers." />
+                    <ListBox Grid.Row="2" x:Name="AccountsListBox" MinHeight="220" MaxHeight="390">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Padding="6">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Phone}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Detail}" Margin="0,3,0,0"
+                                                   FontSize="11" Foreground="{StaticResource TextMutedBrush}" />
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Grid Grid.Row="3" Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="AccountsStatusText" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextMutedBrush}" Text="Loading accounts…" />
+                        <Button Grid.Column="1" Margin="0,0,10,0" Content="Cancel"
+                                Click="CloseAccountsButton_Click" />
+                        <Button Grid.Column="2" Style="{StaticResource PrimaryButtonStyle}"
+                                Content="Use selected accounts" Click="ApplyAccountsButton_Click" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

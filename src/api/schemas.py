@@ -204,48 +204,6 @@ class RescanResponse(BaseModel):
     new_accounts: int
 
 
-class CampaignStartRequest(BaseModel):
-    target: str = Field(min_length=1)
-    # Blank is valid when forward_link/bot_relay_* supplies the whole message.
-    message: str = ""
-    media_path: Optional[str] = None
-    media_paths: Optional[List[str]] = None
-    media_kind: str = "auto"
-    buttons_raw: Optional[str] = None
-    parse_mode: Optional[str] = "markdown"
-    silent: bool = False
-    link_preview: bool = True
-    forward_link: Optional[str] = None
-    bot_relay_username: Optional[str] = None
-    bot_relay_message_ids: Optional[List[int]] = None
-    account_folder: Optional[str] = None
-    messages_per_account_min: int = 1
-    messages_per_account_max: Optional[int] = None
-    exact_total_target: Optional[int] = None
-    schedule_at: Optional[datetime] = None
-    pin_after_send: bool = False
-    worker_batch_size: Optional[int] = None
-    worker_batch_delay_sec: float = 0.0
-    repeat_every_hours: Optional[float] = None
-
-
-class CampaignStartResponse(BaseModel):
-    campaign_id: str
-    started: bool
-
-
-class CampaignStatusResponse(BaseModel):
-    running: bool
-    campaign_id: Optional[str] = None
-    target: Optional[str] = None
-    total: int = 0
-    sent: int = 0
-    failed: int = 0
-    per_account: Dict[str, int] = Field(default_factory=dict)
-    finished: bool = False
-    error: Optional[str] = None
-
-
 class ParseFilterIn(BaseModel):
     last_seen_days: Optional[int] = None
     gender: Optional[str] = None
@@ -524,27 +482,87 @@ class InviteByNumberStatusResponse(BaseModel):
     results: List[InviteByNumberResultOut] = Field(default_factory=list)
 
 
+class NumberCheckerStartRequest(BaseModel):
+    phone_numbers: List[str] = Field(default_factory=list)
+    database_path: Optional[str] = None
+    sender_phones: List[str] = Field(default_factory=list)
+    request_profile_data: bool = False
+    gender_detection: bool = False
+    delay_min_sec: float = 5.0
+    delay_max_sec: float = 10.0
+    max_flood_wait_sec: float = 500.0
+    requests_per_account: int = 8
+    streams: int = 1
+    stream_delay_min_sec: float = 30.0
+    stream_delay_max_sec: float = 45.0
+    remove_imported_contacts: bool = True
+    results_dir: str = "exports"
+
+
+class NumberCheckerStartResponse(BaseModel):
+    job_id: str
+    started: bool
+
+
+class NumberCheckerResultOut(BaseModel):
+    phone: str
+    state: str = "pending"
+    account_phone: str = ""
+    telegram_id: str = ""
+    username: str = ""
+    first_name: str = ""
+    last_name: str = ""
+    bio: str = ""
+    online_status: str = ""
+    last_seen: str = ""
+    gender: str = ""
+    message: str = ""
+
+
+class NumberCheckerStatusResponse(BaseModel):
+    running: bool
+    job_id: Optional[str] = None
+    database_path: Optional[str] = None
+    export_path: Optional[str] = None
+    total: int = 0
+    found: int = 0
+    not_found: int = 0
+    failed: int = 0
+    pending: int = 0
+    per_account: Dict[str, int] = Field(default_factory=dict)
+    finished: bool = False
+    error: Optional[str] = None
+    results: List[NumberCheckerResultOut] = Field(default_factory=list)
+
+
 class SendByNumbersStartRequest(BaseModel):
     phone_numbers: List[str] = Field(min_length=1)
-    message: str = Field(min_length=1)
+    message: str = ""
     sender_phones: List[str] = Field(default_factory=list)
+    media_paths: List[str] = Field(default_factory=list)
+    forward_links: List[str] = Field(default_factory=list)
+    bot_relay_username: Optional[str] = None
+    bot_relay_message_ids: List[int] = Field(default_factory=list)
     sms_per_account_min: int = 1
     sms_per_account_max: int = 40
     delay_min_sec: float = 1.0
     delay_max_sec: float = 10.0
     max_flood_wait_sec: float = 500.0
-    use_base_data: bool = False
-    request_profile: bool = False
     delete_dialog: bool = False
     link_preview: bool = True
     silent: bool = False
     auto_repost: bool = False
+    remove_imported_contacts: bool = True
     pin_message: bool = False
     video_note: bool = False
     self_destruct_sec: Optional[int] = None
-    sending_by_time: bool = False
-    streams_control: bool = False
-    auto_stop: bool = False
+    schedule_at: Optional[datetime] = None
+    streams: int = 1
+    auto_stop_ban: int = 0
+    auto_stop_spamblock: int = 0
+    auto_stop_floodwait: int = 0
+    repeat_every_hours: Optional[float] = None
+    results_dir: str = "exports"
 
 
 class SendByNumbersStartResponse(BaseModel):
@@ -557,9 +575,7 @@ class SendByNumbersResultOut(BaseModel):
     sender_phone: str = ""
     state: str = "pending"
     message: str = ""
-    first_name: str = ""
-    last_name: str = ""
-    bio: str = ""
+    cycle: int = 1
 
 
 class SendByNumbersStatusResponse(BaseModel):
@@ -572,3 +588,70 @@ class SendByNumbersStatusResponse(BaseModel):
     finished: bool = False
     error: Optional[str] = None
     results: List[SendByNumbersResultOut] = Field(default_factory=list)
+
+
+class SendByIdStartRequest(BaseModel):
+    database_path: str = Field(min_length=1)
+    message: str = ""
+    sender_phones: List[str] = Field(default_factory=list)
+    media_paths: List[str] = Field(default_factory=list)
+    forward_links: List[str] = Field(default_factory=list)
+    bot_relay_username: Optional[str] = None
+    bot_relay_message_ids: List[int] = Field(default_factory=list)
+    sms_per_account_min: int = 1
+    sms_per_account_max: int = 40
+    delay_min_sec: float = 1.0
+    delay_max_sec: float = 10.0
+    max_flood_wait_sec: float = 500.0
+    delete_dialog: bool = False
+    link_preview: bool = True
+    silent: bool = False
+    auto_repost: bool = False
+    leave_donor_groups: bool = False
+    pin_message: bool = False
+    video_note: bool = False
+    self_destruct_sec: Optional[int] = None
+    schedule_at: Optional[datetime] = None
+    streams: int = 1
+    auto_stop_ban: int = 0
+    auto_stop_spamblock: int = 0
+    auto_stop_floodwait: int = 0
+    repeat_every_hours: Optional[float] = None
+    results_dir: str = "exports"
+
+
+class SendByIdStartResponse(BaseModel):
+    job_id: str
+    started: bool
+
+
+class SendByIdResultOut(BaseModel):
+    recipient_id: int
+    sender_phone: str = ""
+    username: str = ""
+    donor: str = ""
+    state: str = "pending"
+    message: str = ""
+    cycle: int = 1
+
+
+class SendByIdStatusResponse(BaseModel):
+    running: bool
+    job_id: Optional[str] = None
+    total: int = 0
+    sent: int = 0
+    failed: int = 0
+    per_account: Dict[str, int] = Field(default_factory=dict)
+    finished: bool = False
+    error: Optional[str] = None
+    ban_count: int = 0
+    spamblock_count: int = 0
+    floodwait_count: int = 0
+    cycle: int = 1
+    export_path: Optional[str] = None
+    ban_count: int = 0
+    spamblock_count: int = 0
+    floodwait_count: int = 0
+    cycle: int = 1
+    export_path: Optional[str] = None
+    results: List[SendByIdResultOut] = Field(default_factory=list)

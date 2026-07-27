@@ -9,7 +9,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.config import AccountConfig, ProxyConfig
-from src.messaging.messaging_service import BatchReport
 from src.monitoring.event_bus import MetricUpdateEvent
 
 pytestmark = pytest.mark.unit
@@ -147,27 +146,10 @@ def test_recheck_reports_and_publishes_unauthorized_status(client, monkeypatch):
     assert {account["status"] for account in accounts} == {"unauthorized"}
 
 
-def test_recheck_is_rejected_while_campaign_uses_account_pool(client, monkeypatch):
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source",
-        AsyncMock(side_effect=_fake_orchestrator(BatchReport())),
-    )
-
-    campaign_resp = client.post("/campaign/start", json={"target": "@test", "message": "hi"})
-    assert campaign_resp.status_code == 200
-
-    recheck_resp = client.post("/accounts/recheck", json={"deep": False})
-    assert recheck_resp.status_code == 409
-    assert "Account pool is busy" in recheck_resp.json()["detail"]
-
-    client.post("/campaign/stop")
-
-
 def test_startup_deduplicates_accounts_before_managers_receive_them(monkeypatch):
     from fastapi.testclient import TestClient
     from src.api.app import app
 
-    captured = {}
     monkeypatch.setattr(
         "src.bootstrap.load_accounts",
         lambda: ([make_account("+7001")], []),
@@ -179,19 +161,11 @@ def test_startup_deduplicates_accounts_before_managers_receive_them(monkeypatch)
     monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
     monkeypatch.delenv("SESSION_ENCRYPTION_ENABLED", raising=False)
 
-    async def fake_orchestrator(*, accounts, shutdown_event, event_bus, **kwargs):
-        captured["phones"] = [account.phone for account in accounts]
-        await shutdown_event.wait()
-        return BatchReport()
-
-    monkeypatch.setattr("src.api.campaign.orchestrate_multi_source", fake_orchestrator)
-
     with TestClient(app) as local_client:
-        resp = local_client.post("/campaign/start", json={"target": "@test", "message": "hi"})
+        resp = local_client.get("/accounts")
         assert resp.status_code == 200
-        local_client.post("/campaign/stop")
 
-    assert captured["phones"] == ["+7001", "+7002"]
+    assert [account["phone"] for account in resp.json()] == ["+7001", "+7002"]
 
 
 def test_rescan_accounts_picks_up_newly_dropped_account(client, monkeypatch):
@@ -231,298 +205,6 @@ def test_rescan_accounts_also_finds_new_spares(client, monkeypatch):
     resp = client.get("/accounts")
     phones = {a["phone"] for a in resp.json()}
     assert "+7999" in phones
-
-
-def _fake_orchestrator(report: BatchReport):
-    """Publishes a MetricUpdateEvent, then blocks on shutdown_event like the real one."""
-    async def _run(*, shutdown_event, event_bus, **kwargs):
-        await event_bus.publish(MetricUpdateEvent(key="total_recipients", value=report.total))
-        await shutdown_event.wait()
-        return report
-    return _run
-
-
-def test_campaign_start_stop_status_lifecycle(client, monkeypatch):
-    report = BatchReport(total=5, succeeded=4, failed=1)
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source",
-        AsyncMock(side_effect=_fake_orchestrator(report)),
-    )
-
-    resp = client.post("/campaign/start", json={"target": "@test", "message": "hi"})
-    assert resp.status_code == 200
-    campaign_id = resp.json()["campaign_id"]
-    assert resp.json()["started"] is True
-
-    resp = client.get("/campaign/status")
-    body = resp.json()
-    assert body["running"] is True
-    assert body["campaign_id"] == campaign_id
-    assert body["total"] == 5
-
-    resp = client.post("/campaign/stop")
-    assert resp.status_code == 200
-
-    resp = client.get("/campaign/status")
-    body = resp.json()
-    assert body["running"] is False
-    assert body["finished"] is True
-
-
-def test_campaign_start_passes_new_payload_fields_through(client, monkeypatch):
-    captured = {}
-
-    async def fake_orchestrate(*, shutdown_event, event_bus, payload, **kwargs):
-        captured["payload"] = payload
-        await shutdown_event.wait()
-        return BatchReport()
-
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source", AsyncMock(side_effect=fake_orchestrate),
-    )
-
-    resp = client.post("/campaign/start", json={
-        "target": "@test",
-        "message": "{hi|hello}",
-        "media_paths": ["a.jpg", "b.jpg"],
-        "media_kind": "voice",
-        "silent": True,
-        "link_preview": False,
-    })
-    assert resp.status_code == 200
-
-    client.post("/campaign/stop")
-
-    payload = captured["payload"]
-    assert payload.text == "{hi|hello}"
-    assert payload.media_paths == ["a.jpg", "b.jpg"]
-    assert payload.media_kind == "voice"
-    assert payload.silent is True
-    assert payload.link_preview is False
-
-
-def test_campaign_start_passes_forward_fields_through(client, monkeypatch):
-    captured = {}
-
-    async def fake_orchestrate(*, shutdown_event, event_bus, payload, **kwargs):
-        captured["payload"] = payload
-        await shutdown_event.wait()
-        return BatchReport()
-
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source", AsyncMock(side_effect=fake_orchestrate),
-    )
-
-    resp = client.post("/campaign/start", json={
-        "target": "@test",
-        "message": "",
-        "forward_link": "t.me/pythondev/123",
-        "bot_relay_username": "postbot",
-        "bot_relay_message_ids": [1, 2, 3],
-    })
-    assert resp.status_code == 200
-
-    client.post("/campaign/stop")
-
-    payload = captured["payload"]
-    assert payload.forward_link == "t.me/pythondev/123"
-    assert payload.bot_relay_username == "postbot"
-    assert payload.bot_relay_message_ids == [1, 2, 3]
-
-
-def test_campaign_start_with_account_folder_filters_accounts(client, monkeypatch):
-    client.post("/accounts/+7001/folder", json={"value": "active"})
-    # +7002 stays unfoldered.
-
-    captured = {}
-
-    async def fake_orchestrate(*, accounts, shutdown_event, event_bus, **kwargs):
-        captured["accounts"] = accounts
-        await shutdown_event.wait()
-        return BatchReport()
-
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source", AsyncMock(side_effect=fake_orchestrate),
-    )
-
-    resp = client.post("/campaign/start", json={
-        "target": "@test", "message": "hi", "account_folder": "active",
-    })
-    assert resp.status_code == 200
-
-    client.post("/campaign/stop")
-
-    assert [a.phone for a in captured["accounts"]] == ["+7001"]
-
-
-def test_campaign_start_with_account_folder_matching_nothing_returns_400(client):
-    resp = client.post("/campaign/start", json={
-        "target": "@test", "message": "hi", "account_folder": "nonexistent-folder",
-    })
-    assert resp.status_code == 400
-
-
-def test_campaign_start_passes_messages_per_account_range_through(client, monkeypatch):
-    captured = {}
-
-    async def fake_orchestrate(*, shutdown_event, event_bus, **kwargs):
-        captured.update(kwargs)
-        await shutdown_event.wait()
-        return BatchReport()
-
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source", AsyncMock(side_effect=fake_orchestrate),
-    )
-
-    resp = client.post("/campaign/start", json={
-        "target": "@test", "message": "hi",
-        "messages_per_account_min": 3, "messages_per_account_max": 10,
-    })
-    assert resp.status_code == 200
-
-    client.post("/campaign/stop")
-
-    assert captured["messages_per_account_min"] == 3
-    assert captured["messages_per_account_max"] == 10
-
-
-def test_campaign_start_with_exact_total_target_uses_cycling_wrapper(client, monkeypatch):
-    captured = {}
-
-    async def fake_orchestrate_until_target(*, shutdown_event, event_bus, **kwargs):
-        captured.update(kwargs)
-        await shutdown_event.wait()
-        return BatchReport()
-
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_until_target",
-        AsyncMock(side_effect=fake_orchestrate_until_target),
-    )
-
-    resp = client.post("/campaign/start", json={
-        "target": "@test", "message": "hi", "exact_total_target": 50,
-    })
-    assert resp.status_code == 200
-
-    client.post("/campaign/stop")
-
-    assert captured["exact_total_target"] == 50
-
-
-def test_campaign_start_without_exact_total_target_uses_plain_orchestrate(client, monkeypatch):
-    plain_mock = AsyncMock(side_effect=_fake_orchestrator(BatchReport()))
-    until_target_mock = AsyncMock()
-    monkeypatch.setattr("src.api.campaign.orchestrate_multi_source", plain_mock)
-    monkeypatch.setattr("src.api.campaign.orchestrate_until_target", until_target_mock)
-
-    resp = client.post("/campaign/start", json={"target": "@test", "message": "hi"})
-    assert resp.status_code == 200
-
-    client.post("/campaign/stop")
-
-    plain_mock.assert_called_once()
-    until_target_mock.assert_not_called()
-
-
-def test_campaign_start_passes_schedule_at_and_pin_after_send_in_payload(client, monkeypatch):
-    captured_payload = {}
-
-    async def fake_orchestrate(*, payload, shutdown_event, event_bus, **kwargs):
-        captured_payload["payload"] = payload
-        await shutdown_event.wait()
-        return BatchReport()
-
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source", AsyncMock(side_effect=fake_orchestrate),
-    )
-
-    resp = client.post("/campaign/start", json={
-        "target": "@test", "message": "hi",
-        "schedule_at": "2030-01-01T12:00:00", "pin_after_send": True,
-    })
-    assert resp.status_code == 200
-
-    client.post("/campaign/stop")
-
-    payload = captured_payload["payload"]
-    assert payload.schedule_at.isoformat() == "2030-01-01T12:00:00"
-    assert payload.pin_after_send is True
-
-
-def test_campaign_start_passes_worker_batch_params_through(client, monkeypatch):
-    captured = {}
-
-    async def fake_orchestrate(*, shutdown_event, event_bus, **kwargs):
-        captured.update(kwargs)
-        await shutdown_event.wait()
-        return BatchReport()
-
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source", AsyncMock(side_effect=fake_orchestrate),
-    )
-
-    resp = client.post("/campaign/start", json={
-        "target": "@test", "message": "hi",
-        "worker_batch_size": 3, "worker_batch_delay_sec": 12.5,
-    })
-    assert resp.status_code == 200
-
-    client.post("/campaign/stop")
-
-    assert captured["worker_batch_size"] == 3
-    assert captured["worker_batch_delay_sec"] == 12.5
-
-
-def test_campaign_start_passes_repeat_every_hours_to_run_with_repeat(client, monkeypatch):
-    captured = {}
-
-    async def fake_run_with_repeat(run_once, shutdown_event, repeat_every_hours):
-        captured["repeat_every_hours"] = repeat_every_hours
-        return await run_once()
-
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source", AsyncMock(return_value=BatchReport()),
-    )
-    monkeypatch.setattr("src.api.campaign.run_with_repeat", fake_run_with_repeat)
-
-    resp = client.post("/campaign/start", json={
-        "target": "@test", "message": "hi", "repeat_every_hours": 6.0,
-    })
-    assert resp.status_code == 200
-
-    client.post("/campaign/stop")
-
-    assert captured["repeat_every_hours"] == 6.0
-
-
-def test_campaign_start_while_running_returns_409(client, monkeypatch):
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source",
-        AsyncMock(side_effect=_fake_orchestrator(BatchReport())),
-    )
-
-    first = client.post("/campaign/start", json={"target": "@test", "message": "hi"})
-    assert first.status_code == 200
-
-    second = client.post("/campaign/start", json={"target": "@other", "message": "hi"})
-    assert second.status_code == 409
-
-    client.post("/campaign/stop")
-
-
-def test_campaign_status_when_nothing_started(client):
-    resp = client.get("/campaign/status")
-    assert resp.json() == {
-        "running": False,
-        "campaign_id": None,
-        "target": None,
-        "total": 0,
-        "sent": 0,
-        "failed": 0,
-        "per_account": {},
-        "finished": False,
-        "error": None,
-    }
 
 
 def _fake_extraction(exporter_users):
@@ -677,31 +359,6 @@ def test_parsing_full_export_preserves_explicit_filename(tmp_path):
 
     assert result == output_path
     exporter.export_full.assert_called_once_with(output_path)
-
-
-def test_campaign_and_parsing_share_pool_guard(client, monkeypatch):
-    """Regression: CampaignManager/ParsingManager share a ClientPool guard -- one running must reject (409) the other, not double-connect the same .session files."""
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source",
-        AsyncMock(side_effect=_fake_orchestrator(BatchReport())),
-    )
-    monkeypatch.setattr(
-        "src.api.parsing.orchestrate_extraction_only",
-        AsyncMock(side_effect=_fake_extraction(set())),
-    )
-
-    campaign_resp = client.post("/campaign/start", json={"target": "@test", "message": "hi"})
-    assert campaign_resp.status_code == 200
-
-    parsing_resp = client.post("/parsing/start", json={"entities": ["@test"]})
-    assert parsing_resp.status_code == 409
-
-    client.post("/campaign/stop")
-
-    # Now that the campaign released the guard, parsing should be able to start.
-    parsing_resp = client.post("/parsing/start", json={"entities": ["@test"]})
-    assert parsing_resp.status_code == 200
-    client.post("/parsing/stop")
 
 
 def test_proxy_check_start_and_status_lifecycle(client, monkeypatch):
@@ -867,6 +524,30 @@ def test_dedicated_proxy_database_is_initialized_on_startup(monkeypatch, tmp_pat
         assert response.json()[0]["host"] == "1.2.3.4"
 
     assert (tmp_path / "proxies.db").exists()
+
+
+def test_local_account_database_is_initialized_on_startup(monkeypatch, tmp_path):
+    import sqlite3
+
+    from fastapi.testclient import TestClient
+    from src.api.app import app
+
+    accounts = [make_account("+7001")]
+    database_path = tmp_path / "accounts.db"
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("ACCOUNT_DATABASE_URL", f"sqlite+aiosqlite:///{database_path.as_posix()}")
+    monkeypatch.delenv("PROXY_DATABASE_URL", raising=False)
+    monkeypatch.delenv("SESSION_ENCRYPTION_ENABLED", raising=False)
+
+    with TestClient(app) as local_client:
+        assert local_client.get("/accounts").json()[0]["phone"] == "+7001"
+
+    with sqlite3.connect(database_path) as connection:
+        count = connection.execute("SELECT COUNT(*) FROM accounts").fetchone()[0]
+
+    assert count == 1
 
 
 def test_accounts_use_proxy_inventory_on_startup(monkeypatch, tmp_path):
@@ -1159,18 +840,3 @@ def test_session_convert_requires_at_least_one_item(client):
     assert resp.status_code == 422
 
 
-def test_ws_events_receives_forwarded_metric_update(client, monkeypatch):
-    """Regression: the WS handler must forward EventBus events without the queue/drain-task plumbing losing them."""
-    report = BatchReport(total=7, succeeded=7, failed=0)
-    monkeypatch.setattr(
-        "src.api.campaign.orchestrate_multi_source",
-        AsyncMock(side_effect=_fake_orchestrator(report)),
-    )
-
-    with client.websocket_connect("/ws/events") as ws:
-        client.post("/campaign/start", json={"target": "@test", "message": "hi"})
-        msg = ws.receive_json()
-        assert msg["type"] == "MetricUpdateEvent"
-        assert msg["data"] == {"key": "total_recipients", "value": 7}
-
-    client.post("/campaign/stop")

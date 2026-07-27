@@ -17,7 +17,6 @@ public partial class MainWindow : Window
     public MainWindow(
         DashboardView dashboardView,
         AccountsView accountsView,
-        CampaignView campaignView,
         ProxyCheckView proxyCheckView,
         ProxyPoolCheckerView proxyPoolCheckerView,
         TdataConvertView tdataConvertView,
@@ -32,11 +31,10 @@ public partial class MainWindow : Window
         _autoRegisterNavigation = autoRegisterNavigation;
         AutoRegisterMenu.DataContext = autoRegisterNavigation;
         InviteMenu.DataContext = autoRegisterNavigation;
-        PhoneNumbersMenu.DataContext = autoRegisterNavigation;
+        SendingSmsMenu.DataContext = autoRegisterNavigation;
         AutoRegisterMenu.SelectedItem = autoRegisterNavigation.SelectedPage;
         DashboardTab.Content = dashboardView;
         AccountsTab.Content = accountsView;
-        CampaignTab.Content = campaignView;
         ProxyCheckTab.Content = proxyCheckView;
         ProxyPoolCheckerTab.Content = proxyPoolCheckerView;
         TdataConvertTab.Content = tdataConvertView;
@@ -77,12 +75,12 @@ public partial class MainWindow : Window
             ActivateAutoRegisterPage(page);
     }
 
-    private void PhoneNumbersMenu_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void SendingSmsMenu_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_syncingChildSelection || PhoneNumbersMenu.SelectedItem is not AutoRegisterPage page)
+        if (_syncingChildSelection || SendingSmsMenu.SelectedItem is not AutoRegisterPage page)
             return;
 
-        ActivatePhoneNumberPage(page);
+        ActivateSendingSmsPage(page);
     }
 
     private void InviteMenu_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -93,13 +91,13 @@ public partial class MainWindow : Window
         ActivateInvitePage(page);
     }
 
-    private void PhoneNumbersMenu_PreviewMouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void SendingSmsMenu_PreviewMouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (FindAncestor<ListBoxItem>(e.OriginalSource as DependencyObject) is null)
             return;
 
         if (FindAncestor<ListBoxItem>(e.OriginalSource as DependencyObject)?.DataContext is AutoRegisterPage page)
-            ActivatePhoneNumberPage(page);
+            ActivateSendingSmsPage(page);
     }
 
     private void InviteMenu_PreviewMouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -120,28 +118,28 @@ public partial class MainWindow : Window
 
         AutoRegisterMenu.SelectedItem = null;
         InviteMenu.SelectedItem = null;
-        PhoneNumbersMenu.SelectedItem = null;
+        SendingSmsMenu.SelectedItem = null;
     }
 
     private void ActivateAutoRegisterPage(AutoRegisterPage page)
     {
         _autoRegisterNavigation.SelectedPage = page;
-        SyncChildSelection(AutoRegisterMenu, page, InviteMenu, PhoneNumbersMenu);
+        SyncChildSelection(AutoRegisterMenu, page, InviteMenu, SendingSmsMenu);
         SelectAutoRegisterGroup();
     }
 
     private void ActivateInvitePage(AutoRegisterPage page)
     {
         _autoRegisterNavigation.SelectedPage = page;
-        SyncChildSelection(InviteMenu, page, AutoRegisterMenu, PhoneNumbersMenu);
+        SyncChildSelection(InviteMenu, page, AutoRegisterMenu, SendingSmsMenu);
         SelectInviteGroup();
     }
 
-    private void ActivatePhoneNumberPage(AutoRegisterPage page)
+    private void ActivateSendingSmsPage(AutoRegisterPage page)
     {
         _autoRegisterNavigation.SelectedPage = page;
-        SyncChildSelection(PhoneNumbersMenu, page, AutoRegisterMenu, InviteMenu);
-        SelectPhoneNumbersGroup();
+        SyncChildSelection(SendingSmsMenu, page, AutoRegisterMenu, InviteMenu);
+        SelectSendingSmsGroup();
     }
 
     private void SyncChildSelection(ListBox activeMenu, AutoRegisterPage page, params ListBox[] inactiveMenus)
@@ -171,10 +169,10 @@ public partial class MainWindow : Window
         InviteExpander.IsExpanded = true;
     }
 
-    private void SelectPhoneNumbersGroup()
+    private void SelectSendingSmsGroup()
     {
         AutoRegisterTab.IsSelected = true;
-        PhoneNumbersExpander.IsExpanded = true;
+        SendingSmsExpander.IsExpanded = true;
     }
 
     private static T? FindAncestor<T>(DependencyObject? current)

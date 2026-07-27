@@ -431,15 +431,6 @@
                 </StackPanel>
             </TabItem.Header>
         </TabItem>
-        <TabItem x:Name="CampaignTab">
-            <TabItem.Header>
-                <StackPanel Orientation="Horizontal">
-                    <iconPacks:PackIconMaterial Kind="Bullhorn" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Center" />
-                    <TextBlock Text="{tr:Tr Nav.Campaign}" VerticalAlignment="Center"
-                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Foreground}" />
-                </StackPanel>
-            </TabItem.Header>
-        </TabItem>
         <TabItem x:Name="AutoRegisterTab" Style="{StaticResource NavGroupTabItemStyle}">
             <TabItem.Header>
                 <StackPanel>
@@ -466,6 +457,29 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </Expander>
+                    <Expander x:Name="SendingSmsExpander" Style="{StaticResource SidebarGroupExpanderStyle}">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <iconPacks:PackIconMaterial Kind="MessageText" Width="16" Height="16" Margin="0,0,10,0"
+                                                           Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="Sending SMS" Foreground="{StaticResource TextMutedBrush}"
+                                           FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Expander.Header>
+                        <ListBox x:Name="SendingSmsMenu"
+                                 Style="{StaticResource SidebarChildListStyle}"
+                                 ItemContainerStyle="{StaticResource SidebarChildItemStyle}"
+                                 ItemsSource="{Binding SendingSmsPages}"
+                                 PreviewMouseLeftButtonUp="SendingSmsMenu_PreviewMouseLeftButtonUp"
+                                 SelectionChanged="SendingSmsMenu_SelectionChanged">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" FontSize="13" VerticalAlignment="Center"
+                                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Expander>
                     <Expander x:Name="InviteExpander" Style="{StaticResource SidebarGroupExpanderStyle}">
                         <Expander.Header>
                             <StackPanel Orientation="Horizontal">
@@ -481,29 +495,6 @@
                                  ItemsSource="{Binding InvitePages}"
                                  PreviewMouseLeftButtonUp="InviteMenu_PreviewMouseLeftButtonUp"
                                  SelectionChanged="InviteMenu_SelectionChanged">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding DisplayName}" FontSize="13" VerticalAlignment="Center"
-                                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Expander>
-                    <Expander x:Name="PhoneNumbersExpander" Style="{StaticResource SidebarGroupExpanderStyle}">
-                        <Expander.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <iconPacks:PackIconMaterial Kind="Phone" Width="16" Height="16" Margin="0,0,10,0"
-                                                           Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
-                                <TextBlock Text="Phone Numbers" Foreground="{StaticResource TextMutedBrush}"
-                                           FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Expander.Header>
-                        <ListBox x:Name="PhoneNumbersMenu"
-                                 Style="{StaticResource SidebarChildListStyle}"
-                                 ItemContainerStyle="{StaticResource SidebarChildItemStyle}"
-                                 ItemsSource="{Binding PhoneNumberPages}"
-                                 PreviewMouseLeftButtonUp="PhoneNumbersMenu_PreviewMouseLeftButtonUp"
-                                 SelectionChanged="PhoneNumbersMenu_SelectionChanged">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding DisplayName}" FontSize="13" VerticalAlignment="Center"

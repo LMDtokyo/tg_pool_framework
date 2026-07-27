@@ -276,11 +276,11 @@ async def load_tdata_accounts() -> List[AccountConfig]:
 
 def build_db_session_factory():
     """Shared session factory so account + campaign repositories reuse one engine."""
-    database_url = os.getenv("DATABASE_URL", "")
+    database_url = os.getenv("DATABASE_URL", "") or os.getenv("ACCOUNT_DATABASE_URL", "")
     if not database_url:
         return None
-    from src.db.engine import build_session_factory_from_env
-    return build_session_factory_from_env()
+    from src.db.engine import build_session_factory
+    return build_session_factory(database_url, echo=os.getenv("DATABASE_ECHO", "") == "1")
 
 
 def build_proxy_db_session_factory(fallback_session_factory=None):
