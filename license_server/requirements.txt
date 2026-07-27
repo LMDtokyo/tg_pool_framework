@@ -1,0 +1,19 @@
+# license_server — standalone deployable, independent from the main app's requirements.txt
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.0
+python-dotenv>=1.0.0
+
+sqlalchemy>=2.0
+asyncpg>=0.29
+alembic>=1.13
+
+# ================================================================
+# Testing
+# ================================================================
+
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+httpx>=0.27.0
+aiosqlite>=0.20.0

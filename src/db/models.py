@@ -75,6 +75,30 @@ class AccountRow(Base):
     )
 
 
+class LicenseStateRow(Base):
+    """
+    Single-row cache of the last known-good license activation, keyed by a
+    fixed id=1 -- this backend serves one install, so there's only ever one
+    active subscription to remember. license_key is stored in plaintext (not
+    hashed) because the periodic revalidation loop must resend it to the
+    license server on every check; the security boundary is the server's
+    hwid binding, not hiding the key from the machine it's licensed to.
+    """
+
+    __tablename__ = "license_state"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    license_key: Mapped[str] = mapped_column(Text, nullable=False)
+    hwid: Mapped[str] = mapped_column(Text, nullable=False)
+    tier: Mapped[str] = mapped_column(Text, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_validated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
 class ProxyRow(Base):
     """A reusable proxy and the most recent Telegram connectivity result."""
 
