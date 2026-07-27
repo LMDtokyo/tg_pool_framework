@@ -23,12 +23,13 @@ import asyncio
 import logging
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
 from src.config import AccountConfig, TimingPolicy
-from src.extraction.data_extraction import BaseParsingStrategy
+from src.extraction.data_extraction import AutoStrategySelector, BaseParsingStrategy
 from src.extraction.exporter import DataExporter
 from src.extraction.user_filter import UserFilterPipeline
 from src.monitoring.event_bus import AccountStatusEvent, EventBus, MetricUpdateEvent
@@ -93,9 +94,17 @@ class _Run:
     error: Optional[str] = None
     sources: List[str] = field(default_factory=list)
     export_path: Optional[str] = None
+    db_path: Optional[str] = None
+    report_path: Optional[str] = None
+    txt_path: Optional[str] = None
+    accounts_used: int = 0
+    stats: Optional[Dict[str, int]] = None
 
 
-def _build_strategy(name: str, topic_id: Optional[int]) -> BaseParsingStrategy:
+def _build_strategy(name: str, topic_id: Optional[int]) -> Optional[BaseParsingStrategy]:
+    """Returns None only for name == "auto" -- the caller is expected to pair
+    that with an AutoStrategySelector so orchestrate_extraction_only() picks
+    a strategy per entity instead of one fixed strategy for the whole job."""
     from src.extraction.data_extraction import (
         ChannelCommentsStrategy,
         GroupMembersStrategy,
@@ -113,6 +122,8 @@ def _build_strategy(name: str, topic_id: Optional[int]) -> BaseParsingStrategy:
         "polls": PollsStrategy,
         "system": SystemMessagesStrategy,
     }
+    if name == "auto":
+        return None
     if name == "topic":
         if not topic_id:
             raise ValueError("strategy='topic' requires topic_id.")
@@ -165,6 +176,142 @@ def _export(exporter: DataExporter, mode: str, export_path: Optional[str]) -> Pa
     return path
 
 
+def _run_export_dir(export_target: Optional[Path], job_id: str, timestamp: str) -> Path:
+    """
+    Dedicated per-run subfolder for this job's SQLite/txt/report companion
+    files, next to the (often fixed-name, overwritten-every-run) Excel
+    export -- keeps a run's own files from mixing with older runs' and with
+    each other. The db/txt/report filenames used to all be built from the
+    same job_id + an independently-recomputed timestamp; when two of those
+    calls landed in the same wall-clock second (i.e. essentially always,
+    being sequential lines) they resolved to the exact same path, and
+    whichever wrote second silently clobbered the other -- e.g. the report's
+    human-readable text overwriting the raw user list that Send by ID reads
+    as an audience database. One folder per run with fixed, distinct
+    filenames inside it makes that collision structurally impossible.
+    """
+    base = export_target.parent if export_target is not None else Path("exports")
+    run_dir = base / f"parsed_{timestamp}_{job_id}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    return run_dir
+
+
+def _export_sqlite(exporter: DataExporter, run_dir: Path) -> Path:
+    """One uniquely-named, never-overwritten SQLite file per run -- so a
+    specific past run's results stay findable and reusable by other
+    features."""
+    return exporter.export_sqlite(run_dir / "database.db")
+
+
+def _export_txt_list(exporter: DataExporter, run_dir: Path) -> Path:
+    """
+    Human-readable ("Notepad") download of the collected audience -- for a
+    person to read, not to feed to another feature (Send by ID's own "use
+    the freshly parsed database" hint points at the Excel export instead,
+    which stays fully structured). See DataExporter.export_txt() for the
+    sorted/aligned/deduplicated-source formatting.
+    """
+    return exporter.export_txt(run_dir / "audience.txt")
+
+
+_REPORT_LABELS: Dict[str, Dict[str, str]] = {
+    "ru": {
+        "title": "ОТЧЁТ ПАРСИНГА",
+        "job_id": "Job ID:",
+        "sources": "Источники:",
+        "strategy": "Стратегия:",
+        "accounts_used": "Задействовано аккаунтов:",
+        "collected": "Собрано пользователей:",
+        "with_username": "  С юзернеймом:",
+        "without_username": "  Без юзернейма:",
+        "with_phone": "  С номером телефона:",
+        "premium": "  Premium:",
+        "bots": "  Ботов:",
+        "excel": "Excel:",
+        "sqlite": "SQLite:",
+        "txt": "Блокнот:",
+    },
+    "en": {
+        "title": "PARSING REPORT",
+        "job_id": "Job ID:",
+        "sources": "Sources:",
+        "strategy": "Strategy:",
+        "accounts_used": "Accounts used:",
+        "collected": "Users collected:",
+        "with_username": "  With username:",
+        "without_username": "  Without username:",
+        "with_phone": "  With phone number:",
+        "premium": "  Premium:",
+        "bots": "  Bots:",
+        "excel": "Excel:",
+        "sqlite": "SQLite:",
+        "txt": "Notepad:",
+    },
+    "zh": {
+        "title": "解析报告",
+        "job_id": "任务 ID：",
+        "sources": "来源：",
+        "strategy": "策略：",
+        "accounts_used": "使用的账户数：",
+        "collected": "采集用户数：",
+        "with_username": "  有用户名：",
+        "without_username": "  无用户名：",
+        "with_phone": "  有电话号码：",
+        "premium": "  Premium：",
+        "bots": "  机器人：",
+        "excel": "Excel：",
+        "sqlite": "SQLite：",
+        "txt": "记事本：",
+    },
+}
+
+
+def _write_report(run: "_Run", strategy_name: str, run_dir: Path, language: str = "ru") -> Path:
+    """Human-readable summary written alongside the per-run exports -- the
+    WPF launcher opens this in a console window once the job finishes, and
+    the same numbers are shown in-app via ParsingManager.status(). `language`
+    mirrors the WPF app's currently selected UI language (ru/en/zh, see
+    LocalizationService.CurrentLanguage), so the console the launcher pops
+    open reads in whatever language the rest of the app is already in."""
+    labels = _REPORT_LABELS.get(language, _REPORT_LABELS["ru"])
+    width = max(len(value) for key, value in labels.items() if key != "title")
+
+    def line(key: str, value: object) -> str:
+        return f"{labels[key].ljust(width)} {value}"
+
+    stats = run.stats or {}
+    lines = [
+        "=" * 50,
+        labels["title"],
+        "=" * 50,
+        line("job_id", run.job_id),
+        line("sources", ", ".join(run.entities)),
+        line("strategy", strategy_name),
+        line("accounts_used", run.accounts_used),
+        "",
+        line("collected", stats.get("total", 0)),
+        line("with_username", stats.get("with_username", 0)),
+        line("without_username", stats.get("without_username", 0)),
+        line("with_phone", stats.get("with_phone", 0)),
+        line("premium", stats.get("premium", 0)),
+        line("bots", stats.get("bots", 0)),
+        "",
+        line("excel", run.export_path or "-"),
+        line("sqlite", run.db_path or "-"),
+        line("txt", run.txt_path or "-"),
+        "=" * 50,
+    ]
+
+    report_path = run_dir / "report.txt"
+    # utf-16 (with BOM) rather than utf-8: Windows' classic console (cmd.exe's
+    # `type`) reads UTF-16-with-BOM natively via its wide-char path, but
+    # garbles multi-byte UTF-8 sequences through its legacy OEM-codepage byte
+    # translation even after `chcp 65001` -- ASCII survives either way, which
+    # is why only the Cyrillic came out as mojibake.
+    report_path.write_text("\n".join(lines), encoding="utf-16")
+    return report_path
+
+
 class ParsingManager:
     """Owns at most one in-flight parsing job at a time."""
 
@@ -199,6 +346,7 @@ class ParsingManager:
         export_path: Optional[str],
         redis_dedup_enabled: bool = False,
         job_key: Optional[str] = None,
+        language: str = "ru",
     ) -> str:
         """Launches orchestrate_extraction_only() as a background task. Returns job_id."""
         if self.is_running:
@@ -209,6 +357,7 @@ class ParsingManager:
             raise ParsingAlreadyRunningError(str(exc)) from exc
 
         strategy = _build_strategy(strategy_name, topic_id)
+        strategy_selector = AutoStrategySelector() if strategy is None else None
         user_filter = _build_user_filter(filters)
 
         job_id = uuid.uuid4().hex[:12]
@@ -226,6 +375,7 @@ class ParsingManager:
                     accounts=self._accounts,
                     entity_identifiers=entities,
                     strategy=strategy,
+                    strategy_selector=strategy_selector,
                     user_filter=user_filter,
                     policy=self._policy,
                     spare_accounts=self._spare_accounts or None,
@@ -236,7 +386,15 @@ class ParsingManager:
                     job_key=job_key,
                 )
                 run.sources = list(exporter.sources)
-                run.export_path = str(_export(exporter, export_mode, export_path))
+                run.accounts_used = len(tracker.snapshot.worker_statuses)
+                run.stats = exporter.stats()
+                export_target = _export(exporter, export_mode, export_path)
+                run.export_path = str(export_target)
+                run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                run_dir = _run_export_dir(export_target, job_id, run_timestamp)
+                run.db_path = str(_export_sqlite(exporter, run_dir))
+                run.txt_path = str(_export_txt_list(exporter, run_dir))
+                run.report_path = str(_write_report(run, strategy_name, run_dir, language))
             except Exception as exc:
                 logger.exception("Parsing job %s failed", job_id)
                 run.error = str(exc)
@@ -261,6 +419,61 @@ class ParsingManager:
         self._run.shutdown_event.set()
         await self._run.task
 
+    async def list_sources(self, limit: int = 200) -> List[dict]:
+        """
+        Briefly borrows the first pool account to list its joined
+        chats/channels/groups, for the UI's source picker (browse instead of
+        typing raw links/usernames). Uses its own pool_guard holder name
+        (distinct from start()'s "parsing") so PoolAccessGuard -- which only
+        conflicts on a *different* holder, same holder is a no-op re-acquire
+        -- actually treats a running parsing job as a conflict instead of
+        silently letting this reuse its reservation.
+        """
+        if not self._accounts:
+            return []
+        try:
+            self._pool_guard.try_acquire("parsing_sources")
+        except PoolBusyError as exc:
+            raise ParsingAlreadyRunningError(str(exc)) from exc
+
+        from telethon.tl.types import Channel, Chat
+
+        from src.accounts.connection_manager import ClientFactory
+
+        client = ClientFactory.build(self._accounts[0])
+        try:
+            await client.connect()
+            if not await client.is_user_authorized():
+                logger.warning("list_sources: %s is not authorized.", self._accounts[0].phone)
+                return []
+
+            sources: List[dict] = []
+            async for dialog in client.iter_dialogs(limit=limit):
+                entity = dialog.entity
+                if isinstance(entity, Channel):
+                    kind = "supergroup" if entity.megagroup else "channel"
+                elif isinstance(entity, Chat):
+                    kind = "chat"
+                else:
+                    continue  # private 1:1 dialogs (users/bots) aren't parsing targets
+
+                username = getattr(entity, "username", None)
+                identifier = f"@{username}" if username else str(entity.id)
+                sources.append({
+                    "identifier": identifier,
+                    "title": dialog.title or identifier,
+                    "kind": kind,
+                    "members_count": getattr(entity, "participants_count", None),
+                })
+            return sources
+        finally:
+            try:
+                if client.is_connected():
+                    await client.disconnect()
+            except Exception:
+                logger.warning("list_sources: failed to disconnect cleanly.", exc_info=True)
+            self._pool_guard.release("parsing_sources")
+
     def status(self) -> dict:
         if self._run is None:
             return {"running": False}
@@ -272,6 +485,11 @@ class ParsingManager:
             "total_collected": snap.total_collected,
             "sources": self._run.sources,
             "export_path": self._run.export_path,
+            "db_path": self._run.db_path,
+            "report_path": self._run.report_path,
+            "txt_path": self._run.txt_path,
+            "accounts_used": self._run.accounts_used,
+            "stats": self._run.stats,
             "finished": self._run.finished,
             "error": self._run.error,
         }

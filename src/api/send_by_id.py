@@ -25,8 +25,13 @@ from telethon.errors import (
     UserPrivacyRestrictedError,
 )
 from telethon.tl.functions.channels import JoinChannelRequest, LeaveChannelRequest
+from telethon.tl.functions.contacts import (
+    DeleteContactsRequest,
+    GetContactsRequest,
+    ImportContactsRequest,
+)
 from telethon.tl.functions.messages import DeleteHistoryRequest
-from telethon.tl.types import InputPeerUser, PeerUser, User
+from telethon.tl.types import InputPeerUser, InputPhoneContact, InputUser, PeerUser, User
 
 from src.accounts.connection_manager import ClientFactory
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
@@ -57,6 +62,7 @@ class IdRecipient:
     first_name: str = ""
     last_name: str = ""
     donor: str = ""
+    phone: str = ""
 
 
 @dataclass
@@ -160,6 +166,10 @@ def _recipient_from_mapping(raw: Dict[str, Any]) -> Optional[IdRecipient]:
     last_name = str(
         _first_present(mapping, ("lastname", "surname", "фамилия")) or ""
     ).strip()
+    phone = str(
+        _first_present(mapping, ("phone", "phonenumber", "number", "телефон", "номер"))
+        or ""
+    ).strip()
     donor = str(
         _first_present(
             mapping,
@@ -188,6 +198,7 @@ def _recipient_from_mapping(raw: Dict[str, Any]) -> Optional[IdRecipient]:
         first_name=first_name,
         last_name=last_name,
         donor=donor,
+        phone=phone,
     )
 
 
@@ -230,6 +241,7 @@ def _read_tabular(path: Path) -> List[Dict[str, Any]]:
                     "access_hash": parts[1] if len(parts) > 1 else "",
                     "username": parts[2] if len(parts) > 2 else "",
                     "source": parts[3] if len(parts) > 3 else "",
+                    "phone": parts[4] if len(parts) > 4 else "",
                 }
             )
     return rows
@@ -535,15 +547,20 @@ class SendByIdManager:
         client = None
         donor_cache: Dict[str, Dict[int, User]] = {}
         donor_entities: Dict[str, Any] = {}
+        imported_contacts: Dict[int, User] = {}
         try:
             client = await self._connect(phone)
+            await self._warm_entity_cache(client)
             for recipient, row in items:
                 if run.shutdown_event.is_set() or self._auto_stop_reached(run, options):
                     row.state = "skipped"
                     row.message = "Stopped before send."
                     run.failed += 1
                     continue
-                await self._deliver(run, client, phone, recipient, row, options, donor_cache, donor_entities)
+                await self._deliver(
+                    run, client, phone, recipient, row, options,
+                    donor_cache, donor_entities, imported_contacts,
+                )
                 if not run.shutdown_event.is_set():
                     try:
                         await asyncio.wait_for(
@@ -563,6 +580,8 @@ class SendByIdManager:
         finally:
             if client is not None and options.leave_donor_groups:
                 await self._leave_donors(client, donor_entities.values())
+            if client is not None and imported_contacts:
+                await self._delete_imported_contacts(client, imported_contacts.values())
             if client is not None:
                 await self._disconnect(phone, client)
 
@@ -576,6 +595,7 @@ class SendByIdManager:
         options: SendByIdOptions,
         donor_cache: Dict[str, Dict[int, User]],
         donor_entities: Dict[str, Any],
+        imported_contacts: Dict[int, User],
     ) -> None:
         row.state = "resolving"
         row.message = f"Resolving user {recipient.user_id}"
@@ -585,6 +605,7 @@ class SendByIdManager:
                 recipient,
                 donor_cache,
                 donor_entities,
+                imported_contacts,
             )
             sent_messages = await self._send_with_flood_wait(
                 run,
@@ -756,12 +777,30 @@ class SendByIdManager:
             return reposted
         return sent
 
+    @staticmethod
+    async def _warm_entity_cache(client) -> None:
+        # Telethon can only resolve a bare Telegram ID (no access_hash) if the
+        # session already knows that peer's access_hash. That cache is populated
+        # by dialog/contact iteration, not on connect -- without this, get_entity()
+        # below fails even for a sender's own mutual contacts, leaving donor-less,
+        # username-less rows unsendable no matter how real their ID is.
+        try:
+            async for _ in client.iter_dialogs(limit=1000):
+                pass
+        except Exception:
+            logger.debug("Could not warm dialog cache", exc_info=True)
+        try:
+            await client(GetContactsRequest(hash=0))
+        except Exception:
+            logger.debug("Could not warm contacts cache", exc_info=True)
+
     async def _resolve_recipient(
         self,
         client,
         recipient: IdRecipient,
         donor_cache: Dict[str, Dict[int, User]],
         donor_entities: Dict[str, Any],
+        imported_contacts: Dict[int, User],
     ):
         if recipient.access_hash is not None:
             return InputPeerUser(recipient.user_id, recipient.access_hash)
@@ -776,9 +815,18 @@ class SendByIdManager:
                 return entity
         except Exception:
             pass
+        if recipient.phone:
+            try:
+                entity = await self._resolve_by_phone(client, recipient)
+            except Exception:
+                logger.debug("Phone import failed for %s", recipient.user_id, exc_info=True)
+                entity = None
+            if entity is not None:
+                imported_contacts[int(entity.id)] = entity
+                return entity
         if not recipient.donor:
             raise ValueError(
-                "ID is unknown to this session; add access_hash, username, or donor/source chat."
+                "ID is unknown to this session; add access_hash, username, phone, or donor/source chat."
             )
 
         donor_key = recipient.donor.casefold()
@@ -812,6 +860,36 @@ class SendByIdManager:
                 await client(LeaveChannelRequest(entity))
             except Exception as exc:
                 logger.debug("Could not leave donor %s: %s", entity, exc)
+
+    @staticmethod
+    async def _resolve_by_phone(client, recipient: IdRecipient) -> Optional[User]:
+        # Last-resort resolution for parsed users with no access_hash, username,
+        # or donor chat: Telegram will hand back a full User (with access_hash)
+        # for a phone number added as a temporary contact, as long as that
+        # user's privacy settings allow discovery by phone. The contact is
+        # removed again in _delete_imported_contacts once the batch finishes.
+        digits = re.sub(r"[^0-9]", "", recipient.phone)
+        if not digits:
+            return None
+        contact = InputPhoneContact(
+            client_id=0,
+            phone=f"+{digits}",
+            first_name=recipient.first_name or "Contact",
+            last_name=recipient.last_name or "",
+        )
+        result = await client(ImportContactsRequest([contact]))
+        user = next((u for u in result.users if int(u.id) == recipient.user_id), None)
+        return user or (result.users[0] if len(result.users) == 1 else None)
+
+    @staticmethod
+    async def _delete_imported_contacts(client, users: Iterable[User]) -> None:
+        input_users = [InputUser(user.id, user.access_hash) for user in users]
+        if not input_users:
+            return
+        try:
+            await client(DeleteContactsRequest(id=input_users))
+        except Exception as exc:
+            logger.debug("Could not clean up imported contacts: %s", exc)
 
     def _auto_stop_reached(self, run: _Run, options: SendByIdOptions) -> bool:
         reached = (

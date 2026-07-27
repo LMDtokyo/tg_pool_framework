@@ -15,6 +15,7 @@ class ProxyStateOut(BaseModel):
 
 class AccountOut(BaseModel):
     phone: str
+    session_path: str = ""
     status: str = "unknown"
     is_premium: bool = False
     has_2fa: bool = False
@@ -221,11 +222,23 @@ class ParseStartRequest(BaseModel):
     export_path: Optional[str] = None
     redis_dedup_enabled: bool = False
     job_key: Optional[str] = None
+    language: str = "ru"
 
 
 class ParseStartResponse(BaseModel):
     job_id: str
     started: bool
+
+
+class ParseSourceOut(BaseModel):
+    identifier: str
+    title: str
+    kind: str
+    members_count: Optional[int] = None
+
+
+class ParseSourcesResponse(BaseModel):
+    sources: List[ParseSourceOut] = Field(default_factory=list)
 
 
 class ParseStatusResponse(BaseModel):
@@ -235,6 +248,11 @@ class ParseStatusResponse(BaseModel):
     total_collected: int = 0
     sources: List[str] = Field(default_factory=list)
     export_path: Optional[str] = None
+    db_path: Optional[str] = None
+    report_path: Optional[str] = None
+    txt_path: Optional[str] = None
+    accounts_used: int = 0
+    stats: Optional[Dict[str, int]] = None
     finished: bool = False
     error: Optional[str] = None
 
@@ -655,3 +673,15 @@ class SendByIdStatusResponse(BaseModel):
     cycle: int = 1
     export_path: Optional[str] = None
     results: List[SendByIdResultOut] = Field(default_factory=list)
+
+
+class LicenseActivateRequest(BaseModel):
+    license_key: str = Field(min_length=1, max_length=64)
+    hwid: str = Field(min_length=1, max_length=256)
+
+
+class LicenseStatusOut(BaseModel):
+    valid: bool
+    tier: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    reason: str = ""

@@ -239,3 +239,115 @@ class DataExporter:
     @property
     def sources(self) -> List[str]:
         return list(self._by_source.keys())
+
+    def stats(self) -> Dict[str, int]:
+        """Breakdown of the deduplicated summary list, for the end-of-run report
+        (src.api.parsing.ParsingManager) -- how many collected users are
+        actually reachable by username vs phone vs neither."""
+        with_username = sum(1 for u in self._all if u.username)
+        with_phone = sum(1 for u in self._all if u.phone)
+        return {
+            "total": len(self._all),
+            "with_username": with_username,
+            "without_username": len(self._all) - with_username,
+            "with_phone": with_phone,
+            "premium": sum(1 for u in self._all if u.premium),
+            "bots": sum(1 for u in self._all if u.bot),
+        }
+
+    def export_sqlite(self, path: Path) -> Path:
+        """
+        Dumps the deduplicated summary list into a standalone SQLite file --
+        one per parsing run (see ParsingManager), so a specific run's results
+        stay queryable/reusable by other features without re-running the job
+        or hunting through overwritten Excel exports.
+        """
+        import sqlite3
+
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        with sqlite3.connect(path) as conn:
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id INTEGER PRIMARY KEY,
+                    username TEXT,
+                    first_name TEXT,
+                    last_name TEXT,
+                    phone TEXT,
+                    premium INTEGER NOT NULL,
+                    has_photo INTEGER NOT NULL,
+                    bot INTEGER NOT NULL,
+                    source TEXT
+                )
+                """
+            )
+            conn.executemany(
+                """
+                INSERT OR REPLACE INTO users
+                    (user_id, username, first_name, last_name, phone, premium, has_photo, bot, source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        u.user_id, u.username, u.first_name, u.last_name, u.phone,
+                        int(u.premium), int(u.has_photo), int(u.bot), u.source,
+                    )
+                    for u in self._all
+                ],
+            )
+            conn.commit()
+
+        logger.info("export_sqlite: %d users → %s", len(self._all), path)
+        return path
+
+    def export_txt(self, path: Path) -> Path:
+        """
+        Human-readable ("Notepad") list of the collected audience -- for a
+        person to open and scan, not for another feature to parse (use the
+        Excel or SQLite export for that; both are already picked up
+        elsewhere as loadable audience databases). Users with a username
+        sort first, alphabetically -- they're the ones you can act on
+        directly -- everyone else follows sorted by ID. Missing fields show
+        as "-" instead of blank/doubled-comma CSV noise, and the source
+        column is dropped entirely when every user came from the same place,
+        since repeating one link on thousands of lines is just noise.
+        """
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        users = sorted(
+            self._all,
+            key=lambda u: (u.username == "", u.username.casefold(), u.user_id),
+        )
+        show_source = len({u.source for u in self._all}) > 1
+
+        def cell(value: str) -> str:
+            return value if value else "-"
+
+        headers = ["ID", "Юзернейм", "Телефон"] + (["Источник"] if show_source else [])
+        rows = [
+            [
+                str(u.user_id),
+                cell(f"@{u.username}" if u.username else ""),
+                cell(u.phone),
+                *([cell(u.source)] if show_source else []),
+            ]
+            for u in users
+        ]
+
+        widths = [
+            max(len(headers[i]), max((len(row[i]) for row in rows), default=0))
+            for i in range(len(headers))
+        ]
+
+        def format_row(cells: List[str]) -> str:
+            return "  ".join(value.ljust(width) for value, width in zip(cells, widths))
+
+        lines = [format_row(headers), format_row(["-" * w for w in widths])]
+        lines.extend(format_row(row) for row in rows)
+
+        path.write_text("\n".join(lines), encoding="utf-8-sig")
+        logger.info("export_txt: %d users → %s", len(self._all), path)
+        return path

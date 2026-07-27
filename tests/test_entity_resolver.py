@@ -359,11 +359,36 @@ class TestDescribeEntity:
         entity = make_channel(megagroup=True, title="Forum Group", forum=True)
         full = MagicMock()
         full.full_chat.participants_count = 5000
+        full.full_chat.linked_chat_id = None
         client = make_client(entity, call_return=full)
 
         info = await describe_entity(client, "@forumgroup")
 
-        assert info == EntityInfo(weight=5000.0, kind=EntityKind.SUPERGROUP, is_forum=True)
+        assert info == EntityInfo(
+            weight=5000.0, kind=EntityKind.SUPERGROUP, is_forum=True, has_discussion=False,
+        )
+
+    async def test_channel_with_linked_discussion_group(self):
+        entity = make_channel(megagroup=False, title="Broadcast")
+        full = MagicMock()
+        full.full_chat.participants_count = 10_000
+        full.full_chat.linked_chat_id = 555
+        client = make_client(entity, call_return=full)
+
+        info = await describe_entity(client, "@broadcast")
+
+        assert info.has_discussion is True
+
+    async def test_channel_without_linked_discussion_group(self):
+        entity = make_channel(megagroup=False, title="Broadcast")
+        full = MagicMock()
+        full.full_chat.participants_count = 10_000
+        full.full_chat.linked_chat_id = None
+        client = make_client(entity, call_return=full)
+
+        info = await describe_entity(client, "@broadcast")
+
+        assert info.has_discussion is False
 
     async def test_non_forum_supergroup(self):
         entity = make_channel(megagroup=True, title="Plain Group", forum=False)

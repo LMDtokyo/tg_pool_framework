@@ -6,6 +6,11 @@ sessions/
 *.session
 *.session-journal
 
+# Runtime SQLite databases (accounts registry, license cache, parsed exports)
+*.db
+exports/parsed_*.txt
+exports/parsed_*/
+
 # Python
 __pycache__/
 *.py[cod]

@@ -269,6 +269,122 @@ def test_parsing_unknown_strategy_returns_400(client):
     assert resp.status_code == 400
 
 
+def test_parsing_auto_strategy_is_accepted(client, monkeypatch):
+    captured = {}
+
+    async def fake_orchestrate(*, strategy, strategy_selector, shutdown_event, event_bus, **kwargs):
+        captured["strategy"] = strategy
+        captured["strategy_selector"] = strategy_selector
+        from src.extraction.exporter import DataExporter
+        await shutdown_event.wait()
+        return DataExporter()
+
+    monkeypatch.setattr("src.api.parsing.orchestrate_extraction_only", AsyncMock(side_effect=fake_orchestrate))
+
+    resp = client.post("/parsing/start", json={"entities": ["@test"], "strategy": "auto"})
+    assert resp.status_code == 200
+
+    client.post("/parsing/stop")
+
+    assert captured["strategy"] is None
+    from src.extraction.data_extraction import AutoStrategySelector
+    assert isinstance(captured["strategy_selector"], AutoStrategySelector)
+
+
+def _make_dialog(entity, title):
+    dialog = MagicMock()
+    dialog.entity = entity
+    dialog.title = title
+    return dialog
+
+
+def test_parsing_sources_lists_groups_and_channels_skips_dms(client, monkeypatch):
+    from telethon.tl.types import Channel, Chat, User
+
+    supergroup = MagicMock()
+    supergroup.__class__ = Channel
+    supergroup.megagroup = True
+    supergroup.username = "mygroup"
+    supergroup.id = 111
+    supergroup.participants_count = None
+
+    channel = MagicMock()
+    channel.__class__ = Channel
+    channel.megagroup = False
+    channel.username = None
+    channel.id = 222
+    channel.participants_count = None
+
+    chat = MagicMock()
+    chat.__class__ = Chat
+    chat.username = None
+    chat.id = 333
+    chat.participants_count = 42
+
+    dm_user = MagicMock()
+    dm_user.__class__ = User
+
+    dialogs = [
+        _make_dialog(supergroup, "My Group"),
+        _make_dialog(channel, "My Channel"),
+        _make_dialog(chat, "Small Chat"),
+        _make_dialog(dm_user, "Some Person"),
+    ]
+
+    async def fake_iter_dialogs(limit=200):
+        for d in dialogs:
+            yield d
+
+    fake_client = AsyncMock()
+    fake_client.is_user_authorized = AsyncMock(return_value=True)
+    fake_client.iter_dialogs = fake_iter_dialogs
+    fake_client.is_connected = MagicMock(return_value=True)
+
+    monkeypatch.setattr(
+        "src.accounts.connection_manager.ClientFactory.build",
+        MagicMock(return_value=fake_client),
+    )
+
+    resp = client.get("/parsing/sources")
+    assert resp.status_code == 200
+    sources = resp.json()["sources"]
+
+    assert len(sources) == 3  # the 1:1 dialog with dm_user is skipped
+    by_identifier = {s["identifier"]: s for s in sources}
+    assert by_identifier["@mygroup"]["kind"] == "supergroup"
+    assert by_identifier["222"]["kind"] == "channel"
+    assert by_identifier["333"]["kind"] == "chat"
+    assert by_identifier["333"]["members_count"] == 42
+
+
+def test_parsing_sources_conflicts_with_a_running_job(client, monkeypatch):
+    monkeypatch.setattr(
+        "src.api.parsing.orchestrate_extraction_only",
+        AsyncMock(side_effect=_fake_extraction(set())),
+    )
+    assert client.post("/parsing/start", json={"entities": ["@test"]}).status_code == 200
+
+    resp = client.get("/parsing/sources")
+    assert resp.status_code == 409
+
+    client.post("/parsing/stop")
+
+
+def test_parsing_sources_unauthorized_account_returns_empty(client, monkeypatch):
+    fake_client = AsyncMock()
+    fake_client.is_user_authorized = AsyncMock(return_value=False)
+    fake_client.is_connected = MagicMock(return_value=True)
+
+    monkeypatch.setattr(
+        "src.accounts.connection_manager.ClientFactory.build",
+        MagicMock(return_value=fake_client),
+    )
+
+    resp = client.get("/parsing/sources")
+    assert resp.status_code == 200
+    assert resp.json()["sources"] == []
+
+
 def test_parsing_redis_dedup_enabled_builds_and_passes_redis_client(client, monkeypatch):
     import src.bootstrap as bootstrap
 
@@ -326,8 +442,103 @@ def test_parsing_status_when_nothing_started(client):
     resp = client.get("/parsing/status")
     assert resp.json() == {
         "running": False, "job_id": None, "entities": [], "total_collected": 0,
-        "sources": [], "export_path": None, "finished": False, "error": None,
+        "sources": [], "export_path": None, "db_path": None, "report_path": None,
+        "txt_path": None, "accounts_used": 0, "stats": None, "finished": False, "error": None,
     }
+
+
+def test_parsing_finish_populates_accounts_used_stats_db_and_report(client, monkeypatch, tmp_path):
+    from pathlib import Path
+
+    from src.extraction.data_extraction import ParsedUser
+    from src.monitoring.event_bus import AccountStatusEvent
+
+    users = {
+        ParsedUser(user_id=1, username="alice", source="@test"),
+        ParsedUser(user_id=2, phone="+79001234567", source="@test"),
+    }
+
+    async def fake_run(*, shutdown_event, event_bus, **kwargs):
+        from src.extraction.exporter import DataExporter
+        exporter = DataExporter()
+        exporter.add_many(users)
+        await event_bus.publish(AccountStatusEvent(phone="+1", status="alive", detail="pool ready"))
+        await event_bus.publish(AccountStatusEvent(phone="+2", status="alive", detail="pool ready"))
+        await shutdown_event.wait()
+        return exporter
+
+    monkeypatch.setattr("src.api.parsing.orchestrate_extraction_only", AsyncMock(side_effect=fake_run))
+
+    resp = client.post(
+        "/parsing/start",
+        json={"entities": ["@test"], "export_path": str(tmp_path / "out.xlsx")},
+    )
+    assert resp.status_code == 200
+
+    client.post("/parsing/stop")
+
+    status = client.get("/parsing/status").json()
+    assert status["accounts_used"] == 2
+    assert status["stats"] == {
+        "total": 2, "with_username": 1, "without_username": 1,
+        "with_phone": 1, "premium": 0, "bots": 0,
+    }
+    assert status["db_path"] is not None
+    assert Path(status["db_path"]).exists()
+    assert status["txt_path"] is not None
+    assert Path(status["txt_path"]).exists()
+    assert status["report_path"] is not None
+    # utf-16, not utf-8: Windows' classic console `type` renders this without
+    # mojibake (see src.api.parsing._write_report).
+    report_text = Path(status["report_path"]).read_text(encoding="utf-16")
+    assert "Задействовано аккаунтов: 2" in report_text
+    assert "Собрано пользователей:   2" in report_text
+
+    # Regression: db/txt/report used to be able to collide onto the same
+    # filename (independently-recomputed same-second timestamps), and
+    # whichever wrote last clobbered the others -- e.g. the report silently
+    # overwriting the real user list that Send by ID reads as a database.
+    db_path, txt_path, report_path = (
+        Path(status["db_path"]), Path(status["txt_path"]), Path(status["report_path"]),
+    )
+    assert len({db_path, txt_path, report_path}) == 3
+    assert db_path.parent == txt_path.parent == report_path.parent
+
+    audience_text = txt_path.read_text(encoding="utf-8-sig")
+    assert "@alice" in audience_text
+    assert "+79001234567" in audience_text
+    assert "ОТЧЁТ ПАРСИНГА" not in audience_text
+
+
+def test_parsing_report_follows_the_requested_language(client, monkeypatch, tmp_path):
+    import re
+    from pathlib import Path
+
+    from src.extraction.data_extraction import ParsedUser
+
+    async def fake_run(*, shutdown_event, event_bus, **kwargs):
+        from src.extraction.exporter import DataExporter
+        exporter = DataExporter()
+        exporter.add(ParsedUser(user_id=1, username="alice", source="@test"))
+        await shutdown_event.wait()
+        return exporter
+
+    monkeypatch.setattr("src.api.parsing.orchestrate_extraction_only", AsyncMock(side_effect=fake_run))
+
+    resp = client.post(
+        "/parsing/start",
+        json={"entities": ["@test"], "export_path": str(tmp_path / "out.xlsx"), "language": "en"},
+    )
+    assert resp.status_code == 200
+
+    client.post("/parsing/stop")
+
+    status = client.get("/parsing/status").json()
+    report_text = Path(status["report_path"]).read_text(encoding="utf-16")
+    assert "PARSING REPORT" in report_text
+    assert re.search(r"Accounts used:\s+0", report_text)
+    assert re.search(r"Users collected:\s+1", report_text)
+    assert "ОТЧЁТ ПАРСИНГА" not in report_text
 
 
 @pytest.mark.parametrize(
@@ -536,7 +747,7 @@ def test_local_account_database_is_initialized_on_startup(monkeypatch, tmp_path)
     database_path = tmp_path / "accounts.db"
     monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
-    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("DATABASE_URL", "")
     monkeypatch.setenv("ACCOUNT_DATABASE_URL", f"sqlite+aiosqlite:///{database_path.as_posix()}")
     monkeypatch.delenv("PROXY_DATABASE_URL", raising=False)
     monkeypatch.delenv("SESSION_ENCRYPTION_ENABLED", raising=False)

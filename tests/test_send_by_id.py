@@ -259,6 +259,7 @@ async def test_access_hash_resolves_without_network_lookup() -> None:
         IdRecipient(user_id=123, access_hash=456),
         {},
         {},
+        {},
     )
 
     assert peer.user_id == 123

@@ -357,7 +357,7 @@ class TestCollectBucketAntiflood:
         users_a = {ParsedUser(user_id=1, username="alice")}
         users_b = {ParsedUser(user_id=2, username="bob")}
 
-        async def fake_extract_users(client, entity_id, strategy, policy):
+        async def fake_extract_users(client, entity_id, strategy, policy, shard=(0, 1)):
             return users_a if entity_id == "@a" else users_b
 
         with patch("src.orchestrator.extract_users", new=AsyncMock(side_effect=fake_extract_users)):
@@ -389,7 +389,7 @@ class TestCollectBucketStrategySelector:
         fixed_strategy = MagicMock(name="fixed_strategy")
         used_strategies = []
 
-        async def fake_extract_users(client, entity_id, strategy, policy):
+        async def fake_extract_users(client, entity_id, strategy, policy, shard=(0, 1)):
             used_strategies.append(strategy)
             return set()
 
@@ -409,7 +409,7 @@ class TestCollectBucketStrategySelector:
 
         used_strategies = []
 
-        async def fake_extract_users(client, entity_id, strategy, policy):
+        async def fake_extract_users(client, entity_id, strategy, policy, shard=(0, 1)):
             used_strategies.append(strategy)
             return set()
 
@@ -423,5 +423,9 @@ class TestCollectBucketStrategySelector:
             )
 
         assert used_strategies == [strategy_a, strategy_b]
-        selector.select.assert_any_call(kind="chat", is_forum=False, estimated_weight=10.0)
-        selector.select.assert_any_call(kind="supergroup", is_forum=True, estimated_weight=20.0)
+        selector.select.assert_any_call(
+            kind="chat", is_forum=False, estimated_weight=10.0, has_discussion=False,
+        )
+        selector.select.assert_any_call(
+            kind="supergroup", is_forum=True, estimated_weight=20.0, has_discussion=False,
+        )

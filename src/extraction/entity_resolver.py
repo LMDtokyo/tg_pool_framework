@@ -182,15 +182,17 @@ class UniversalEntityResolver:
 class EntityInfo:
     """
     Cheap per-entity metadata gathered from a single resolve() call — feeds
-    both LPT work distribution (weight) and Lua-based per-entity strategy
-    selection (kind/is_forum). Falls back to a safe default
-    (weight=1.0, kind=UNKNOWN, is_forum=False) on any resolution failure,
-    so a bad lookup can't derail the pipeline -- same principle as
-    src.accounts.geo.country_for_phone().
+    LPT work distribution (weight) and per-entity strategy selection
+    (kind/is_forum/has_discussion, see AutoStrategySelector/LuaStrategySelector
+    in src.extraction.data_extraction). Falls back to a safe default
+    (weight=1.0, kind=UNKNOWN, is_forum=False, has_discussion=False) on any
+    resolution failure, so a bad lookup can't derail the pipeline -- same
+    principle as src.accounts.geo.country_for_phone().
     """
     weight: float = 1.0
     kind: EntityKind = EntityKind.UNKNOWN
     is_forum: bool = False
+    has_discussion: bool = False
 
 
 async def describe_entity(client: TelegramClient, identifier: str) -> EntityInfo:
@@ -202,13 +204,17 @@ async def describe_entity(client: TelegramClient, identifier: str) -> EntityInfo
         if resolved.kind in (EntityKind.SUPERGROUP, EntityKind.CHANNEL):
             full = await client(GetFullChannelRequest(resolved.peer))
             count = full.full_chat.participants_count
+            # Same response, no extra request: a broadcast channel's comments
+            # live in this linked discussion group when one is set up.
+            has_discussion = bool(getattr(full.full_chat, "linked_chat_id", None))
         elif resolved.kind is EntityKind.CHAT:
             count = resolved.entity.participants_count
+            has_discussion = False
         else:
             return EntityInfo(weight=1.0, kind=resolved.kind, is_forum=is_forum)
 
         weight = float(count) if count else 1.0
-        return EntityInfo(weight=weight, kind=resolved.kind, is_forum=is_forum)
+        return EntityInfo(weight=weight, kind=resolved.kind, is_forum=is_forum, has_discussion=has_discussion)
     except Exception:
         logger.warning("describe_entity(%s) failed, falling back to defaults", identifier, exc_info=True)
         return EntityInfo()

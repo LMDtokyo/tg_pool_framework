@@ -5,8 +5,9 @@ import logging
 import os
 import sqlite3
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from dataclasses import replace
+from datetime import timedelta
 from decimal import Decimal
 from typing import List, Optional
 
@@ -63,6 +64,7 @@ from src.api.number_checker import (
     NumberCheckerManager,
 )
 from src.api.json_generator import JsonGeneratorAlreadyRunningError, JsonGeneratorManager
+from src.api.license_gate import LicenseGateMiddleware
 from src.api.parsing import ParsingAlreadyRunningError, ParsingManager
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
 from src.api.proxy_check import ProxyCheckAlreadyRunningError, ProxyCheckManager
@@ -95,8 +97,11 @@ from src.api.sms_pool import (
 from src.api.tdata_convert import TdataConvertAlreadyRunningError, TdataConvertManager
 from src.api.telegram_auth import TelegramAuthenticator
 from src.config import AccountConfig, ProxyConfig, TimingPolicy
+from src.db.license_repository import LicenseStateRepository, ensure_license_state_table
 from src.db.proxy_repository import ProxyRepository, ensure_proxy_table
 from src.db.repository import ensure_durable_tables
+from src.licensing.client import LicenseServerClient
+from src.licensing.service import LicenseService
 from src.monitoring.event_bus import EventBus
 from src.proxy.proxy_parser import parse_proxy_lines
 
@@ -215,6 +220,31 @@ async def lifespan(app: FastAPI):
         await ensure_proxy_table(proxy_session_factory)
     proxy_repository = (
         ProxyRepository(proxy_session_factory) if proxy_session_factory else None
+    )
+
+    # Licensing is opt-in via LICENSE_SERVER_URL, same as DATABASE_URL/REDIS_URL elsewhere in
+    # this app: unset -> the gate middleware waves every request through unchanged, so local
+    # development never needs a running license server. Set it once license_server is deployed.
+    license_server_url = os.getenv("LICENSE_SERVER_URL", "")
+    licensing_enabled = bool(license_server_url)
+    if session_factory is not None:
+        await ensure_license_state_table(session_factory)
+    license_service = LicenseService(
+        LicenseServerClient(license_server_url or "http://127.0.0.1:8100"),
+        LicenseStateRepository(session_factory) if session_factory is not None else None,
+        revalidate_interval=timedelta(
+            minutes=bootstrap.env_int("LICENSE_REVALIDATE_INTERVAL_MINUTES", "30")
+        ),
+        offline_grace=timedelta(hours=bootstrap.env_int("LICENSE_OFFLINE_GRACE_HOURS", "72")),
+    )
+    if licensing_enabled:
+        await license_service.restore_cached()
+    app.state.license_service = license_service
+    app.state.licensing_enabled = licensing_enabled
+    license_revalidation_task = (
+        asyncio.create_task(license_service.run_periodic_revalidation())
+        if licensing_enabled
+        else None
     )
 
     primary, spares = bootstrap.load_accounts()
@@ -375,12 +405,17 @@ async def lifespan(app: FastAPI):
         await app.state.grizzly_sms_activation_manager.stop()
         if app.state.stored_proxy_check_manager is not None:
             await app.state.stored_proxy_check_manager.stop()
+        if license_revalidation_task is not None:
+            license_revalidation_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await license_revalidation_task
         await registry.close()
         if owns_proxy_engine:
             await proxy_session_factory.kw["bind"].dispose()
 
 
 app = FastAPI(title="tg_pool_framework control API", lifespan=lifespan)
+app.add_middleware(LicenseGateMiddleware, allow_prefixes=("/health", "/license"))
 
 
 async def _rescan_account_storage() -> int:
@@ -412,6 +447,26 @@ async def _rescan_account_storage() -> int:
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/license/activate", response_model=schemas.LicenseStatusOut)
+async def license_activate(body: schemas.LicenseActivateRequest) -> schemas.LicenseStatusOut:
+    license_service: LicenseService = app.state.license_service
+    status = await license_service.activate(body.license_key, body.hwid)
+    return schemas.LicenseStatusOut(
+        valid=status.valid, tier=status.tier, expires_at=status.expires_at, reason=status.reason
+    )
+
+
+@app.get("/license/status", response_model=schemas.LicenseStatusOut)
+async def license_status() -> schemas.LicenseStatusOut:
+    license_service: LicenseService = app.state.license_service
+    if not app.state.licensing_enabled:
+        return schemas.LicenseStatusOut(valid=True, reason="licensing_disabled")
+    status = license_service.status()
+    return schemas.LicenseStatusOut(
+        valid=status.valid, tier=status.tier, expires_at=status.expires_at, reason=status.reason
+    )
 
 
 @app.post("/datamoll/balance", response_model=schemas.DatamollBalanceOut)
@@ -950,6 +1005,7 @@ def _entry_to_out(
     )
     return schemas.AccountOut(
         phone=entry.account.phone,
+        session_path=f"{entry.account.session_path}.session",
         status=state.status.value if state else "unknown",
         is_premium=state.is_premium if state else False,
         has_2fa=state.has_2fa if state else False,
@@ -1263,6 +1319,7 @@ async def start_parsing(body: schemas.ParseStartRequest) -> schemas.ParseStartRe
             export_path=body.export_path,
             redis_dedup_enabled=body.redis_dedup_enabled,
             job_key=body.job_key,
+            language=body.language,
         )
     except ParsingAlreadyRunningError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1276,6 +1333,16 @@ async def stop_parsing() -> dict:
     manager: ParsingManager = app.state.parsing_manager
     await manager.stop()
     return {"ok": True}
+
+
+@app.get("/parsing/sources", response_model=schemas.ParseSourcesResponse)
+async def parsing_sources(limit: int = 200) -> schemas.ParseSourcesResponse:
+    manager: ParsingManager = app.state.parsing_manager
+    try:
+        sources = await manager.list_sources(limit=limit)
+    except ParsingAlreadyRunningError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return schemas.ParseSourcesResponse(sources=[schemas.ParseSourceOut(**s) for s in sources])
 
 
 @app.get("/parsing/status", response_model=schemas.ParseStatusResponse)

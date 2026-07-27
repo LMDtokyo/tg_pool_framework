@@ -12,9 +12,11 @@ from telethon import TelegramClient
 from src.config import AccountConfig, TimingPolicy
 from src.accounts.connection_manager import ClientFactory, ClientPool
 from src.extraction.data_extraction import (
+    NO_SHARD,
     BaseParsingStrategy,
     GroupMembersStrategy,
     ParsedUser,
+    Shard,
     extract_members,
     extract_users,
 )
@@ -350,7 +352,15 @@ async def _collect_bucket(
     policy: TimingPolicy,
     antiflood_redis_client: Optional[Any] = None,
     strategy_selector: Optional["LuaStrategySelector"] = None,
+    shard: Shard = NO_SHARD,
 ) -> Set[ParsedUser]:
+    """
+    shard=(index, total): this worker's slice when the same entities list is
+    handed to `total` workers at once (see orchestrate_extraction_only,
+    which shards every entity across the whole pool instead of giving whole
+    entities to single workers). (0, 1) -- the default, used unchanged by
+    orchestrate_multi_source -- means "I own these entities entirely".
+    """
     combined: Set[ParsedUser] = set()
     for entity_id in entities:
         if antiflood_redis_client is not None:
@@ -371,10 +381,11 @@ async def _collect_bucket(
             info = await describe_entity(client, entity_id)
             entity_strategy = strategy_selector.select(
                 kind=info.kind.name.lower(), is_forum=info.is_forum, estimated_weight=info.weight,
+                has_discussion=info.has_discussion,
             )
 
         try:
-            users = await extract_users(client, entity_id, entity_strategy, policy)
+            users = await extract_users(client, entity_id, entity_strategy, policy, shard=shard)
             combined |= users
         except Exception as exc:
             logger.error("[%s] Extraction failed for %s: %s", phone, entity_id, exc)
@@ -670,9 +681,11 @@ async def orchestrate_extraction_only(
     if policy is None:
         policy = TimingPolicy()
 
-    active_selector = (
-        strategy_selector if (strategy is None and len(entity_identifiers) > 1) else None
-    )
+    # No len(entity_identifiers) > 1 gate here (unlike orchestrate_multi_source):
+    # "smart" per-entity selection is an explicit user choice (strategy=None
+    # means they picked auto/smart mode), so it applies even to a single
+    # target -- that's the common case the feature exists for.
+    active_selector = strategy_selector if strategy is None else None
     if strategy is None:
         strategy = GroupMembersStrategy()
 
@@ -716,22 +729,27 @@ async def orchestrate_extraction_only(
                     phone=phone, status="alive", detail="Extraction-only pool initialized"
                 ))
 
-        weighted_entities = await _weigh_entities(active_workers[0][0], entity_identifiers)
-        buckets = _distribute_by_weight(weighted_entities, len(active_workers))
+        # Every worker covers every entity, each as a 1/num_workers shard --
+        # not whole-entity-per-worker bucketing. A single target still keeps
+        # the whole pool busy instead of leaving every account but one idle,
+        # and load balances naturally (no weight estimate needed) since each
+        # worker's share of every entity is identical by construction.
+        num_workers = len(active_workers)
         logger.info(
-            "Phase 1: %d workers, %d entities distributed", len(active_workers), len(entity_identifiers)
+            "Phase 1: %d workers, %d entities, each entity split %d ways",
+            num_workers, len(entity_identifiers), num_workers,
         )
 
         extraction_tasks = [
             asyncio.create_task(
                 _collect_bucket(
-                    client, phone, bucket, strategy, policy,
+                    client, phone, entity_identifiers, strategy, policy,
                     antiflood_redis_client=redis_client, strategy_selector=active_selector,
+                    shard=(worker_index, num_workers),
                 ),
-                name=f"extract-only-bucket-{phone}",
+                name=f"extract-only-shard-{phone}",
             )
-            for (client, phone), bucket in zip(active_workers, buckets)
-            if bucket
+            for worker_index, (client, phone) in enumerate(active_workers)
         ]
 
         raw_results = await _gather_or_cancel(extraction_tasks, shutdown_event)

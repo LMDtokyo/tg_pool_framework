@@ -364,6 +364,184 @@ class TestDataExporterProperties:
 
 
 # ---------------------------------------------------------------------------
+# stats() — end-of-run report breakdown (src.api.parsing._write_report)
+# ---------------------------------------------------------------------------
+
+class TestStats:
+    def test_empty_exporter(self):
+        assert DataExporter().stats() == {
+            "total": 0, "with_username": 0, "without_username": 0,
+            "with_phone": 0, "premium": 0, "bots": 0,
+        }
+
+    def test_counts_username_and_phone_independently(self):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, username="alice", phone="+7001"))
+        exp.add(make_user(user_id=2, username="", phone="+7002"))
+        exp.add(make_user(user_id=3, username="bob", phone=""))
+
+        stats = exp.stats()
+        assert stats["total"] == 3
+        assert stats["with_username"] == 2
+        assert stats["without_username"] == 1
+        assert stats["with_phone"] == 2
+
+    def test_counts_premium_and_bots(self):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, premium=True))
+        exp.add(ParsedUser(user_id=2, bot=True, source="@group"))
+        exp.add(make_user(user_id=3))
+
+        stats = exp.stats()
+        assert stats["premium"] == 1
+        assert stats["bots"] == 1
+
+    def test_deduplicated_users_counted_once(self):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, username="alice"))
+        exp.add(make_user(user_id=1, username="alice"))
+        assert exp.stats()["total"] == 1
+
+
+# ---------------------------------------------------------------------------
+# export_sqlite() — one queryable, never-overwritten DB file per run
+# ---------------------------------------------------------------------------
+
+class TestExportSqlite:
+    def test_creates_file_with_correct_row_count(self, tmp_path):
+        import sqlite3
+
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, username="alice"))
+        exp.add(make_user(user_id=2, username="bob"))
+        path = tmp_path / "run.db"
+
+        result = exp.export_sqlite(path)
+
+        assert result == path
+        assert path.exists()
+        with sqlite3.connect(path) as conn:
+            rows = conn.execute("SELECT user_id, username FROM users ORDER BY user_id").fetchall()
+        assert rows == [(1, "alice"), (2, "bob")]
+
+    def test_creates_parent_directory(self, tmp_path):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1))
+        path = tmp_path / "nested" / "run.db"
+
+        exp.export_sqlite(path)
+
+        assert path.exists()
+
+    def test_deduplicated_users_only(self, tmp_path):
+        import sqlite3
+
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, username="alice"))
+        exp.add(make_user(user_id=1, username="alice"))  # duplicate
+        path = tmp_path / "run.db"
+
+        exp.export_sqlite(path)
+
+        with sqlite3.connect(path) as conn:
+            count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        assert count == 1
+
+    def test_empty_exporter_creates_empty_table(self, tmp_path):
+        import sqlite3
+
+        path = tmp_path / "empty.db"
+        DataExporter().export_sqlite(path)
+
+        with sqlite3.connect(path) as conn:
+            count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        assert count == 0
+
+
+class TestExportTxt:
+    def test_formats_as_aligned_human_readable_columns(self, tmp_path):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, username="alice", phone="+79001234567", source="@group"))
+        exp.add(make_user(user_id=2, username="", phone="", source="@group"))
+        path = tmp_path / "run.txt"
+
+        result = exp.export_txt(path)
+
+        assert result == path
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+        # single shared source across every user -> no "Источник" column
+        assert lines[0].split() == ["ID", "Юзернейм", "Телефон"]
+        assert "@alice" in lines[2]
+        assert lines[3].split() == ["2", "-", "-"]
+
+    def test_users_with_username_sort_first_alphabetically(self, tmp_path):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, username="zoe"))
+        exp.add(make_user(user_id=2, username=""))
+        exp.add(make_user(user_id=3, username="alice"))
+        path = tmp_path / "run.txt"
+
+        exp.export_txt(path)
+        rows = path.read_text(encoding="utf-8-sig").splitlines()[2:]
+
+        assert [row.split()[0] for row in rows] == ["3", "1", "2"]
+
+    def test_missing_username_and_phone_render_as_dash(self, tmp_path):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, username="", phone=""))
+        path = tmp_path / "run.txt"
+
+        exp.export_txt(path)
+        row = path.read_text(encoding="utf-8-sig").splitlines()[2]
+
+        assert row.split() == ["1", "-", "-"]
+
+    def test_source_column_dropped_when_every_user_shares_one_source(self, tmp_path):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, source="@group"))
+        exp.add(make_user(user_id=2, username="bob", source="@group"))
+        path = tmp_path / "run.txt"
+
+        exp.export_txt(path)
+        header = path.read_text(encoding="utf-8-sig").splitlines()[0]
+
+        assert "Источник" not in header
+
+    def test_source_column_kept_when_users_came_from_different_sources(self, tmp_path):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, source="@group_a"))
+        exp.add(make_user(user_id=2, username="bob", source="@group_b"))
+        path = tmp_path / "run.txt"
+
+        exp.export_txt(path)
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+
+        assert "Источник" in lines[0]
+        assert any("@group_a" in row for row in lines[2:])
+        assert any("@group_b" in row for row in lines[2:])
+
+    def test_creates_parent_directory(self, tmp_path):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1))
+        path = tmp_path / "nested" / "run.txt"
+
+        exp.export_txt(path)
+
+        assert path.exists()
+
+    def test_deduplicated_users_only(self, tmp_path):
+        exp = DataExporter()
+        exp.add(make_user(user_id=1, username="alice"))
+        exp.add(make_user(user_id=1, username="alice"))  # duplicate
+        path = tmp_path / "run.txt"
+
+        exp.export_txt(path)
+
+        # header + separator + exactly one data row
+        assert len(path.read_text(encoding="utf-8-sig").splitlines()) == 3
+
+
+# ---------------------------------------------------------------------------
 # column_hook / LuaColumnHook — custom export columns
 # ---------------------------------------------------------------------------
 
