@@ -33,6 +33,7 @@ secrets.json
 # IDE
 .idea/
 .vscode/
+.claude/
 *.swp
 
 # Pytest cache
