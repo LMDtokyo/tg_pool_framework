@@ -30,6 +30,30 @@
             <Setter Property="Padding" Value="8,3" />
             <Setter Property="Margin" Value="0,0,6,0" />
         </Style>
+
+        <!-- Round glass action well, clickable: same look the skeleton mockup used, now wired to a real command. -->
+        <Style x:Key="DownloadIconButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" CornerRadius="14"
+                                Background="{StaticResource GlassBackgroundBrush}"
+                                BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource AccentTintBrush}" />
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
@@ -71,83 +95,47 @@
                         <TextBlock Text="{tr:Tr Dashboard.QuickLinksHeader}" Style="{StaticResource FieldLabelStyle}"
                                    FontSize="11" Margin="4,0,0,10" />
 
-                        <Border Style="{StaticResource QuickLinkCardStyle}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Style="{StaticResource GlassIconBadgeStyle}">
-                                    <iconPacks:PackIconMaterial Kind="FileDocumentOutline" Width="18" Height="18"
-                                                                 Foreground="{StaticResource TextFaintBrush}"
-                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
-                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="120" Margin="0,0,0,6" />
-                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="70" Height="6" Opacity="0.6" />
-                                </StackPanel>
-                                <Border Grid.Column="2" Width="28" Height="28" CornerRadius="14"
-                                        Background="{StaticResource GlassBackgroundBrush}"
-                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
-                                    <iconPacks:PackIconMaterial Kind="Download" Width="13" Height="13"
-                                                                 Foreground="{StaticResource TextFaintBrush}"
-                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                            </Grid>
-                        </Border>
-
-                        <Border Style="{StaticResource QuickLinkCardStyle}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Style="{StaticResource GlassIconBadgeStyle}">
-                                    <iconPacks:PackIconMaterial Kind="FileDocumentOutline" Width="18" Height="18"
-                                                                 Foreground="{StaticResource TextFaintBrush}"
-                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
-                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="100" Margin="0,0,0,6" />
-                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="60" Height="6" Opacity="0.6" />
-                                </StackPanel>
-                                <Border Grid.Column="2" Width="28" Height="28" CornerRadius="14"
-                                        Background="{StaticResource GlassBackgroundBrush}"
-                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
-                                    <iconPacks:PackIconMaterial Kind="Download" Width="13" Height="13"
-                                                                 Foreground="{StaticResource TextFaintBrush}"
-                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                            </Grid>
-                        </Border>
-
-                        <Border Style="{StaticResource QuickLinkCardStyle}" Margin="0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Style="{StaticResource GlassIconBadgeStyle}">
-                                    <iconPacks:PackIconMaterial Kind="FileDocumentOutline" Width="18" Height="18"
-                                                                 Foreground="{StaticResource TextFaintBrush}"
-                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
-                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="110" Margin="0,0,0,6" />
-                                    <Rectangle Style="{StaticResource SkeletonLineStyle}" Width="65" Height="6" Opacity="0.6" />
-                                </StackPanel>
-                                <Border Grid.Column="2" Width="28" Height="28" CornerRadius="14"
-                                        Background="{StaticResource GlassBackgroundBrush}"
-                                        BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
-                                    <iconPacks:PackIconMaterial Kind="Download" Width="13" Height="13"
-                                                                 Foreground="{StaticResource TextFaintBrush}"
-                                                                 HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                            </Grid>
-                        </Border>
+                        <ItemsControl ItemsSource="{Binding RecommendedTools}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource QuickLinkCardStyle}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Style="{StaticResource GlassIconBadgeStyle}"
+                                                    VerticalAlignment="Top">
+                                                <iconPacks:PackIconMaterial Kind="{Binding Icon}" Width="18" Height="18"
+                                                                             Foreground="{StaticResource TextFaintBrush}"
+                                                                             HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4" />
+                                                <TextBlock Text="{Binding Description}" FontSize="11" TextWrapping="Wrap"
+                                                           Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,4" />
+                                                <TextBlock Text="{Binding StatusText}" FontSize="10" TextWrapping="Wrap"
+                                                           Foreground="{StaticResource TextFaintBrush}" />
+                                                <ProgressBar Height="3" Margin="0,6,0,0" Minimum="0" Maximum="1"
+                                                             Value="{Binding Progress, Mode=OneWay}"
+                                                             Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVisibility}}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="2" Style="{StaticResource DownloadIconButtonStyle}"
+                                                    VerticalAlignment="Top" IsEnabled="{Binding IsIdle}"
+                                                    ToolTip="{tr:Tr Dashboard.DownloadTooltip}"
+                                                    Command="{Binding DataContext.DownloadOrRunCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <iconPacks:PackIconMaterial Kind="{Binding ButtonIcon}" Width="13" Height="13"
+                                                                             Foreground="{StaticResource TextFaintBrush}"
+                                                                             HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Grid>
 

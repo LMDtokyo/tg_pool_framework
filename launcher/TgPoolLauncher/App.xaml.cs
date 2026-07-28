@@ -74,6 +74,7 @@ public partial class App : System.Windows.Application
                     var processManager = sp.GetRequiredService<BackendProcessManager>();
                     return new EventStreamClient(processManager.BaseUri);
                 });
+                services.AddHttpClient<RecommendedToolsService>();
 
                 services.AddSingleton<DashboardViewModel>();
                 services.AddSingleton<AccountsViewModel>();

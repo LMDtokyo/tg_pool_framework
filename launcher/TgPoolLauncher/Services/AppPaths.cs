@@ -24,6 +24,7 @@ public static class AppPaths
     public static string Crashes { get; private set; } = "";
     public static string Fingerprints { get; private set; } = "";
     public static string JsonGenerator { get; private set; } = "";
+    public static string Tools { get; private set; } = "";
 
     /// <summary>Computes every path and creates each folder if missing. Call once at startup.</summary>
     public static void Initialize(string root)
@@ -41,8 +42,9 @@ public static class AppPaths
         Crashes = Path.Combine(Data, "Crashes");
         Fingerprints = Path.Combine(Data, "Fingerprints");
         JsonGenerator = Path.Combine(Data, "JsonGenerator");
+        Tools = Path.Combine(Data, "Tools");
 
-        foreach (var dir in new[] { Accounts, SpareAccounts, Tdata, Sessions, TdataExports, Proxies, Exports, Logs, Crashes, Fingerprints, JsonGenerator })
+        foreach (var dir in new[] { Accounts, SpareAccounts, Tdata, Sessions, TdataExports, Proxies, Exports, Logs, Crashes, Fingerprints, JsonGenerator, Tools })
             Directory.CreateDirectory(dir);
     }
 
