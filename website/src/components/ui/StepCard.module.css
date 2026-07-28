@@ -1,0 +1,25 @@
+.step {
+  position: relative;
+}
+
+.number {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: var(--sp-3);
+}
+
+.step h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 var(--sp-2);
+}
+
+.step p {
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 300;
+  color: var(--text-secondary);
+  margin: 0;
+}

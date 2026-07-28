@@ -1,0 +1,21 @@
+.cta {
+  text-align: center;
+  padding: var(--sp-8) var(--sp-6);
+  border-top: 1px solid var(--border);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: clamp(30px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 0 0 var(--sp-3);
+}
+
+.sub {
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  margin: 0 0 var(--sp-5);
+}

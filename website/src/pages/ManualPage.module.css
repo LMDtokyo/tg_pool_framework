@@ -1,0 +1,45 @@
+.page {
+  padding: var(--sp-7) var(--sp-6) var(--sp-8);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.head {
+  max-width: 640px;
+  margin-bottom: var(--sp-6);
+}
+.head h1 {
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--sp-3);
+}
+
+.sub {
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 300;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--sp-6);
+  align-items: start;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-7);
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: var(--sp-4);
+  }
+}

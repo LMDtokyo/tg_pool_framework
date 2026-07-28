@@ -1,0 +1,37 @@
+/* Design tokens -- cinematic dark space-console aesthetic.
+   Near-black + one signature acid-lime accent, never purple/indigo. */
+:root {
+  /* color roles */
+  --bg: #08080b;
+  --bg-elevated: #101014;
+  --bg-card: #0d0d12;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text-primary: #f3f3f0;
+  --text-secondary: #a4a4b0;
+  --text-faint: #5c5c68;
+  --accent: #baff29;
+  --accent-dim: #8fd41f;
+  --accent-soft: rgba(186, 255, 41, 0.12);
+  --accent-soft-strong: rgba(186, 255, 41, 0.22);
+  --spark: #ff5d3b;
+
+  /* type */
+  --font-display: "Bricolage Grotesque Variable", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* spacing (4/8 scale) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 16px;
+  --sp-4: 24px;
+  --sp-5: 40px;
+  --sp-6: 64px;
+  --sp-7: 96px;
+  --sp-8: 140px;
+
+  /* radii */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 24px;
+}

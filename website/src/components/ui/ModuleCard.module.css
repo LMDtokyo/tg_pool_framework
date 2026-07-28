@@ -1,0 +1,38 @@
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  transition: border-color 0.2s, background 0.2s;
+}
+.card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+}
+
+.icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--sp-3);
+}
+
+.card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 var(--sp-1);
+  letter-spacing: -0.01em;
+}
+
+.card p {
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-weight: 300;
+  color: var(--text-secondary);
+  margin: 0;
+}

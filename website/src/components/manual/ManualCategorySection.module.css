@@ -1,0 +1,27 @@
+.section {
+  scroll-margin-top: 96px;
+}
+.section:not(:first-child) {
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-6);
+}
+
+.heading {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0 0 var(--sp-4);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-3);
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

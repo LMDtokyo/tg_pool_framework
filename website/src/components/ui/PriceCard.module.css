@@ -1,0 +1,60 @@
+.card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-5) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.featured {
+  border-color: var(--accent);
+  background: linear-gradient(160deg, #10190a, var(--bg-card));
+}
+
+.badge {
+  position: absolute;
+  top: -12px;
+  left: var(--sp-4);
+  background: var(--accent);
+  color: #08120a;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.price {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.price span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+.description {
+  font-size: 13.5px;
+  line-height: 1.55;
+  font-weight: 300;
+  color: var(--text-secondary);
+  margin: 0;
+  flex-grow: 1;
+}
