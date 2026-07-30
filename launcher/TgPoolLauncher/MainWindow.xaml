@@ -569,6 +569,24 @@
                 </StackPanel>
             </TabItem.Header>
         </TabItem>
+        <TabItem x:Name="EngagementTab">
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <iconPacks:PackIconMaterial Kind="TrendingUp" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{tr:Tr Nav.Engagement}" VerticalAlignment="Center"
+                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Foreground}" />
+                </StackPanel>
+            </TabItem.Header>
+        </TabItem>
+        <TabItem x:Name="StoriesTab">
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <iconPacks:PackIconMaterial Kind="CircleMultipleOutline" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{tr:Tr Nav.Stories}" VerticalAlignment="Center"
+                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Foreground}" />
+                </StackPanel>
+            </TabItem.Header>
+        </TabItem>
     </TabControl>
         </Grid>
     </Border>

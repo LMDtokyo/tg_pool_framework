@@ -37,6 +37,8 @@ internal static class CommonStrings
         table.Add("Nav.ProxyPoolChecker", "Чекер пула прокси", "Proxy Pool Checker", "代理池检查器");
         table.Add("Nav.Parsing", "Парсинг", "Parsing", "解析");
         table.Add("Nav.JsonGenerator", "JSON-генератор", "JSON Generator", "JSON 生成器");
+        table.Add("Nav.Engagement", "Накрутка", "Engagement", "互动增长");
+        table.Add("Nav.Stories", "Сторис", "Stories", "快拍");
 
         table.Add("App.BackendFailedMessage",
             "Не удалось запустить backend-сервис (python -m uvicorn src.api.app:app).\n" +

@@ -38,6 +38,9 @@ public sealed class LocalizationService : INotifyPropertyChanged
         NumberCheckerStrings.Register(_table);
         SendByNumbersStrings.Register(_table);
         SendByIdStrings.Register(_table);
+        ScheduledCampaignsStrings.Register(_table);
+        EngagementStrings.Register(_table);
+        StoriesStrings.Register(_table);
 
         _current = LoadSavedLanguage();
     }

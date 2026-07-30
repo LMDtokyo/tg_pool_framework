@@ -680,4 +680,91 @@ public sealed class BackendClient
         var result = await _http.GetFromJsonAsync<SendByIdStatusDto>("/send_by_id/status", ct);
         return result ?? new SendByIdStatusDto();
     }
+
+    public async Task<ScheduledCampaignDto> CreateScheduledCampaignAsync(
+        ScheduledCampaignCreateRequest request, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync("/scheduled_campaigns", request, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var detail = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"Scheduled campaign creation failed ({(int)resp.StatusCode}): {detail}");
+        }
+        return (await resp.Content.ReadFromJsonAsync<ScheduledCampaignDto>(ct))!;
+    }
+
+    public async Task<List<ScheduledCampaignDto>> GetScheduledCampaignsAsync(CancellationToken ct = default)
+    {
+        var result = await _http.GetFromJsonAsync<List<ScheduledCampaignDto>>("/scheduled_campaigns", ct);
+        return result ?? [];
+    }
+
+    public async Task CancelScheduledCampaignAsync(int scheduleId, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsync($"/scheduled_campaigns/{scheduleId}/cancel", content: null, ct);
+        resp.EnsureSuccessStatusCode();
+    }
+
+    public async Task DeleteScheduledCampaignAsync(int scheduleId, CancellationToken ct = default)
+    {
+        var resp = await _http.DeleteAsync($"/scheduled_campaigns/{scheduleId}", ct);
+        resp.EnsureSuccessStatusCode();
+    }
+
+    public async Task<EngagementStartResponse> StartEngagementAsync(
+        EngagementStartRequest request, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync("/engagement/start", request, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var detail = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"Engagement start failed ({(int)resp.StatusCode}): {detail}");
+        }
+        return (await resp.Content.ReadFromJsonAsync<EngagementStartResponse>(ct))!;
+    }
+
+    public async Task StopEngagementAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsync("/engagement/stop", content: null, ct);
+        resp.EnsureSuccessStatusCode();
+    }
+
+    public async Task<EngagementStatusDto> GetEngagementStatusAsync(CancellationToken ct = default)
+    {
+        var result = await _http.GetFromJsonAsync<EngagementStatusDto>("/engagement/status", ct);
+        return result ?? new EngagementStatusDto();
+    }
+
+    public async Task<ProxyCoverageDto> GetProxyCoverageAsync(CancellationToken ct = default)
+    {
+        var result = await _http.GetFromJsonAsync<ProxyCoverageDto>("/accounts/proxy_coverage", ct);
+        return result ?? new ProxyCoverageDto();
+    }
+
+    public async Task<StoriesStartResponse> StartStoriesAsync(
+        StoriesStartRequest request, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync("/stories/start", request, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var detail = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException(
+                $"Stories start failed ({(int)resp.StatusCode}): {detail}");
+        }
+        return (await resp.Content.ReadFromJsonAsync<StoriesStartResponse>(ct))!;
+    }
+
+    public async Task StopStoriesAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsync("/stories/stop", content: null, ct);
+        resp.EnsureSuccessStatusCode();
+    }
+
+    public async Task<StoriesStatusDto> GetStoriesStatusAsync(CancellationToken ct = default)
+    {
+        var result = await _http.GetFromJsonAsync<StoriesStatusDto>("/stories/status", ct);
+        return result ?? new StoriesStatusDto();
+    }
 }

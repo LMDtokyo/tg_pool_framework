@@ -18,6 +18,7 @@ from src import bootstrap
 from src.accounts.account_manager_service import AccountManagerService
 from src.accounts.account_registry import AccountRegistry, RegistryEntry
 from src.accounts.health_checker import AccountStatus
+from src.accounts.proxy_safety import shared_proxy_groups, unproxied_phones
 from src.accounts.session_crypto import load_key_from_env
 from src.api import schemas
 from src.api.datamoll import (
@@ -82,6 +83,9 @@ from src.api.send_by_numbers import (
     SendByNumbersManager,
 )
 from src.api.send_by_id import SendByIdAlreadyRunningError, SendByIdManager
+from src.api.scheduled_campaigns import ScheduledCampaignManager
+from src.api.engagement import EngagementAlreadyRunningError, EngagementManager
+from src.api.stories import StoriesAlreadyRunningError, StoriesManager
 from src.api.sms_pool import (
     SMSPOOL_API_URL,
     SMSPOOL_PROVIDER_NAME,
@@ -100,6 +104,10 @@ from src.config import AccountConfig, ProxyConfig, TimingPolicy
 from src.db.license_repository import LicenseStateRepository, ensure_license_state_table
 from src.db.proxy_repository import ProxyRepository, ensure_proxy_table
 from src.db.repository import ensure_durable_tables
+from src.db.scheduled_campaign_repository import (
+    ScheduledCampaignRepository,
+    ensure_scheduled_campaigns_table,
+)
 from src.licensing.client import LicenseServerClient
 from src.licensing.service import LicenseService
 from src.monitoring.event_bus import EventBus
@@ -196,11 +204,15 @@ async def _refresh_account_proxy_assignments() -> None:
     number_checker_manager: NumberCheckerManager = app.state.number_checker_manager
     send_manager: SendByNumbersManager = app.state.send_by_numbers_manager
     send_by_id_manager: SendByIdManager = app.state.send_by_id_manager
+    engagement_manager: EngagementManager = app.state.engagement_manager
+    stories_manager: StoriesManager = app.state.stories_manager
     for account in updated_accounts:
         invite_manager.register_account(account)
         number_checker_manager.register_account(account)
         send_manager.register_account(account)
         send_by_id_manager.register_account(account)
+        engagement_manager.register_account(account)
+        stories_manager.register_account(account)
 
 
 @asynccontextmanager
@@ -221,6 +233,10 @@ async def lifespan(app: FastAPI):
     proxy_repository = (
         ProxyRepository(proxy_session_factory) if proxy_session_factory else None
     )
+
+    # Opt-in, same pattern as DATABASE_URL: unset -> engagement daily-account caps are
+    # simply not enforced, everything else (streams, stagger delay, auto-stop) still works.
+    redis_client = bootstrap.build_redis_client()
 
     # Licensing is opt-in via LICENSE_SERVER_URL, same as DATABASE_URL/REDIS_URL elsewhere in
     # this app: unset -> the gate middleware waves every request through unchanged, so local
@@ -313,11 +329,50 @@ async def lifespan(app: FastAPI):
         accounts=list(primary) + list(spares),
         pool_guard=pool_guard,
         session_encryption_key=session_encryption_key,
+        proxy_repository=proxy_repository,
     )
     app.state.send_by_id_manager = SendByIdManager(
         accounts=list(primary) + list(spares),
         pool_guard=pool_guard,
         session_encryption_key=session_encryption_key,
+        proxy_repository=proxy_repository,
+    )
+    app.state.engagement_manager = EngagementManager(
+        accounts=list(primary) + list(spares),
+        pool_guard=pool_guard,
+        session_encryption_key=session_encryption_key,
+        redis_client=redis_client,
+        proxy_repository=proxy_repository,
+    )
+    app.state.stories_manager = StoriesManager(
+        accounts=list(primary) + list(spares),
+        pool_guard=pool_guard,
+        session_encryption_key=session_encryption_key,
+        redis_client=redis_client,
+        proxy_repository=proxy_repository,
+    )
+
+    scheduled_campaign_repository = (
+        ScheduledCampaignRepository(session_factory) if session_factory is not None else None
+    )
+    if session_factory is not None:
+        await ensure_scheduled_campaigns_table(session_factory)
+    app.state.scheduled_campaign_repository = scheduled_campaign_repository
+    app.state.scheduled_campaign_manager = (
+        ScheduledCampaignManager(
+            repository=scheduled_campaign_repository,
+            send_by_id_manager=app.state.send_by_id_manager,
+            send_by_numbers_manager=app.state.send_by_numbers_manager,
+            poll_interval=bootstrap.env_float("SCHEDULED_CAMPAIGNS_POLL_INTERVAL_SEC", "30"),
+        )
+        if scheduled_campaign_repository is not None
+        else None
+    )
+    scheduled_campaigns_shutdown = asyncio.Event()
+    scheduled_campaigns_task = (
+        asyncio.create_task(app.state.scheduled_campaign_manager.run(scheduled_campaigns_shutdown))
+        if app.state.scheduled_campaign_manager is not None
+        else None
     )
 
     accounts_dir = os.getenv("ACCOUNTS_DIR", "accounts")
@@ -361,12 +416,18 @@ async def lifespan(app: FastAPI):
             app.state.number_checker_manager.register_account(account)
             app.state.send_by_numbers_manager.register_account(account)
             app.state.send_by_id_manager.register_account(account)
+            app.state.engagement_manager.register_account(account)
+            app.state.stories_manager.register_account(account)
+
+    def current_fingerprint_signatures() -> List[tuple]:
+        return [(account.device_model, account.app_version) for account in primary + spares]
 
     telegram_authenticator = TelegramAuthenticator(
         fingerprint_file=fingerprint_file,
         accounts_dir=accounts_dir,
         encryption_key=session_encryption_key,
         proxy_provider=next_registration_proxy,
+        fingerprint_signatures_provider=current_fingerprint_signatures,
     )
     app.state.hero_sms_activation_manager = HeroSmsActivationManager(
         authenticator=telegram_authenticator,
@@ -396,10 +457,15 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        if scheduled_campaigns_task is not None:
+            scheduled_campaigns_shutdown.set()
+            await scheduled_campaigns_task
         await app.state.invite_by_number_manager.stop()
         await app.state.number_checker_manager.stop()
         await app.state.send_by_numbers_manager.stop()
         await app.state.send_by_id_manager.stop()
+        await app.state.engagement_manager.stop()
+        await app.state.stories_manager.stop()
         await app.state.hero_sms_activation_manager.stop()
         await app.state.sms_pool_activation_manager.stop()
         await app.state.grizzly_sms_activation_manager.stop()
@@ -412,6 +478,8 @@ async def lifespan(app: FastAPI):
         await registry.close()
         if owns_proxy_engine:
             await proxy_session_factory.kw["bind"].dispose()
+        if redis_client is not None:
+            await redis_client.aclose()
 
 
 app = FastAPI(title="tg_pool_framework control API", lifespan=lifespan)
@@ -440,6 +508,8 @@ async def _rescan_account_storage() -> int:
         invite_manager.register_account(account)
         app.state.number_checker_manager.register_account(account)
         app.state.send_by_numbers_manager.register_account(account)
+        app.state.engagement_manager.register_account(account)
+        app.state.stories_manager.register_account(account)
 
     return len(new_primary) + len(new_spares)
 
@@ -1063,6 +1133,21 @@ async def list_accounts(
     return [_entry_to_out(e, proxy_statuses) for e in entries]
 
 
+@app.get("/accounts/proxy_coverage", response_model=schemas.ProxyCoverageOut)
+async def accounts_proxy_coverage() -> schemas.ProxyCoverageOut:
+    accounts: List[AccountConfig] = app.state.primary_accounts + app.state.spare_accounts
+    missing = unproxied_phones(accounts)
+    shared = shared_proxy_groups(accounts)
+    largest = max((len(phones) for phones in shared.values()), default=0)
+    return schemas.ProxyCoverageOut(
+        total_accounts=len(accounts),
+        unproxied_count=len(missing),
+        unproxied_phones=missing,
+        shared_proxy_group_count=len(shared),
+        largest_shared_group_size=largest,
+    )
+
+
 @app.post("/accounts/{phone}/role")
 async def assign_role(phone: str, body: schemas.AssignValueRequest) -> dict:
     manager: AccountManagerService = app.state.account_manager
@@ -1183,6 +1268,7 @@ async def start_send_by_numbers(
             auto_stop_spamblock=body.auto_stop_spamblock,
             auto_stop_floodwait=body.auto_stop_floodwait,
             repeat_every_hours=body.repeat_every_hours,
+            require_proxy=body.require_proxy,
             results_dir=body.results_dir,
         )
     except SendByNumbersAlreadyRunningError as exc:
@@ -1236,6 +1322,7 @@ async def start_send_by_id(body: schemas.SendByIdStartRequest) -> schemas.SendBy
             auto_stop_spamblock=body.auto_stop_spamblock,
             auto_stop_floodwait=body.auto_stop_floodwait,
             repeat_every_hours=body.repeat_every_hours,
+            require_proxy=body.require_proxy,
             results_dir=body.results_dir,
         )
     except SendByIdAlreadyRunningError as exc:
@@ -1256,6 +1343,165 @@ async def stop_send_by_id() -> dict:
 async def send_by_id_status() -> schemas.SendByIdStatusResponse:
     manager: SendByIdManager = app.state.send_by_id_manager
     return schemas.SendByIdStatusResponse(**manager.status())
+
+
+def _scheduled_campaign_manager() -> ScheduledCampaignManager:
+    manager = app.state.scheduled_campaign_manager
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Scheduled campaigns require DATABASE_URL.")
+    return manager
+
+
+def _scheduled_campaign_out(campaign) -> schemas.ScheduledCampaignOut:
+    return schemas.ScheduledCampaignOut(
+        id=campaign.id,
+        name=campaign.name,
+        campaign_type=campaign.campaign_type,
+        start_at=campaign.start_at,
+        repeat_interval_hours=campaign.repeat_interval_hours,
+        max_occurrences=campaign.max_occurrences,
+        occurrences_run=campaign.occurrences_run,
+        enabled=campaign.enabled,
+        next_run_at=campaign.next_run_at,
+        last_run_at=campaign.last_run_at,
+        last_job_id=campaign.last_job_id,
+        last_error=campaign.last_error,
+    )
+
+
+@app.post("/scheduled_campaigns", response_model=schemas.ScheduledCampaignOut)
+async def create_scheduled_campaign(
+    body: schemas.ScheduledCampaignCreateRequest,
+) -> schemas.ScheduledCampaignOut:
+    payload = body.send_by_id if body.campaign_type == "send_by_id" else body.send_by_numbers
+    if payload is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"campaign_type '{body.campaign_type}' requires a matching payload.",
+        )
+    try:
+        campaign = await _scheduled_campaign_manager().create(
+            name=body.name,
+            campaign_type=body.campaign_type,
+            payload=payload.model_dump(mode="json"),
+            start_at=body.start_at,
+            repeat_interval_hours=body.repeat_interval_hours,
+            max_occurrences=body.max_occurrences,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _scheduled_campaign_out(campaign)
+
+
+@app.get("/scheduled_campaigns", response_model=List[schemas.ScheduledCampaignOut])
+async def list_scheduled_campaigns() -> List[schemas.ScheduledCampaignOut]:
+    return [_scheduled_campaign_out(c) for c in await _scheduled_campaign_manager().list()]
+
+
+@app.post("/scheduled_campaigns/{schedule_id}/cancel", response_model=schemas.ScheduledCampaignOut)
+async def cancel_scheduled_campaign(schedule_id: int) -> schemas.ScheduledCampaignOut:
+    campaign = await _scheduled_campaign_manager().cancel(schedule_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Scheduled campaign not found.")
+    return _scheduled_campaign_out(campaign)
+
+
+@app.delete("/scheduled_campaigns/{schedule_id}", response_model=schemas.ScheduledCampaignDeleteResponse)
+async def delete_scheduled_campaign(schedule_id: int) -> schemas.ScheduledCampaignDeleteResponse:
+    deleted = await _scheduled_campaign_manager().delete(schedule_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Scheduled campaign not found.")
+    return schemas.ScheduledCampaignDeleteResponse(deleted=1)
+
+
+@app.post("/engagement/start", response_model=schemas.EngagementStartResponse)
+async def start_engagement(body: schemas.EngagementStartRequest) -> schemas.EngagementStartResponse:
+    manager: EngagementManager = app.state.engagement_manager
+    try:
+        job_id = manager.start(
+            action_type=body.action_type,
+            target_chat=body.target_chat,
+            target_message_id=body.target_message_id,
+            reaction_emoji=body.reaction_emoji,
+            poll_option_index=body.poll_option_index,
+            comment_text=body.comment_text,
+            sender_phones=body.sender_phones,
+            streams=body.streams,
+            delay_min_sec=body.delay_min_sec,
+            delay_max_sec=body.delay_max_sec,
+            max_flood_wait_sec=body.max_flood_wait_sec,
+            daily_cap_per_account=body.daily_cap_per_account,
+            max_total_accounts=body.max_total_accounts,
+            auto_stop_ban=body.auto_stop_ban,
+            auto_stop_spamblock=body.auto_stop_spamblock,
+            auto_stop_floodwait=body.auto_stop_floodwait,
+            require_proxy=body.require_proxy,
+            results_dir=body.results_dir,
+        )
+    except EngagementAlreadyRunningError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.EngagementStartResponse(job_id=job_id, started=True)
+
+
+@app.post("/engagement/stop")
+async def stop_engagement() -> dict:
+    manager: EngagementManager = app.state.engagement_manager
+    await manager.stop()
+    return {"ok": True}
+
+
+@app.get("/engagement/status", response_model=schemas.EngagementStatusResponse)
+async def engagement_status() -> schemas.EngagementStatusResponse:
+    manager: EngagementManager = app.state.engagement_manager
+    return schemas.EngagementStatusResponse(**manager.status())
+
+
+@app.post("/stories/start", response_model=schemas.StoriesStartResponse)
+async def start_stories(body: schemas.StoriesStartRequest) -> schemas.StoriesStartResponse:
+    manager: StoriesManager = app.state.stories_manager
+    try:
+        job_id = manager.start(
+            action_type=body.action_type,
+            target_chat=body.target_chat,
+            target_story_id=body.target_story_id,
+            reaction_emoji=body.reaction_emoji,
+            media_path=body.media_path,
+            caption=body.caption,
+            privacy=body.privacy,
+            period_hours=body.period_hours,
+            sender_phones=body.sender_phones,
+            streams=body.streams,
+            delay_min_sec=body.delay_min_sec,
+            delay_max_sec=body.delay_max_sec,
+            max_flood_wait_sec=body.max_flood_wait_sec,
+            daily_cap_per_account=body.daily_cap_per_account,
+            max_total_accounts=body.max_total_accounts,
+            auto_stop_ban=body.auto_stop_ban,
+            auto_stop_spamblock=body.auto_stop_spamblock,
+            auto_stop_floodwait=body.auto_stop_floodwait,
+            require_proxy=body.require_proxy,
+            results_dir=body.results_dir,
+        )
+    except StoriesAlreadyRunningError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.StoriesStartResponse(job_id=job_id, started=True)
+
+
+@app.post("/stories/stop")
+async def stop_stories() -> dict:
+    manager: StoriesManager = app.state.stories_manager
+    await manager.stop()
+    return {"ok": True}
+
+
+@app.get("/stories/status", response_model=schemas.StoriesStatusResponse)
+async def stories_status() -> schemas.StoriesStatusResponse:
+    manager: StoriesManager = app.state.stories_manager
+    return schemas.StoriesStatusResponse(**manager.status())
 
 
 @app.post("/invite_by_number/start", response_model=schemas.InviteByNumberStartResponse)
@@ -1396,6 +1642,8 @@ def _stored_proxy_out(proxy) -> schemas.StoredProxyOut:
         country=proxy.country,
         error_message=proxy.error_message,
         last_checked_at=proxy.last_checked_at,
+        ban_signal_count=proxy.ban_signal_count,
+        last_ban_signal_at=proxy.last_ban_signal_at,
     )
 
 

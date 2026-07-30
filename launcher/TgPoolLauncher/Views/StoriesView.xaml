@@ -1,0 +1,299 @@
+<UserControl x:Class="TgPoolLauncher.Views.StoriesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="1040">
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Form -->
+                <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="12" Padding="28" Width="420" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="{tr:Tr Stories.Title}" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" />
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Stories.ActionTypeLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox SelectedValue="{Binding ActionType}" SelectedValuePath="Content" HorizontalAlignment="Stretch">
+                                <ComboBoxItem Content="view" />
+                                <ComboBoxItem Content="reaction" />
+                                <ComboBoxItem Content="post" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}"
+                                    Visibility="{Binding IsTargetedAction, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{tr:Tr Stories.TargetChatLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding TargetChat, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}"
+                                    Visibility="{Binding IsTargetedAction, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{tr:Tr Stories.TargetStoryIdLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding TargetStoryId, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}"
+                                    Visibility="{Binding IsReactionAction, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{tr:Tr Stories.ReactionEmojiLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding ReactionEmoji, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="{tr:Tr Stories.ReactionEmojiTooltip}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}"
+                                    Visibility="{Binding IsPostAction, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{tr:Tr Stories.MediaPathLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Text="{Binding MediaPath, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Grid.Column="1" Content="{tr:Tr Common.Browse}" Padding="12,6" Margin="8,0,0,0"
+                                        Command="{Binding BrowseMediaPathCommand}" />
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}"
+                                    Visibility="{Binding IsPostAction, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{tr:Tr Stories.CaptionLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding Caption, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap" Height="52" VerticalScrollBarVisibility="Auto" />
+                        </StackPanel>
+
+                        <Grid Margin="0,0,0,14" Visibility="{Binding IsPostAction, Converter={StaticResource BoolToVisibility}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{tr:Tr Stories.PrivacyLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <ComboBox SelectedValue="{Binding Privacy}" SelectedValuePath="Content">
+                                    <ComboBoxItem Content="everyone" />
+                                    <ComboBoxItem Content="contacts" />
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{tr:Tr Stories.PeriodHoursLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding PeriodHours, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{tr:Tr Stories.PeriodHoursTooltip}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Stories.SenderPhonesLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding SenderPhonesText, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap" Height="52" VerticalScrollBarVisibility="Auto"
+                                     ToolTip="{tr:Tr Stories.SenderPhonesTooltip}" />
+                        </StackPanel>
+
+                        <TextBlock Text="{tr:Tr Stories.SmartLimitsHeader}" FontSize="13" FontWeight="Bold" Margin="0,4,0,12" />
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{tr:Tr Stories.StreamsLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding Streams, UpdateSourceTrigger=PropertyChanged}" ToolTip="{tr:Tr Stories.StreamsTooltip}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{tr:Tr Stories.MaxTotalAccountsLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding MaxTotalAccounts, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{tr:Tr Stories.MaxTotalAccountsTooltip}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{tr:Tr Stories.DelayMinLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding DelayMinSec, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{tr:Tr Stories.DelayMaxLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding DelayMaxSec, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{tr:Tr Stories.DailyCapLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding DailyCapPerAccount, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{tr:Tr Stories.DailyCapTooltip}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{tr:Tr Stories.MaxFloodWaitLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding MaxFloodWaitSec, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="{tr:Tr Stories.AutoStopHeader}" FontSize="13" FontWeight="Bold" Margin="0,4,0,12" />
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{tr:Tr Stories.AutoStopBanLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding AutoStopBan, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{tr:Tr Stories.AutoStopSpamblockLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding AutoStopSpamblock, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="{tr:Tr Stories.AutoStopFloodWaitLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding AutoStopFloodWait, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <CheckBox Content="{tr:Tr Stories.RequireProxyLabel}" IsChecked="{Binding RequireProxy}"
+                                  Margin="0,0,0,16" ToolTip="{tr:Tr Stories.RequireProxyTooltip}" />
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="{tr:Tr Common.Start}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartCommand}" />
+                            <Button Content="{tr:Tr Common.Stop}" Margin="10,0,0,0" Command="{Binding StopCommand}" />
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource DangerBrush}"
+                                   Margin="0,14,0,0" TextWrapping="Wrap"
+                                   Visibility="{Binding StatusMessage, Converter={StaticResource EmptyStringToVisibilityConverter}, ConverterParameter=Invert}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Status / results -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                    <TextBlock Text="{tr:Tr Stories.ProgressHeader}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}" Margin="4,0,0,10" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <Border Style="{StaticResource StatPillStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource TextFaintBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                    <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{tr:Tr Stories.NotRunning}" />
+                                            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                    <Setter Property="Text" Value="{tr:Tr Stories.Running}" />
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource StatPillStyle}">
+                            <TextBlock VerticalAlignment="Center" FontSize="13">
+                                <Run Text="{Binding LatestStatus.Succeeded, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <Run Text="/" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.Total, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <Run Text="{tr:Tr Stories.SucceededSuffix}" Foreground="{StaticResource TextMutedBrush}" />
+                            </TextBlock>
+                        </Border>
+                    </StackPanel>
+
+                    <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,16"
+                                 Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Border Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock FontSize="12" Margin="0,0,0,4">
+                                <Run Text="{tr:Tr Stories.FailedLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.Failed, Mode=OneWay}" FontWeight="SemiBold" />
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="0,0,0,4">
+                                <Run Text="{tr:Tr Stories.SkippedDailyCapLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.SkippedDailyCap, Mode=OneWay}" FontWeight="SemiBold" />
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="0,0,0,4">
+                                <Run Text="{tr:Tr Stories.BanCountLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.BanCount, Mode=OneWay}" FontWeight="SemiBold" />
+                                <Run Text="  " />
+                                <Run Text="{tr:Tr Stories.SpamblockCountLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.SpamblockCount, Mode=OneWay}" FontWeight="SemiBold" />
+                                <Run Text="  " />
+                                <Run Text="{tr:Tr Stories.FloodWaitCountLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.FloodWaitCount, Mode=OneWay}" FontWeight="SemiBold" />
+                            </TextBlock>
+                            <StackPanel Visibility="{Binding LatestStatus.ExportPath, Converter={StaticResource NullToVisibilityConverter}}">
+                                <TextBlock Text="{tr:Tr Stories.ExportFileLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,6,0,2" />
+                                <TextBlock Text="{Binding LatestStatus.ExportPath}" FontSize="12" TextWrapping="Wrap"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="{tr:Tr Stories.ResultsHeader}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}" Margin="4,0,0,10" />
+
+                    <ListBox ItemsSource="{Binding LatestStatus.Results}" MinHeight="200" MaxHeight="420">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140" />
+                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding AccountPhone}" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding State}" FontSize="12" VerticalAlignment="Center"
+                                               Foreground="{StaticResource AccentBrush}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

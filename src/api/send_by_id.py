@@ -34,6 +34,7 @@ from telethon.tl.functions.messages import DeleteHistoryRequest
 from telethon.tl.types import InputPeerUser, InputPhoneContact, InputUser, PeerUser, User
 
 from src.accounts.connection_manager import ClientFactory
+from src.accounts.proxy_safety import ensure_all_proxied, unproxied_phones
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
 from src.config import AccountConfig
 from src.extraction.entity_resolver import UniversalEntityResolver
@@ -121,6 +122,7 @@ class _Run:
     spamblock_count: int = 0
     floodwait_count: int = 0
     cycle: int = 1
+    unproxied_senders: List[str] = field(default_factory=list)
     export_path: Optional[str] = None
 
 
@@ -275,10 +277,12 @@ class SendByIdManager:
         accounts: List[AccountConfig],
         pool_guard: PoolAccessGuard,
         session_encryption_key: Optional[bytes] = None,
+        proxy_repository: Optional[Any] = None,
     ) -> None:
         self._accounts_by_phone = {self._phone_key(a.phone): a for a in accounts}
         self._pool_guard = pool_guard
         self._session_encryption_key = session_encryption_key
+        self._proxy_repository = proxy_repository
         self._run: Optional[_Run] = None
 
     @staticmethod
@@ -321,6 +325,7 @@ class SendByIdManager:
         auto_stop_spamblock: int = 0,
         auto_stop_floodwait: int = 0,
         repeat_every_hours: Optional[float] = None,
+        require_proxy: bool = False,
         results_dir: str = "exports",
     ) -> str:
         if self.is_running:
@@ -330,6 +335,11 @@ class SendByIdManager:
         senders = self._normalize_senders(sender_phones)
         if not senders:
             raise ValueError("No valid sender accounts available.")
+
+        sender_accounts = [self._accounts_by_phone[self._phone_key(p)] for p in senders]
+        if require_proxy:
+            ensure_all_proxied(sender_accounts)
+        unproxied = unproxied_phones(sender_accounts)
 
         clean_media = [str(item).strip() for item in media_paths or [] if str(item).strip()]
         clean_links = [str(item).strip() for item in forward_links or [] if str(item).strip()]
@@ -388,6 +398,7 @@ class SendByIdManager:
             job_id=job_id,
             shutdown_event=asyncio.Event(),
             recipients=recipients,
+            unproxied_senders=unproxied,
         )
 
         async def _runner() -> None:
@@ -446,6 +457,7 @@ class SendByIdManager:
             "spamblock_count": run.spamblock_count,
             "floodwait_count": run.floodwait_count,
             "cycle": run.cycle,
+            "unproxied_senders": run.unproxied_senders,
             "export_path": run.export_path,
             "results": [
                 {
@@ -572,9 +584,11 @@ class SendByIdManager:
         except (UserDeactivatedBanError, AuthKeyUnregisteredError) as exc:
             run.ban_count += 1
             self._fail_pending(items, f"Sender banned or unauthorized: {type(exc).__name__}", run)
+            await self._record_ban_signal(phone)
         except PeerFloodError as exc:
             run.spamblock_count += 1
             self._fail_pending(items, f"Sender spam-blocked: {type(exc).__name__}", run)
+            await self._record_ban_signal(phone)
         except Exception as exc:
             self._fail_pending(items, f"Sender unavailable: {type(exc).__name__}: {exc}", run)
         finally:
@@ -918,6 +932,24 @@ class SendByIdManager:
                 row.state = "failed"
                 row.message = message
                 run.failed += 1
+
+    async def _record_ban_signal(self, phone: str) -> None:
+        """A proxy can pass connectivity checks while still being a burned exit
+        IP Telegram is banning every account through -- flag it, if tracked."""
+        if self._proxy_repository is None:
+            return
+        account = self._accounts_by_phone.get(self._phone_key(phone))
+        if account is None or account.proxy is None:
+            return
+        try:
+            await self._proxy_repository.record_ban_signal(
+                proxy_type=account.proxy.proxy_type,
+                host=account.proxy.host,
+                port=account.proxy.port,
+                username=account.proxy.username or "",
+            )
+        except Exception:
+            logger.debug("Could not record ban signal for proxy of %s", phone, exc_info=True)
 
     async def _connect(self, phone: str):
         account = self._accounts_by_phone.get(self._phone_key(phone))

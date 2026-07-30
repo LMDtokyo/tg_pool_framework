@@ -9,7 +9,7 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, Iterable, Tuple
 
 from openpyxl import load_workbook
 from telethon.errors import PhoneNumberUnoccupiedError, SessionPasswordNeededError
@@ -76,6 +76,10 @@ class TelegramFingerprint:
     lang_pack: str
     tz_offset: int
     perf_cat: int
+
+    def signature(self) -> Tuple[str, str]:
+        """The (device, app_version) pair Telegram itself would see as this account's device."""
+        return (self.device, self.app_version)
 
     @classmethod
     def from_mapping(cls, source: dict[str, Any], row_number: int) -> "TelegramFingerprint":
@@ -171,8 +175,25 @@ class FingerprintCatalog:
             ]
         )
 
-    def choose(self) -> TelegramFingerprint:
-        return secrets.choice(self._rows)
+    def choose(self, *, avoid: Iterable[Tuple[str, str]] = ()) -> TelegramFingerprint:
+        """
+        Picks a random fingerprint, preferring one not already in `avoid`
+        (typically every currently-loaded account's (device, app_version)) so
+        two accounts don't end up presenting as the identical device to
+        Telegram -- an easy correlation signal, especially if they also share
+        a proxy or the operator's own IP. Falls back to the full catalog
+        (duplicates allowed) once every distinct signature is already in use.
+        """
+        avoid_set = set(avoid)
+        candidates = [row for row in self._rows if row.signature() not in avoid_set]
+        if not candidates:
+            logger.warning(
+                "FingerprintCatalog: all %d distinct device profiles are already in "
+                "use by the pool; assigning a repeat at random.",
+                len({row.signature() for row in self._rows}),
+            )
+            candidates = self._rows
+        return secrets.choice(candidates)
 
 
 @dataclass
@@ -210,12 +231,14 @@ class TelegramAuthenticator:
         proxy_provider: Callable[
             [], ProxyConfig | None | Awaitable[ProxyConfig | None]
         ] | None = None,
+        fingerprint_signatures_provider: Callable[[], Iterable[Tuple[str, str]]] | None = None,
     ) -> None:
         self._fingerprint_file = fingerprint_file
         self._accounts_dir = Path(accounts_dir)
         self._encryption_key = encryption_key
         self._catalog: FingerprintCatalog | None = None
         self._proxy_provider = proxy_provider
+        self._fingerprint_signatures_provider = fingerprint_signatures_provider
 
     def validate_ready(self) -> None:
         try:
@@ -236,7 +259,12 @@ class TelegramAuthenticator:
         ):
             raise FileExistsError(f"An account session already exists for {normalized}")
 
-        fingerprint = self._load_catalog().choose()
+        avoid = (
+            self._fingerprint_signatures_provider()
+            if self._fingerprint_signatures_provider is not None
+            else ()
+        )
+        fingerprint = self._load_catalog().choose(avoid=avoid)
         logger.debug("TelegramAuthenticator: using fingerprint %s", fingerprint)
         temp_dir = Path(
             tempfile.mkdtemp(prefix=".telegram-login-", dir=self._accounts_dir)

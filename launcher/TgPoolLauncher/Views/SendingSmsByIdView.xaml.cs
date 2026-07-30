@@ -226,6 +226,7 @@ public partial class SendingSmsByIdView : UserControl
             RepeatEveryHours = RunControlToggle.IsChecked == true
                 ? ParsePositiveDouble(RepeatHoursTextBox.Text, 1)
                 : null,
+            RequireProxy = RequireProxyToggle.IsChecked == true,
             ResultsDir = AppPaths.Exports,
         };
 
@@ -381,6 +382,7 @@ public partial class SendingSmsByIdView : UserControl
         StreamsControlToggle.IsChecked = false;
         AutoStopToggle.IsChecked = false;
         RunControlToggle.IsChecked = false;
+        RequireProxyToggle.IsChecked = false;
         ScheduleAtTextBox.Text = DateTime.Now.AddHours(1).ToString("yyyy-MM-dd HH:mm");
         StreamsTextBox.Text = "4";
         AutoStopBanTextBox.Text = "1";

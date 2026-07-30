@@ -99,6 +99,33 @@ async def test_delete_all_returns_number_of_removed_rows(repository):
     assert await repository.delete_all() == 2
 
 
+async def test_record_ban_signal_increments_the_matching_proxy(repository):
+    await repository.upsert_many([_proxy()])
+    stored = (await repository.list_all())[0]
+    assert stored.ban_signal_count == 0
+    assert stored.last_ban_signal_at is None
+
+    hit = await repository.record_ban_signal(
+        proxy_type="socks5", host="1.2.3.4", port=1080, username="user"
+    )
+    await repository.record_ban_signal(
+        proxy_type="socks5", host="1.2.3.4", port=1080, username="user"
+    )
+
+    assert hit is True
+    updated = (await repository.list_all())[0]
+    assert updated.ban_signal_count == 2
+    assert updated.last_ban_signal_at is not None
+
+
+async def test_record_ban_signal_is_a_noop_for_an_unknown_proxy(repository):
+    hit = await repository.record_ban_signal(
+        proxy_type="socks5", host="9.9.9.9", port=1, username=""
+    )
+
+    assert hit is False
+
+
 async def test_check_manager_stop_cancels_an_active_check(repository, monkeypatch):
     await repository.upsert_many([_proxy()])
     started = asyncio.Event()

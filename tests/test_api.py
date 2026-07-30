@@ -73,6 +73,41 @@ def test_list_accounts_reports_configured_proxy(monkeypatch):
     assert by_phone["+7002"]["proxy_label"] is None
 
 
+def test_proxy_coverage_reports_unproxied_accounts(client):
+    resp = client.get("/accounts/proxy_coverage")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total_accounts"] == 2
+    assert body["unproxied_count"] == 2
+    assert set(body["unproxied_phones"]) == {"+7001", "+7002"}
+    assert body["shared_proxy_group_count"] == 0
+
+
+def test_proxy_coverage_detects_a_shared_exit(monkeypatch):
+    from fastapi.testclient import TestClient
+    from src.api.app import app
+
+    shared_proxy = ProxyConfig(host="1.2.3.4", port=1080, proxy_type="socks5")
+    accounts = [
+        AccountConfig(api_id=1, api_hash="h" * 32, phone="+7001", proxy=shared_proxy),
+        AccountConfig(api_id=1, api_hash="h" * 32, phone="+7002", proxy=shared_proxy),
+        make_account("+7003"),
+    ]
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
+    monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
+    monkeypatch.delenv("SESSION_ENCRYPTION_ENABLED", raising=False)
+
+    with TestClient(app) as local_client:
+        body = local_client.get("/accounts/proxy_coverage").json()
+
+    assert body["total_accounts"] == 3
+    assert body["unproxied_count"] == 1
+    assert body["unproxied_phones"] == ["+7003"]
+    assert body["shared_proxy_group_count"] == 1
+    assert body["largest_shared_group_size"] == 2
+
+
 def test_list_accounts_filters_by_text(client):
     resp = client.get("/accounts", params={"text": "+7001"})
     assert resp.status_code == 200
@@ -649,6 +684,8 @@ def test_stored_proxy_api_add_list_check_and_delete(client):
         country=None,
         error_message=None,
         last_checked_at=None,
+        ban_signal_count=0,
+        last_ban_signal_at=None,
     )
     repository = MagicMock()
     repository.list_all = AsyncMock(return_value=[stored])
@@ -785,6 +822,8 @@ def test_accounts_use_proxy_inventory_on_startup(monkeypatch, tmp_path):
                 country TEXT NULL,
                 error_message TEXT NULL,
                 last_checked_at DATETIME NULL,
+                ban_signal_count INTEGER NOT NULL DEFAULT 0,
+                last_ban_signal_at DATETIME NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT uq_proxies_endpoint_user UNIQUE (proxy_type, host, port, username)
@@ -837,6 +876,8 @@ def test_accounts_report_bad_stored_proxy_status(monkeypatch, tmp_path):
                 country TEXT NULL,
                 error_message TEXT NULL,
                 last_checked_at DATETIME NULL,
+                ban_signal_count INTEGER NOT NULL DEFAULT 0,
+                last_ban_signal_at DATETIME NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT uq_proxies_endpoint_user UNIQUE (proxy_type, host, port, username)
@@ -888,6 +929,8 @@ def test_deleting_assigned_proxy_reassigns_account_to_remaining_proxy(monkeypatc
                 country TEXT NULL,
                 error_message TEXT NULL,
                 last_checked_at DATETIME NULL,
+                ban_signal_count INTEGER NOT NULL DEFAULT 0,
+                last_ban_signal_at DATETIME NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT uq_proxies_endpoint_user UNIQUE (proxy_type, host, port, username)

@@ -4,6 +4,10 @@ internal static class DashboardStrings
 {
     public static void Register(Dictionary<AppLanguage, Dictionary<string, string>> table)
     {
+        table.Add("Dashboard.UnproxiedWarningSuffix",
+            " аккаунтов подключаются напрямую через IP этого компьютера, без прокси — риск разом забанить весь пул. Настройте им прокси на вкладке «Прокси».",
+            " accounts connect directly through this computer's own IP, with no proxy — risking a ban cascade across the whole pool. Assign them a proxy on the Proxy tab.",
+            " 个账号未使用代理，直接通过本机 IP 连接 — 存在整个账号池被连带封禁的风险。请在“代理”页面为它们配置代理。");
         table.Add("Dashboard.LiveFeed", "Лента событий", "Live feed", "事件流");
         table.Add("Dashboard.Connected", "Подключено", "Connected", "已连接");
         table.Add("Dashboard.Disconnected", "Отключено", "Disconnected", "未连接");

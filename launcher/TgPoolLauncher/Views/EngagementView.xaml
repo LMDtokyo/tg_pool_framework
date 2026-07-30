@@ -1,0 +1,271 @@
+<UserControl x:Class="TgPoolLauncher.Views.EngagementView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
+             mc:Ignorable="d"
+             d:DesignHeight="760" d:DesignWidth="1040">
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Form -->
+                <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="12" Padding="28" Width="420" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="{tr:Tr Engagement.Title}" FontSize="18" FontWeight="Bold" Margin="0,0,0,20" />
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Engagement.ActionTypeLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox SelectedValue="{Binding ActionType}" SelectedValuePath="Content" HorizontalAlignment="Stretch">
+                                <ComboBoxItem Content="reaction" />
+                                <ComboBoxItem Content="view" />
+                                <ComboBoxItem Content="poll_vote" />
+                                <ComboBoxItem Content="comment" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Engagement.TargetChatLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding TargetChat, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Engagement.TargetMessageIdLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding TargetMessageId, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}"
+                                    Visibility="{Binding IsReactionAction, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{tr:Tr Engagement.ReactionEmojiLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding ReactionEmoji, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="{tr:Tr Engagement.ReactionEmojiTooltip}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}"
+                                    Visibility="{Binding IsPollVoteAction, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{tr:Tr Engagement.PollOptionIndexLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding PollOptionIndex, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="{tr:Tr Engagement.PollOptionIndexTooltip}" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}"
+                                    Visibility="{Binding IsCommentAction, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{tr:Tr Engagement.CommentTextLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding CommentText, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap" Height="64" VerticalScrollBarVisibility="Auto" />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource FieldGroupStyle}">
+                            <TextBlock Text="{tr:Tr Engagement.SenderPhonesLabel}" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding SenderPhonesText, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap" Height="52" VerticalScrollBarVisibility="Auto"
+                                     ToolTip="{tr:Tr Engagement.SenderPhonesTooltip}" />
+                        </StackPanel>
+
+                        <TextBlock Text="{tr:Tr Engagement.SmartLimitsHeader}" FontSize="13" FontWeight="Bold" Margin="0,4,0,12" />
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{tr:Tr Engagement.StreamsLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding Streams, UpdateSourceTrigger=PropertyChanged}" ToolTip="{tr:Tr Engagement.StreamsTooltip}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{tr:Tr Engagement.MaxTotalAccountsLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding MaxTotalAccounts, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{tr:Tr Engagement.MaxTotalAccountsTooltip}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{tr:Tr Engagement.DelayMinLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding DelayMinSec, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{tr:Tr Engagement.DelayMaxLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding DelayMaxSec, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{tr:Tr Engagement.DailyCapLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding DailyCapPerAccount, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{tr:Tr Engagement.DailyCapTooltip}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{tr:Tr Engagement.MaxFloodWaitLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding MaxFloodWaitSec, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="{tr:Tr Engagement.AutoStopHeader}" FontSize="13" FontWeight="Bold" Margin="0,4,0,12" />
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{tr:Tr Engagement.AutoStopBanLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding AutoStopBan, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{tr:Tr Engagement.AutoStopSpamblockLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding AutoStopSpamblock, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="{tr:Tr Engagement.AutoStopFloodWaitLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding AutoStopFloodWait, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <CheckBox Content="{tr:Tr Engagement.RequireProxyLabel}" IsChecked="{Binding RequireProxy}"
+                                  Margin="0,0,0,16" ToolTip="{tr:Tr Engagement.RequireProxyTooltip}" />
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="{tr:Tr Common.Start}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartCommand}" />
+                            <Button Content="{tr:Tr Common.Stop}" Margin="10,0,0,0" Command="{Binding StopCommand}" />
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource DangerBrush}"
+                                   Margin="0,14,0,0" TextWrapping="Wrap"
+                                   Visibility="{Binding StatusMessage, Converter={StaticResource EmptyStringToVisibilityConverter}, ConverterParameter=Invert}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Status / results -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                    <TextBlock Text="{tr:Tr Engagement.ProgressHeader}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}" Margin="4,0,0,10" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <Border Style="{StaticResource StatPillStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource TextFaintBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                    <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{tr:Tr Engagement.NotRunning}" />
+                                            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                    <Setter Property="Text" Value="{tr:Tr Engagement.Running}" />
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource StatPillStyle}">
+                            <TextBlock VerticalAlignment="Center" FontSize="13">
+                                <Run Text="{Binding LatestStatus.Succeeded, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <Run Text="/" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.Total, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <Run Text="{tr:Tr Engagement.SucceededSuffix}" Foreground="{StaticResource TextMutedBrush}" />
+                            </TextBlock>
+                        </Border>
+                    </StackPanel>
+
+                    <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,16"
+                                 Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Border Background="{StaticResource SurfaceAltBrush}" BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock FontSize="12" Margin="0,0,0,4">
+                                <Run Text="{tr:Tr Engagement.FailedLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.Failed, Mode=OneWay}" FontWeight="SemiBold" />
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="0,0,0,4">
+                                <Run Text="{tr:Tr Engagement.SkippedDailyCapLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.SkippedDailyCap, Mode=OneWay}" FontWeight="SemiBold" />
+                            </TextBlock>
+                            <TextBlock FontSize="12" Margin="0,0,0,4">
+                                <Run Text="{tr:Tr Engagement.BanCountLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.BanCount, Mode=OneWay}" FontWeight="SemiBold" />
+                                <Run Text="  " />
+                                <Run Text="{tr:Tr Engagement.SpamblockCountLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.SpamblockCount, Mode=OneWay}" FontWeight="SemiBold" />
+                                <Run Text="  " />
+                                <Run Text="{tr:Tr Engagement.FloodWaitCountLabel}" Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text=": " Foreground="{StaticResource TextMutedBrush}" />
+                                <Run Text="{Binding LatestStatus.FloodWaitCount, Mode=OneWay}" FontWeight="SemiBold" />
+                            </TextBlock>
+                            <StackPanel Visibility="{Binding LatestStatus.ExportPath, Converter={StaticResource NullToVisibilityConverter}}">
+                                <TextBlock Text="{tr:Tr Engagement.ExportFileLabel}" Style="{StaticResource FieldLabelStyle}" Margin="0,6,0,2" />
+                                <TextBlock Text="{Binding LatestStatus.ExportPath}" FontSize="12" TextWrapping="Wrap"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="{tr:Tr Engagement.ResultsHeader}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}" Margin="4,0,0,10" />
+
+                    <ListBox ItemsSource="{Binding LatestStatus.Results}" MinHeight="200" MaxHeight="420">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140" />
+                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding AccountPhone}" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding State}" FontSize="12" VerticalAlignment="Center"
+                                               Foreground="{StaticResource AccentBrush}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

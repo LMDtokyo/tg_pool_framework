@@ -23,7 +23,8 @@ public partial class AutoRegisterNavigationViewModel : ObservableObject
         InviteByNumberView inviteByNumberView,
         SendingSmsByIdView sendingSmsByIdView,
         SendByNumbersView sendByNumbersView,
-        NumberCheckerView numberCheckerView)
+        NumberCheckerView numberCheckerView,
+        ScheduledCampaignsView scheduledCampaignsView)
     {
         Pages =
         [
@@ -42,6 +43,7 @@ public partial class AutoRegisterNavigationViewModel : ObservableObject
             new("sending-sms-by-id", "Sending SMS by ID", sendingSmsByIdView),
             new("send-by-numbers", "Send by numbers", sendByNumbersView),
             new("number-checker", "Number checker", numberCheckerView),
+            new("scheduled-campaigns", "Scheduled campaigns", scheduledCampaignsView),
         ];
 
         SelectedPage = Pages[0];

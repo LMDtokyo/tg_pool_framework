@@ -312,6 +312,16 @@ class StoredProxyOut(BaseModel):
     country: Optional[str] = None
     error_message: Optional[str] = None
     last_checked_at: Optional[datetime] = None
+    ban_signal_count: int = 0
+    last_ban_signal_at: Optional[datetime] = None
+
+
+class ProxyCoverageOut(BaseModel):
+    total_accounts: int
+    unproxied_count: int
+    unproxied_phones: List[str] = Field(default_factory=list)
+    shared_proxy_group_count: int
+    largest_shared_group_size: int = 0
 
 
 class ProxyDeleteResponse(BaseModel):
@@ -580,6 +590,7 @@ class SendByNumbersStartRequest(BaseModel):
     auto_stop_spamblock: int = 0
     auto_stop_floodwait: int = 0
     repeat_every_hours: Optional[float] = None
+    require_proxy: bool = False
     results_dir: str = "exports"
 
 
@@ -605,6 +616,7 @@ class SendByNumbersStatusResponse(BaseModel):
     per_account: Dict[str, int] = Field(default_factory=dict)
     finished: bool = False
     error: Optional[str] = None
+    unproxied_senders: List[str] = Field(default_factory=list)
     results: List[SendByNumbersResultOut] = Field(default_factory=list)
 
 
@@ -635,6 +647,7 @@ class SendByIdStartRequest(BaseModel):
     auto_stop_spamblock: int = 0
     auto_stop_floodwait: int = 0
     repeat_every_hours: Optional[float] = None
+    require_proxy: bool = False
     results_dir: str = "exports"
 
 
@@ -662,6 +675,7 @@ class SendByIdStatusResponse(BaseModel):
     per_account: Dict[str, int] = Field(default_factory=dict)
     finished: bool = False
     error: Optional[str] = None
+    unproxied_senders: List[str] = Field(default_factory=list)
     ban_count: int = 0
     spamblock_count: int = 0
     floodwait_count: int = 0
@@ -673,6 +687,137 @@ class SendByIdStatusResponse(BaseModel):
     cycle: int = 1
     export_path: Optional[str] = None
     results: List[SendByIdResultOut] = Field(default_factory=list)
+
+
+class ScheduledCampaignCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    campaign_type: str = Field(pattern="^(send_by_id|send_by_numbers)$")
+    send_by_id: Optional[SendByIdStartRequest] = None
+    send_by_numbers: Optional[SendByNumbersStartRequest] = None
+    start_at: datetime
+    repeat_interval_hours: Optional[float] = Field(default=None, ge=1 / 60)
+    max_occurrences: Optional[int] = Field(default=None, ge=1)
+
+
+class ScheduledCampaignOut(BaseModel):
+    id: int
+    name: str
+    campaign_type: str
+    start_at: datetime
+    repeat_interval_hours: Optional[float] = None
+    max_occurrences: Optional[int] = None
+    occurrences_run: int = 0
+    enabled: bool = True
+    next_run_at: datetime
+    last_run_at: Optional[datetime] = None
+    last_job_id: Optional[str] = None
+    last_error: Optional[str] = None
+
+
+class ScheduledCampaignDeleteResponse(BaseModel):
+    deleted: int
+
+
+class EngagementStartRequest(BaseModel):
+    action_type: str = Field(pattern="^(reaction|view|poll_vote|comment)$")
+    target_chat: str = Field(min_length=1)
+    target_message_id: int = Field(gt=0)
+    reaction_emoji: str = ""
+    poll_option_index: Optional[int] = Field(default=None, ge=0)
+    comment_text: str = ""
+    sender_phones: List[str] = Field(default_factory=list)
+    streams: int = Field(default=1, ge=1)
+    delay_min_sec: float = 1.0
+    delay_max_sec: float = 8.0
+    max_flood_wait_sec: float = 120.0
+    daily_cap_per_account: Optional[int] = Field(default=None, ge=1)
+    max_total_accounts: Optional[int] = Field(default=None, ge=1)
+    auto_stop_ban: int = 0
+    auto_stop_spamblock: int = 0
+    auto_stop_floodwait: int = 0
+    require_proxy: bool = False
+    results_dir: str = "exports"
+
+
+class EngagementStartResponse(BaseModel):
+    job_id: str
+    started: bool
+
+
+class EngagementResultOut(BaseModel):
+    account_phone: str
+    state: str = "pending"
+    message: str = ""
+
+
+class EngagementStatusResponse(BaseModel):
+    running: bool
+    job_id: Optional[str] = None
+    action_type: Optional[str] = None
+    total: int = 0
+    succeeded: int = 0
+    failed: int = 0
+    skipped_daily_cap: int = 0
+    finished: bool = False
+    error: Optional[str] = None
+    ban_count: int = 0
+    spamblock_count: int = 0
+    floodwait_count: int = 0
+    unproxied_senders: List[str] = Field(default_factory=list)
+    export_path: Optional[str] = None
+    results: List[EngagementResultOut] = Field(default_factory=list)
+
+
+class StoriesStartRequest(BaseModel):
+    action_type: str = Field(pattern="^(view|reaction|post)$")
+    target_chat: str = ""
+    target_story_id: int = Field(default=0, ge=0)
+    reaction_emoji: str = ""
+    media_path: str = ""
+    caption: str = ""
+    privacy: str = Field(default="everyone", pattern="^(everyone|contacts)$")
+    period_hours: Optional[int] = Field(default=None, ge=1)
+    sender_phones: List[str] = Field(default_factory=list)
+    streams: int = Field(default=1, ge=1)
+    delay_min_sec: float = 1.0
+    delay_max_sec: float = 8.0
+    max_flood_wait_sec: float = 120.0
+    daily_cap_per_account: Optional[int] = Field(default=None, ge=1)
+    max_total_accounts: Optional[int] = Field(default=None, ge=1)
+    auto_stop_ban: int = 0
+    auto_stop_spamblock: int = 0
+    auto_stop_floodwait: int = 0
+    require_proxy: bool = False
+    results_dir: str = "exports"
+
+
+class StoriesStartResponse(BaseModel):
+    job_id: str
+    started: bool
+
+
+class StoriesResultOut(BaseModel):
+    account_phone: str
+    state: str = "pending"
+    message: str = ""
+
+
+class StoriesStatusResponse(BaseModel):
+    running: bool
+    job_id: Optional[str] = None
+    action_type: Optional[str] = None
+    total: int = 0
+    succeeded: int = 0
+    failed: int = 0
+    skipped_daily_cap: int = 0
+    finished: bool = False
+    error: Optional[str] = None
+    ban_count: int = 0
+    spamblock_count: int = 0
+    floodwait_count: int = 0
+    unproxied_senders: List[str] = Field(default_factory=list)
+    export_path: Optional[str] = None
+    results: List[StoriesResultOut] = Field(default_factory=list)
 
 
 class LicenseActivateRequest(BaseModel):

@@ -24,6 +24,8 @@ public partial class MainWindow : Window
         SessionConvertView sessionConvertView,
         JsonGeneratorView jsonGeneratorView,
         TextRandomizerView textRandomizerView,
+        EngagementView engagementView,
+        StoriesView storiesView,
         AutoRegisterHostView autoRegisterHostView,
         AutoRegisterNavigationViewModel autoRegisterNavigation)
     {
@@ -42,6 +44,8 @@ public partial class MainWindow : Window
         SessionConvertTab.Content = sessionConvertView;
         JsonGeneratorTab.Content = jsonGeneratorView;
         TextRandomizerTab.Content = textRandomizerView;
+        EngagementTab.Content = engagementView;
+        StoriesTab.Content = storiesView;
         AutoRegisterTab.Content = autoRegisterHostView;
     }
 

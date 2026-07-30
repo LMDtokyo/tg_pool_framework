@@ -60,6 +60,12 @@ internal static class SendByIdStrings
         table.Add("SendById.AutoStopFloodWaitTooltip", "Остановить после стольких событий FloodWait", "Stop after this many FloodWait events", "FloodWait 事件达到此数量后停止");
         table.Add("SendById.RepeatHoursLabel", "Часов повтора", "Repeat hours", "重复小时数");
         table.Add("SendById.RepeatHoursTooltip", "Интервал повтора в часах", "Repeat interval in hours", "重复间隔（小时）");
+        table.Add("SendById.RequireProxyLabel",
+            "Запретить отправку с непрокси-аккаунтов", "Refuse to run on unproxied accounts", "禁止未配置代理的账号执行发送");
+        table.Add("SendById.RequireProxyTooltip",
+            "Если включено, рассылка не запустится, пока среди выбранных аккаунтов есть хоть один без прокси",
+            "If enabled, the campaign won't start while any selected account has no proxy assigned",
+            "启用后，只要所选账号中有任何一个未配置代理，任务就不会启动");
 
         table.Add("SendById.MessageViewHeader", "ПРОСМОТР СООБЩЕНИЯ", "MESSAGE VIEW", "消息预览");
         table.Add("SendById.ProgramActionsHeader", "ДЕЙСТВИЯ ПРОГРАММЫ", "PROGRAM ACTIONS", "程序操作");

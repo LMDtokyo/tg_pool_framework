@@ -82,6 +82,9 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ProxyPoolCheckerViewModel>();
                 services.AddSingleton<TdataConvertViewModel>();
                 services.AddSingleton<ParsingViewModel>();
+                services.AddSingleton<ScheduledCampaignsViewModel>();
+                services.AddSingleton<EngagementViewModel>();
+                services.AddSingleton<StoriesViewModel>();
                 services.AddSingleton<SessionConvertViewModel>();
                 services.AddSingleton<JsonGeneratorViewModel>();
                 services.AddSingleton<TextRandomizerViewModel>();
@@ -109,6 +112,9 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<SendingSmsByIdView>();
                 services.AddSingleton<SendByNumbersView>();
                 services.AddSingleton<NumberCheckerView>();
+                services.AddSingleton<ScheduledCampaignsView>();
+                services.AddSingleton<EngagementView>();
+                services.AddSingleton<StoriesView>();
                 services.AddSingleton<AutoRegisterHostView>();
                 services.AddSingleton<MainWindow>();
             })

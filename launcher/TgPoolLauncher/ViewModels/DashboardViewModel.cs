@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Windows;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TgPoolLauncher.Localization;
@@ -13,17 +15,26 @@ namespace TgPoolLauncher.ViewModels;
 public partial class DashboardViewModel : ObservableObject
 {
     private readonly RecommendedToolsService _tools;
+    private readonly BackendClient _backend;
+    private readonly DispatcherTimer _proxyCoverageTimer;
 
     [ObservableProperty]
     private bool connected;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasUnproxiedAccounts))]
+    private ProxyCoverageDto? proxyCoverage;
+
+    public bool HasUnproxiedAccounts => ProxyCoverage is { UnproxiedCount: > 0 };
 
     public ObservableCollection<AccountStatusRow> AccountStatuses { get; } = new();
 
     public ObservableCollection<RecommendedToolRow> RecommendedTools { get; } = new();
 
-    public DashboardViewModel(EventStreamClient eventStream, RecommendedToolsService tools)
+    public DashboardViewModel(EventStreamClient eventStream, RecommendedToolsService tools, BackendClient backend)
     {
         _tools = tools;
+        _backend = backend;
 
         eventStream.EventReceived += OnEventReceived;
         eventStream.ConnectionStateChanged += isConnected =>
@@ -40,6 +51,28 @@ public partial class DashboardViewModel : ObservableObject
         // one GitHub Releases lookup per tool, well within its unauthenticated rate limit.
         foreach (var row in RecommendedTools)
             _ = CheckForUpdateAsync(row);
+
+        // Proxy coverage changes slowly (only when accounts/proxies are added or removed),
+        // so this polls far less aggressively than job-status views.
+        _proxyCoverageTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+        _proxyCoverageTimer.Tick += async (_, _) => await RefreshProxyCoverageAsync();
+        _proxyCoverageTimer.Start();
+        _ = RefreshProxyCoverageAsync();
+    }
+
+    private async Task RefreshProxyCoverageAsync()
+    {
+        try
+        {
+            ProxyCoverage = await _backend.GetProxyCoverageAsync();
+        }
+        catch (HttpRequestException)
+        {
+            // backend momentarily unreachable -- keep the last known coverage
+        }
+        catch (TaskCanceledException)
+        {
+        }
     }
 
     private void BuildRecommendedTools()

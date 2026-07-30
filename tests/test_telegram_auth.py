@@ -41,6 +41,42 @@ def test_fingerprint_catalog_loads_complete_row(tmp_path):
     assert fingerprint.perf_cat == 2
 
 
+def _write_two_fingerprints(path: Path) -> None:
+    path.write_text(
+        "APP_ID,APP_HASH,SDK,DEVICE,APP_VERSION,LANG_CODE,"
+        "SYSTEM_LANG_CODE,LANG_PACK,TZ_OFFSET,PERF_CAT\n"
+        "4,0123456789abcdef0123456789abcdef,31,Huawei Y6p,"
+        "11.3.2 (53932),fr,fr-fr,android,0,2\n"
+        "4,0123456789abcdef0123456789abcdef,33,Realme 11 Pro+,"
+        "11.3.2 (53932),de,de-de,android,0,3\n",
+        encoding="utf-8",
+    )
+
+
+def test_choose_avoids_signatures_already_in_use(tmp_path):
+    source = tmp_path / "fingerprints.csv"
+    _write_two_fingerprints(source)
+    catalog = FingerprintCatalog.load(source)
+
+    fingerprint = catalog.choose(avoid={("Huawei Y6p", "11.3.2 (53932)")})
+
+    assert fingerprint.device == "Realme 11 Pro+"
+
+
+def test_choose_falls_back_to_a_repeat_once_every_signature_is_taken(tmp_path):
+    source = tmp_path / "fingerprints.csv"
+    _write_two_fingerprints(source)
+    catalog = FingerprintCatalog.load(source)
+    all_signatures = {
+        ("Huawei Y6p", "11.3.2 (53932)"),
+        ("Realme 11 Pro+", "11.3.2 (53932)"),
+    }
+
+    fingerprint = catalog.choose(avoid=all_signatures)
+
+    assert fingerprint.signature() in all_signatures
+
+
 def test_fingerprint_catalog_loads_xlsx_workbook(tmp_path):
     source = tmp_path / "telegram_devices.xlsx"
     workbook = Workbook()
@@ -187,6 +223,44 @@ async def test_authenticator_uses_registration_proxy_provider(tmp_path, monkeypa
 
     assert built_accounts[0].proxy is proxy
     assert login.account.proxy is proxy
+    await authenticator.discard(login)
+
+
+@pytest.mark.asyncio
+async def test_authenticator_avoids_fingerprint_signatures_already_in_use(tmp_path, monkeypatch):
+    source = tmp_path / "fingerprints.csv"
+    accounts_dir = tmp_path / "accounts"
+    _write_two_fingerprints(source)
+
+    class FakeClient:
+        def __init__(self, account):
+            self.account = account
+            self.connected = False
+
+        async def connect(self):
+            self.connected = True
+
+        def is_connected(self):
+            return self.connected
+
+        async def disconnect(self):
+            self.connected = False
+
+        async def send_code_request(self, phone):
+            return SimpleNamespace(phone_code_hash="hash")
+
+    monkeypatch.setattr(
+        "src.api.telegram_auth.ClientFactory.build", lambda account: FakeClient(account)
+    )
+    authenticator = TelegramAuthenticator(
+        fingerprint_file=str(source),
+        accounts_dir=str(accounts_dir),
+        fingerprint_signatures_provider=lambda: [("Huawei Y6p", "11.3.2 (53932)")],
+    )
+
+    login = await authenticator.begin("15550001111")
+
+    assert login.fingerprint.device == "Realme 11 Pro+"
     await authenticator.discard(login)
 
 

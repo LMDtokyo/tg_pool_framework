@@ -82,6 +82,9 @@ public sealed class SendByIdStartRequest
     [JsonPropertyName("repeat_every_hours")]
     public double? RepeatEveryHours { get; init; }
 
+    [JsonPropertyName("require_proxy")]
+    public bool RequireProxy { get; init; }
+
     [JsonPropertyName("results_dir")]
     public string ResultsDir { get; init; } = "";
 }

@@ -494,6 +494,12 @@
                                              ToolTip="{tr:Tr SendById.RepeatHoursTooltip}" />
                                 </StackPanel>
                             </Grid>
+
+                            <StackPanel Style="{StaticResource SettingCellStyle}" Margin="0,14,0,0">
+                                <TextBlock Text="{tr:Tr SendById.RequireProxyLabel}" Style="{StaticResource FieldLabelStyle}"
+                                           ToolTip="{tr:Tr SendById.RequireProxyTooltip}" />
+                                <ToggleButton x:Name="RequireProxyToggle" Style="{StaticResource OptionToggleStyle}" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>

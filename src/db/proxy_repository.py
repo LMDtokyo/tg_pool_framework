@@ -32,6 +32,8 @@ class StoredProxy:
     country: Optional[str]
     error_message: Optional[str]
     last_checked_at: Optional[datetime]
+    ban_signal_count: int
+    last_ban_signal_at: Optional[datetime]
 
     def checker_config(self, timeout: float) -> Dict[str, Any]:
         return {
@@ -121,6 +123,32 @@ class ProxyRepository:
                     row.error_message = state.error_message
                     row.last_checked_at = checked_at
 
+    async def record_ban_signal(
+        self, *, proxy_type: str, host: str, port: int, username: str = ""
+    ) -> bool:
+        """
+        Bumps the ban-signal counter for the stored proxy matching these exact
+        connection details, if one exists. Returns False (no-op) for accounts
+        running proxy-less or through a proxy that was never saved to this
+        inventory (e.g. loaded straight from .env).
+        """
+        async with self._session_factory() as session:
+            async with session.begin():
+                result = await session.execute(
+                    select(ProxyRow).where(
+                        ProxyRow.proxy_type == proxy_type,
+                        ProxyRow.host == host,
+                        ProxyRow.port == port,
+                        ProxyRow.username == username,
+                    )
+                )
+                row = result.scalar_one_or_none()
+                if row is None:
+                    return False
+                row.ban_signal_count += 1
+                row.last_ban_signal_at = datetime.now(timezone.utc)
+                return True
+
     @staticmethod
     def _to_stored(row: ProxyRow) -> StoredProxy:
         return StoredProxy(
@@ -136,6 +164,8 @@ class ProxyRepository:
             country=row.country,
             error_message=row.error_message,
             last_checked_at=row.last_checked_at,
+            ban_signal_count=row.ban_signal_count,
+            last_ban_signal_at=row.last_ban_signal_at,
         )
 
 

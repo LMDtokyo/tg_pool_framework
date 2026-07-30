@@ -10,6 +10,8 @@ sessions/
 *.db
 exports/parsed_*.txt
 exports/parsed_*/
+exports/engagement-*.xlsx
+exports/stories-*.xlsx
 
 # Python
 __pycache__/

@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Text, UniqueConstraint, false, func
+from sqlalchemy import JSON, Boolean, DateTime, Text, UniqueConstraint, false, func, true
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -75,6 +75,43 @@ class AccountRow(Base):
     )
 
 
+class ScheduledCampaignRow(Base):
+    """
+    A persisted, restart-durable definition of a future or recurring send job.
+
+    payload stores the full validated SendByIdStartRequest/SendByNumbersStartRequest
+    body (as JSON) so ScheduledCampaignManager can replay it into the matching
+    manager's start() at fire time without a second schema layer. next_run_at is
+    the sweep loop's only query condition; occurrences_run/enabled together decide
+    whether a fired campaign gets rearmed or retired (see ScheduledCampaignManager).
+    """
+
+    __tablename__ = "scheduled_campaigns"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    campaign_type: Mapped[str] = mapped_column(Text, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    repeat_interval_hours: Mapped[Optional[float]] = mapped_column(nullable=True)
+    max_occurrences: Mapped[Optional[int]] = mapped_column(nullable=True)
+
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=true())
+    occurrences_run: Mapped[int] = mapped_column(nullable=False, server_default="0")
+    next_run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    last_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_job_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
 class LicenseStateRow(Base):
     """
     Single-row cache of the last known-good license activation, keyed by a
@@ -124,6 +161,18 @@ class ProxyRow(Base):
     last_checked_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+    # Distinct from status/response_ms above: those describe raw connectivity
+    # (does the proxy answer at all), this describes whether Telegram itself
+    # has started banning accounts that connect through it -- a proxy can be
+    # perfectly "alive" and still be a burned/blacklisted exit IP. Bumped by
+    # job managers (send_by_id, send_by_numbers, engagement) whenever a sender
+    # using this exact proxy hits a ban/deactivation signal.
+    ban_signal_count: Mapped[int] = mapped_column(nullable=False, server_default="0")
+    last_ban_signal_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

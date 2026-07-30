@@ -60,6 +60,23 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20">
             <StackPanel>
 
+                <!-- Unprotected-accounts warning: accounts with no proxy connect through this
+                     machine's own IP, risking a ban cascade across the whole pool. -->
+                <Border Margin="0,0,0,20" Padding="16,12" CornerRadius="10"
+                        Background="{StaticResource GlassBackgroundBrush}"
+                        BorderBrush="{StaticResource WarningBrush}" BorderThickness="1"
+                        Visibility="{Binding HasUnproxiedAccounts, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="AlertOutline" Width="20" Height="20" Margin="0,0,12,0"
+                                                     VerticalAlignment="Center" Foreground="{StaticResource WarningBrush}" />
+                        <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" FontSize="13">
+                            <Run Text="{Binding ProxyCoverage.UnproxiedCount, Mode=OneWay}" FontWeight="Bold"
+                                 Foreground="{StaticResource WarningBrush}" />
+                            <Run Text="{tr:Tr Dashboard.UnproxiedWarningSuffix}" Foreground="{StaticResource TextPrimaryBrush}" />
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
                 <!-- Hero banner + quick-links sidebar -->
                 <Grid Margin="0,0,0,20">
                     <Grid.ColumnDefinitions>
