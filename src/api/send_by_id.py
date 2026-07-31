@@ -33,9 +33,12 @@ from telethon.tl.functions.contacts import (
 from telethon.tl.functions.messages import DeleteHistoryRequest
 from telethon.tl.types import InputPeerUser, InputPhoneContact, InputUser, PeerUser, User
 
+from src.accounts.account_registry import AccountRegistry
 from src.accounts.connection_manager import ClientFactory
-from src.accounts.proxy_safety import ensure_all_proxied, unproxied_phones
+from src.accounts.proxy_safety import ensure_all_proxied, ensure_no_shared_proxies, unproxied_phones
+from src.accounts.warmup_policy import WarmupPolicy, account_age_days
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
+from src.api.security_utils import scrub_secrets
 from src.config import AccountConfig
 from src.extraction.entity_resolver import UniversalEntityResolver
 from src.messaging.forward_source import resolve_forward_source
@@ -278,16 +281,48 @@ class SendByIdManager:
         pool_guard: PoolAccessGuard,
         session_encryption_key: Optional[bytes] = None,
         proxy_repository: Optional[Any] = None,
+        redis_client: Optional[Any] = None,
+        registry: Optional[AccountRegistry] = None,
+        warmup_policy: Optional[WarmupPolicy] = None,
     ) -> None:
         self._accounts_by_phone = {self._phone_key(a.phone): a for a in accounts}
         self._pool_guard = pool_guard
         self._session_encryption_key = session_encryption_key
         self._proxy_repository = proxy_repository
+        self._redis_client = redis_client
+        self._registry = registry
+        self._warmup_policy = warmup_policy
         self._run: Optional[_Run] = None
 
     @staticmethod
     def _phone_key(phone: str) -> str:
         return re.sub(r"[^0-9]", "", phone or "")
+
+    def _delay_multiplier(self, phone: str) -> float:
+        if self._warmup_policy is None:
+            return 1.0
+        return self._warmup_policy.delay_multiplier(account_age_days(self._registry, phone))
+
+    async def _daily_cap_allows(self, phone: str) -> bool:
+        """
+        No configured daily cap exists for send_by_id beyond the warmup ramp
+        (unlike engagement/stories, which also have a fixed per-action-type
+        default) -- so this only throttles at all once WARMUP_ENABLED and
+        REDIS_URL are both configured; otherwise every account is allowed.
+        """
+        if self._warmup_policy is None or self._redis_client is None:
+            return True
+        cap = self._warmup_policy.daily_message_cap(account_age_days(self._registry, phone))
+        from src.messaging.lua_storage import RedisRateLimiter
+
+        limiter = RedisRateLimiter(
+            self._redis_client,
+            pool_id=f"send_by_id:{self._phone_key(phone)}",
+            capacity=cap,
+            refill_rate=cap / 86400.0,
+        )
+        allowed, _reason = await limiter.check_and_consume(phone)
+        return allowed
 
     def register_account(self, account: AccountConfig) -> None:
         self._accounts_by_phone[self._phone_key(account.phone)] = account
@@ -325,7 +360,7 @@ class SendByIdManager:
         auto_stop_spamblock: int = 0,
         auto_stop_floodwait: int = 0,
         repeat_every_hours: Optional[float] = None,
-        require_proxy: bool = False,
+        require_proxy: bool = True,
         results_dir: str = "exports",
     ) -> str:
         if self.is_running:
@@ -339,6 +374,7 @@ class SendByIdManager:
         sender_accounts = [self._accounts_by_phone[self._phone_key(p)] for p in senders]
         if require_proxy:
             ensure_all_proxied(sender_accounts)
+            ensure_no_shared_proxies(sender_accounts)
         unproxied = unproxied_phones(sender_accounts)
 
         clean_media = [str(item).strip() for item in media_paths or [] if str(item).strip()]
@@ -569,6 +605,11 @@ class SendByIdManager:
                     row.message = "Stopped before send."
                     run.failed += 1
                     continue
+                if not await self._daily_cap_allows(phone):
+                    row.state = "skipped"
+                    row.message = "Daily cap for this account reached."
+                    run.failed += 1
+                    continue
                 await self._deliver(
                     run, client, phone, recipient, row, options,
                     donor_cache, donor_entities, imported_contacts,
@@ -577,7 +618,8 @@ class SendByIdManager:
                     try:
                         await asyncio.wait_for(
                             run.shutdown_event.wait(),
-                            timeout=random.uniform(options.delay_min_sec, options.delay_max_sec),
+                            timeout=random.uniform(options.delay_min_sec, options.delay_max_sec)
+                            * self._delay_multiplier(phone),
                         )
                     except asyncio.TimeoutError:
                         pass
@@ -590,7 +632,7 @@ class SendByIdManager:
             self._fail_pending(items, f"Sender spam-blocked: {type(exc).__name__}", run)
             await self._record_ban_signal(phone)
         except Exception as exc:
-            self._fail_pending(items, f"Sender unavailable: {type(exc).__name__}: {exc}", run)
+            self._fail_pending(items, f"Sender unavailable: {type(exc).__name__}: {scrub_secrets(str(exc))}", run)
         finally:
             if client is not None and options.leave_donor_groups:
                 await self._leave_donors(client, donor_entities.values())
@@ -673,7 +715,7 @@ class SendByIdManager:
             run.failed += 1
         except Exception as exc:
             row.state = "failed"
-            row.message = f"{type(exc).__name__}: {exc}"
+            row.message = f"{type(exc).__name__}: {scrub_secrets(str(exc))}"
             run.failed += 1
             logger.warning("Send-by-ID failed %s -> %s: %s", phone, recipient.user_id, exc)
 

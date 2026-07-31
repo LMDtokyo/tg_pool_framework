@@ -68,5 +68,67 @@ internal static class DatamollStrings
             "Доставленные пакеты загружаются автоматически. Сессионные аккаунты добавляются в Accounts, данные Telegram Desktop — в Tdata, а приватный чек заказа сохраняется.",
             "Delivered packages are downloaded automatically. Session accounts are added to Accounts, Telegram Desktop data is added to Tdata, and the private order receipt is retained.",
             "已交付的包会自动下载。会话账号添加到 Accounts，Telegram Desktop 数据添加到 Tdata，私有订单收据将被保留。");
+
+        table.Add("Datamoll.BalanceNotLoaded", "Не загружено", "Not loaded", "尚未加载");
+        table.Add("Datamoll.CatalogStatusLoadPrompt",
+            "Загрузите актуальный каталог, чтобы выбрать Telegram продукт.",
+            "Load the live catalog to select a Telegram product.",
+            "加载实时目录以选择 Telegram 产品。");
+        table.Add("Datamoll.ProductDescriptionPlaceholder",
+            "Выберите продукт, чтобы увидеть описание доставки.",
+            "Select a product to see its delivery description.",
+            "选择产品以查看其交付说明。");
+        table.Add("Datamoll.NotSpecified", "Не указано", "Not specified", "未指定");
+        table.Add("Datamoll.BalanceAvailableFormat",
+            "{0} {1} доступно  (баланс {2}, кредитный лимит {3})",
+            "{0} {1} available  (balance {2}, credit {3})",
+            "{0} {1} 可用（余额 {2}，信用额度 {3}）");
+        table.Add("Datamoll.CatalogLoading",
+            "Загрузка товаров Telegram в наличии...",
+            "Loading in-stock Telegram products...",
+            "正在加载有库存的 Telegram 产品...");
+        table.Add("Datamoll.CatalogEmpty",
+            "Товары Telegram в наличии сейчас недоступны.",
+            "No in-stock Telegram products are currently available.",
+            "当前没有可用的 Telegram 库存产品。");
+        table.Add("Datamoll.CatalogShownFormat",
+            "Показано {0} из {1} товаров Telegram в наличии.",
+            "{0} of {1} in-stock Telegram products shown.",
+            "已显示 {1} 个有库存 Telegram 产品中的 {0} 个。");
+        table.Add("Datamoll.NoCountriesMatchFormat",
+            "Нет стран, соответствующих \"{0}\".",
+            "No countries match \"{0}\".",
+            "没有匹配 \"{0}\" 的国家。");
+        table.Add("Datamoll.RetryingOrder",
+            "Повторная попытка того же заказа с Datamoll...",
+            "Retrying the same order with Datamoll...",
+            "正在使用 Datamoll 重试同一订单...");
+        table.Add("Datamoll.PurchasingWaiting",
+            "Покупка и ожидание доставки Datamoll...",
+            "Purchasing and waiting for Datamoll delivery...",
+            "正在购买并等待 Datamoll 交付...");
+        table.Add("Datamoll.StatusPurchasing", "Покупка", "Purchasing", "购买中");
+        table.Add("Datamoll.StatusRecovered", "Восстановлено", "Recovered", "已恢复");
+        table.Add("Datamoll.StatusFailed", "Ошибка", "Failed", "失败");
+        table.Add("Datamoll.RecoveredImportedFormat",
+            "Восстановлено и импортировано: {0} сессия(и), {1} tdata.",
+            "Recovered and imported: {0} session, {1} tdata.",
+            "已恢复并导入：{0} 个会话，{1} 个 tdata。");
+        table.Add("Datamoll.DownloadedImportedFormat",
+            "Скачано и импортировано: {0} сессия(и), {1} tdata.",
+            "Downloaded and imported: {0} session, {1} tdata.",
+            "已下载并导入：{0} 个会话，{1} 个 tdata。");
+        table.Add("Datamoll.OrderAddedFormat",
+            "Заказ {0}: {1} аккаунт(ов) добавлено в существующее хранилище",
+            "Order {0}: {1} account(s) added to existing storage",
+            "订单 {0}：已将 {1} 个账户添加到现有存储");
+        table.Add("Datamoll.SkippedExistingSuffixFormat",
+            ", {0} уже существовало.",
+            ", {0} already existed.",
+            "，其中 {0} 个已存在。");
+        table.Add("Datamoll.SameOrderWillBeReused",
+            "Тот же ID заказа будет использован повторно при повторном нажатии «Купить».",
+            "The same order ID will be reused if you press Purchase again.",
+            "如果您再次点击购买，将重复使用相同的订单 ID。");
     }
 }

@@ -14,13 +14,13 @@ namespace TgPoolLauncher.ViewModels;
 public sealed record SmsActivationProviderConfig(
     string Name,
     string Host,
-    string AccountHeader,
-    string ApiKeyToolTip,
-    string KeyPrivacyMessage,
-    string IntegrationBehaviorTitle,
-    string PurchaseWarning,
-    string PriceAvailabilityNote,
-    string AvailabilityLabel,
+    string AccountHeaderKey,
+    string ApiKeyToolTipKey,
+    string KeyPrivacyMessageKey,
+    string IntegrationBehaviorTitleKey,
+    string PurchaseWarningKey,
+    string PriceAvailabilityNoteKey,
+    string AvailabilityLabelKey,
     bool AvailabilityIsPercent,
     bool RequiresAvailabilityCount,
     Func<BackendClient, string, CancellationToken, Task<HeroSmsBalanceDto>> LoadBalance,
@@ -36,13 +36,13 @@ public sealed record SmsActivationProviderConfig(
     public static SmsActivationProviderConfig HeroSms { get; } = new(
         "Hero SMS",
         "hero-sms.com",
-        "HERO SMS ACCOUNT",
-        "Your Hero SMS API key is kept in memory only",
-        "The key is sent only to the local backend and Hero SMS.",
-        "How this Hero SMS integration behaves",
-        "Automatic registration can deduct funds from your Hero SMS balance. Verify the target, concurrency, start price, and purchase ceiling first.",
-        "Hero SMS returns all Telegram price tiers for the selected country. Purchases use getNumberV2 with fixedPrice locked to the selected start tier, then climb higher tiers up to your purchase ceiling when a tier has no numbers.",
-        "Numbers available",
+        "HeroSms.AccountHeader",
+        "HeroSms.ApiKeyTooltip",
+        "HeroSms.ApiKeyNote",
+        "HeroSms.ImportantInfoSubheader",
+        "HeroSms.RealPurchasesText",
+        "HeroSms.PriceAvailabilityText",
+        "HeroSms.AvailabilityLabel",
         false,
         true,
         (backend, apiKey, ct) => backend.GetHeroSmsBalanceAsync(apiKey, ct),
@@ -58,13 +58,13 @@ public sealed record SmsActivationProviderConfig(
     public static SmsActivationProviderConfig SmsPool { get; } = new(
         "SMSpool",
         "smspool.net",
-        "SMSPOOL ACCOUNT",
-        "Your SMSpool API key is kept in memory only",
-        "The key is sent only to the local backend and SMSpool.",
-        "How this SMSpool integration behaves",
-        "Automatic registration can deduct funds from your SMSpool balance. Verify the target, concurrency, and displayed maximum price first.",
-        "SMSpool returns Telegram price and country success rate, not a live available-number count. Purchases are still attempted through SMSpool's compatible endpoint.",
-        "Success rate",
+        "HeroSms.SmsPool.AccountHeader",
+        "HeroSms.SmsPool.ApiKeyToolTip",
+        "HeroSms.SmsPool.KeyPrivacyMessage",
+        "HeroSms.SmsPool.IntegrationBehaviorTitle",
+        "HeroSms.SmsPool.PurchaseWarning",
+        "HeroSms.SmsPool.PriceAvailabilityNote",
+        "HeroSms.SmsPool.AvailabilityLabel",
         true,
         false,
         (backend, apiKey, ct) => backend.GetSmsPoolBalanceAsync(apiKey, ct),
@@ -80,13 +80,13 @@ public sealed record SmsActivationProviderConfig(
     public static SmsActivationProviderConfig GrizzlySms { get; } = new(
         "GrizzlySMS",
         "grizzlysms.com",
-        "GRIZZLYSMS ACCOUNT",
-        "Your GrizzlySMS API key is kept in memory only",
-        "The key is sent only to the local backend and GrizzlySMS.",
-        "How this GrizzlySMS integration behaves",
-        "Automatic registration can deduct funds from your GrizzlySMS balance. Verify the target, concurrency, and displayed maximum price first.",
-        "GrizzlySMS returns Telegram price and availability by country. Purchases use its documented getNumberV2 action and the selected catalog price as maxPrice.",
-        "Numbers available",
+        "HeroSms.GrizzlySms.AccountHeader",
+        "HeroSms.GrizzlySms.ApiKeyToolTip",
+        "HeroSms.GrizzlySms.KeyPrivacyMessage",
+        "HeroSms.GrizzlySms.IntegrationBehaviorTitle",
+        "HeroSms.GrizzlySms.PurchaseWarning",
+        "HeroSms.GrizzlySms.PriceAvailabilityNote",
+        "HeroSms.AvailabilityLabel",
         false,
         true,
         (backend, apiKey, ct) => backend.GetGrizzlySmsBalanceAsync(apiKey, ct),
@@ -123,7 +123,7 @@ public partial class HeroSmsViewModel : ObservableObject
     private bool isLoadingBalance;
 
     [ObservableProperty]
-    private string balanceDisplay = "USD  0.00";
+    private string balanceDisplay = LocalizationService.Instance["HeroSms.BalancePlaceholder"];
 
     [ObservableProperty]
     private string balanceErrorMessage = "";
@@ -214,13 +214,13 @@ public partial class HeroSmsViewModel : ObservableObject
     public int EventCount => ActivityRows.Count;
     public string ProviderName => _provider.Name;
     public string ProviderHost => _provider.Host;
-    public string AccountHeader => _provider.AccountHeader;
-    public string ApiKeyToolTip => _provider.ApiKeyToolTip;
-    public string KeyPrivacyMessage => _provider.KeyPrivacyMessage;
-    public string IntegrationBehaviorTitle => _provider.IntegrationBehaviorTitle;
-    public string PurchaseWarning => _provider.PurchaseWarning;
-    public string PriceAvailabilityNote => _provider.PriceAvailabilityNote;
-    public string AvailabilityLabel => _provider.AvailabilityLabel;
+    public string AccountHeader => LocalizationService.Instance[_provider.AccountHeaderKey];
+    public string ApiKeyToolTip => LocalizationService.Instance[_provider.ApiKeyToolTipKey];
+    public string KeyPrivacyMessage => LocalizationService.Instance[_provider.KeyPrivacyMessageKey];
+    public string IntegrationBehaviorTitle => LocalizationService.Instance[_provider.IntegrationBehaviorTitleKey];
+    public string PurchaseWarning => LocalizationService.Instance[_provider.PurchaseWarningKey];
+    public string PriceAvailabilityNote => LocalizationService.Instance[_provider.PriceAvailabilityNoteKey];
+    public string AvailabilityLabel => LocalizationService.Instance[_provider.AvailabilityLabelKey];
 
     public HeroSmsViewModel(BackendClient backend)
         : this(backend, SmsActivationProviderConfig.HeroSms)
@@ -244,8 +244,17 @@ public partial class HeroSmsViewModel : ObservableObject
 
     private void OnLanguageChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(LocalizationService.CurrentLanguage))
-            RebuildCountryOptions();
+        if (e.PropertyName != nameof(LocalizationService.CurrentLanguage))
+            return;
+
+        RebuildCountryOptions();
+        OnPropertyChanged(nameof(AccountHeader));
+        OnPropertyChanged(nameof(ApiKeyToolTip));
+        OnPropertyChanged(nameof(KeyPrivacyMessage));
+        OnPropertyChanged(nameof(IntegrationBehaviorTitle));
+        OnPropertyChanged(nameof(PurchaseWarning));
+        OnPropertyChanged(nameof(PriceAvailabilityNote));
+        OnPropertyChanged(nameof(AvailabilityLabel));
     }
 
     partial void OnApiKeyChanged(string? oldValue, string newValue)
@@ -254,7 +263,7 @@ public partial class HeroSmsViewModel : ObservableObject
             return;
 
         _catalogLoadCts?.Cancel();
-        BalanceDisplay = "USD  0.00";
+        BalanceDisplay = LocalizationService.Instance["HeroSms.BalancePlaceholder"];
         BalanceErrorMessage = "";
         CountriesStatusMessage = "";
         CountriesErrorMessage = "";
@@ -322,11 +331,13 @@ public partial class HeroSmsViewModel : ObservableObject
         try
         {
             var result = await _provider.LoadBalance(_backend, ApiKey.Trim(), CancellationToken.None);
-            BalanceDisplay = $"USD  {result.Balance.ToString("0.00", CultureInfo.InvariantCulture)}";
+            BalanceDisplay = string.Format(
+                LocalizationService.Instance["HeroSms.BalanceFormat"],
+                result.Balance.ToString("0.00", CultureInfo.InvariantCulture));
         }
         catch (Exception ex)
         {
-            BalanceDisplay = "USD  0.00";
+            BalanceDisplay = LocalizationService.Instance["HeroSms.BalancePlaceholder"];
             BalanceErrorMessage = ex.Message;
         }
         finally
@@ -386,7 +397,7 @@ public partial class HeroSmsViewModel : ObservableObject
                 return;
 
             Operators.Clear();
-            Operators.Add(new HeroSmsOperatorOption("any", "any"));
+            Operators.Add(new HeroSmsOperatorOption("any", LocalizationService.Instance["HeroSms.AnyOperatorOption"]));
             foreach (var value in operatorsTask.Result.Operators)
             {
                 if (!value.Equals("any", StringComparison.OrdinalIgnoreCase))
@@ -396,8 +407,13 @@ public partial class HeroSmsViewModel : ObservableObject
 
             ApplyPriceCatalog(priceTask.Result);
             CatalogStatusMessage = SelectedPriceOption is null
-                ? "Telegram is unavailable in this country"
-                : $"{Operators.Count} operators · {PriceOptions.Count} price tiers · {AvailabilityLabel}: {AvailabilityDisplay}";
+                ? LocalizationService.Instance["HeroSms.TelegramUnavailableInCountry"]
+                : string.Format(
+                    LocalizationService.Instance["HeroSms.CatalogSummaryFormat"],
+                    Operators.Count,
+                    PriceOptions.Count,
+                    AvailabilityLabel,
+                    AvailabilityDisplay);
             StartCommand.NotifyCanExecuteChanged();
         }
         catch (OperationCanceledException) when (loadCts.IsCancellationRequested)
@@ -510,7 +526,10 @@ public partial class HeroSmsViewModel : ObservableObject
     }
 
     private static string FormatPriceOption(decimal price, int available) =>
-        $"USD  {price.ToString("0.####", CultureInfo.InvariantCulture)}  ·  {available.ToString("N0", CultureInfo.InvariantCulture)} pcs";
+        string.Format(
+            LocalizationService.Instance["HeroSms.PriceOptionFormat"],
+            price.ToString("0.####", CultureInfo.InvariantCulture),
+            available.ToString("N0", CultureInfo.InvariantCulture));
 
     [RelayCommand(CanExecute = nameof(CanStart))]
     private async Task StartAsync()
@@ -546,7 +565,9 @@ public partial class HeroSmsViewModel : ObservableObject
                 },
                 CancellationToken.None);
             IsRunning = true;
-            OperationStatusMessage = $"{ProviderName} registration started";
+            OperationStatusMessage = string.Format(
+                LocalizationService.Instance["HeroSms.RegistrationStartedFormat"],
+                ProviderName);
             await RefreshActivationStatusAsync();
         }
         catch (Exception ex)
@@ -560,10 +581,12 @@ public partial class HeroSmsViewModel : ObservableObject
     {
         try
         {
-            OperationStatusMessage = "Stopping and canceling active purchases...";
+            OperationStatusMessage = LocalizationService.Instance["HeroSms.StoppingCanceling"];
             await _provider.StopActivations(_backend, CancellationToken.None);
             await RefreshActivationStatusAsync();
-            OperationStatusMessage = $"{ProviderName} activation batch stopped";
+            OperationStatusMessage = string.Format(
+                LocalizationService.Instance["HeroSms.ActivationBatchStoppedFormat"],
+                ProviderName);
         }
         catch (Exception ex)
         {
@@ -605,7 +628,9 @@ public partial class HeroSmsViewModel : ObservableObject
                 TwoFactorPassword,
                 CancellationToken.None);
             TwoFactorPassword = "";
-            OperationStatusMessage = $"2-step verification submitted for {row.PhoneNumber}";
+            OperationStatusMessage = string.Format(
+                LocalizationService.Instance["HeroSms.TwoFactorSubmittedFormat"],
+                row.PhoneNumber);
             await RefreshActivationStatusAsync();
         }
         catch (Exception ex)
@@ -637,11 +662,23 @@ public partial class HeroSmsViewModel : ObservableObject
                 OperationErrorMessage = status.Error;
             if (status.TargetCount > 0)
             {
+                var successCount = status.SuccessCount.ToString("N0", CultureInfo.InvariantCulture);
+                var targetCount = status.TargetCount.ToString("N0", CultureInfo.InvariantCulture);
                 OperationStatusMessage = status.Running
-                    ? $"Created {status.SuccessCount:N0} / {status.TargetCount:N0} accounts · {status.ActiveCount:N0} active"
+                    ? string.Format(
+                        LocalizationService.Instance["HeroSms.CreatedProgressFormat"],
+                        successCount,
+                        targetCount,
+                        status.ActiveCount.ToString("N0", CultureInfo.InvariantCulture))
                     : status.SuccessCount >= status.TargetCount
-                        ? $"Registration complete: {status.SuccessCount:N0} / {status.TargetCount:N0} accounts created"
-                        : $"Registration stopped: {status.SuccessCount:N0} / {status.TargetCount:N0} accounts created";
+                        ? string.Format(
+                            LocalizationService.Instance["HeroSms.RegistrationCompleteFormat"],
+                            successCount,
+                            targetCount)
+                        : string.Format(
+                            LocalizationService.Instance["HeroSms.RegistrationStoppedFormat"],
+                            successCount,
+                            targetCount);
             }
         }
         catch (HttpRequestException)
@@ -656,7 +693,8 @@ public partial class HeroSmsViewModel : ObservableObject
     {
         var selectedId = SelectedCountry?.Id;
         Countries.Clear();
-        Countries.Add(new HeroSmsCountryOption(-1, "Select a country", IsPlaceholder: true));
+        Countries.Add(new HeroSmsCountryOption(
+            -1, LocalizationService.Instance["HeroSms.SelectCountryPlaceholder"], IsPlaceholder: true));
         foreach (var country in FilterCountryDtos(_countryDtos))
         {
             var name = LocalizationService.Instance.CurrentLanguage switch
@@ -695,21 +733,26 @@ public partial class HeroSmsViewModel : ObservableObject
 
         var shownCount = Math.Max(0, Countries.Count - 1);
         CountriesStatusMessage = string.IsNullOrWhiteSpace(CountrySearchText)
-            ? $"{_countryDtos.Count} countries loaded"
-            : $"{shownCount} of {_countryDtos.Count} countries shown";
+            ? string.Format(LocalizationService.Instance["HeroSms.CountriesLoadedFormat"], _countryDtos.Count)
+            : string.Format(
+                LocalizationService.Instance["HeroSms.CountriesShownFormat"],
+                shownCount,
+                _countryDtos.Count);
     }
 
     private void ResetCountries()
     {
         Countries.Clear();
-        Countries.Add(new HeroSmsCountryOption(-1, "Select a country", IsPlaceholder: true));
+        Countries.Add(new HeroSmsCountryOption(
+            -1, LocalizationService.Instance["HeroSms.SelectCountryPlaceholder"], IsPlaceholder: true));
         SelectedCountry = Countries[0];
     }
 
     private void ResetOperators()
     {
         Operators.Clear();
-        Operators.Add(new HeroSmsOperatorOption("", "Select an operator", IsPlaceholder: true));
+        Operators.Add(new HeroSmsOperatorOption(
+            "", LocalizationService.Instance["HeroSms.SelectOperatorPlaceholder"], IsPlaceholder: true));
         SelectedOperator = Operators[0];
     }
 

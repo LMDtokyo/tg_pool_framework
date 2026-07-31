@@ -9,6 +9,15 @@ internal static class DashboardStrings
             " accounts connect directly through this computer's own IP, with no proxy — risking a ban cascade across the whole pool. Assign them a proxy on the Proxy tab.",
             " 个账号未使用代理，直接通过本机 IP 连接 — 存在整个账号池被连带封禁的风险。请在“代理”页面为它们配置代理。");
         table.Add("Dashboard.LiveFeed", "Лента событий", "Live feed", "事件流");
+
+        table.Add("Dashboard.AccountsDiscoveredFormat",
+            "Найдено новых аккаунтов: {0}. Проверьте их на вкладке «Аккаунты».",
+            "Found {0} new account(s). Check them on the Accounts tab.",
+            "发现 {0} 个新账户。请在“账户”页面查看。");
+        table.Add("Dashboard.AccountsDiscoveryFailedFormat",
+            "Не загружено: {0} — подробности в списке ниже или в логах бэкенда.",
+            "{0} could not be loaded — see details on the Accounts tab or in the backend logs.",
+            "{0} 个未能加载——详情请查看账户页面或后端日志。");
         table.Add("Dashboard.Connected", "Подключено", "Connected", "已连接");
         table.Add("Dashboard.Disconnected", "Отключено", "Disconnected", "未连接");
         table.Add("Dashboard.ColPhone", "Телефон", "Phone", "电话");

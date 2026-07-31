@@ -27,6 +27,27 @@ public partial class DashboardViewModel : ObservableObject
 
     public bool HasUnproxiedAccounts => ProxyCoverage is { UnproxiedCount: > 0 };
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAccountDiscovery))]
+    [NotifyPropertyChangedFor(nameof(AccountDiscoverySummaryText))]
+    private AccountDiscoverySummary? accountDiscovery;
+
+    public bool HasAccountDiscovery => AccountDiscovery is not null;
+
+    public string AccountDiscoverySummaryText
+    {
+        get
+        {
+            if (AccountDiscovery is not { } summary)
+                return "";
+            var loc = LocalizationService.Instance;
+            var text = string.Format(loc["Dashboard.AccountsDiscoveredFormat"], summary.LoadedCount);
+            if (summary.FailedCount > 0)
+                text += " " + string.Format(loc["Dashboard.AccountsDiscoveryFailedFormat"], summary.FailedCount);
+            return text;
+        }
+    }
+
     public ObservableCollection<AccountStatusRow> AccountStatuses { get; } = new();
 
     public ObservableCollection<RecommendedToolRow> RecommendedTools { get; } = new();
@@ -242,10 +263,19 @@ public partial class DashboardViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void DismissAccountDiscovery() => AccountDiscovery = null;
+
     // Fires from EventStreamClient's background receive loop -- must marshal
     // to the UI thread before touching ObservableCollection/bound properties.
     private void OnEventReceived(EventEnvelope envelope)
     {
+        if (envelope.Type == "AccountsDiscoveredEvent")
+        {
+            OnAccountsDiscovered(envelope);
+            return;
+        }
+
         if (envelope.Type != "AccountStatusEvent")
             return;
 
@@ -265,6 +295,21 @@ public partial class DashboardViewModel : ObservableObject
                 row.Status = status;
                 row.Detail = detail;
             }
+        });
+    }
+
+    private void OnAccountsDiscovered(EventEnvelope envelope)
+    {
+        var loadedCount = envelope.Data.GetProperty("loaded_count").GetInt32();
+        var failedCount = envelope.Data.GetProperty("failed_count").GetInt32();
+        var loadedPhones = envelope.Data.GetProperty("loaded_phones")
+            .EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+        var failedReasons = envelope.Data.GetProperty("failed_reasons")
+            .EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            AccountDiscovery = new AccountDiscoverySummary(loadedCount, loadedPhones, failedCount, failedReasons);
         });
     }
 }

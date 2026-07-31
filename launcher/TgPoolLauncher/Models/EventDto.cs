@@ -33,3 +33,8 @@ public partial class AccountStatusRow : ObservableObject
     [ObservableProperty]
     private string detail = "";
 }
+
+/// <summary>Snapshot from the most recent AccountsDiscoveredEvent -- replaced wholesale
+/// (not mutated in place), so a plain record is enough, no ObservableObject needed.</summary>
+public sealed record AccountDiscoverySummary(
+    int LoadedCount, IReadOnlyList<string> LoadedPhones, int FailedCount, IReadOnlyList<string> FailedReasons);

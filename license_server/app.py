@@ -24,6 +24,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query
 
 from license_server.db.engine import build_session_factory_from_env
 from license_server.db.repository import ActivationOutcome, LicenseKeyRepository, ensure_license_tables
+from license_server.profile_names import FIRST_NAMES, LAST_NAMES
 from license_server.schemas import (
     ActivateRequest,
     ActivateResponse,
@@ -32,9 +33,11 @@ from license_server.schemas import (
     IssuedKeyOut,
     LicenseKeySummaryOut,
     ListKeysResponse,
+    ProfileNamesOut,
     VersionOut,
 )
 from license_server.hashing import hash_secret
+from license_server.signing import load_private_key_from_env, sign_activation
 
 logger = logging.getLogger("license_server")
 
@@ -46,6 +49,8 @@ async def lifespan(app: FastAPI):
 
     if not os.getenv("LICENSE_ADMIN_API_KEY"):
         raise RuntimeError("LICENSE_ADMIN_API_KEY must be set -- refusing to start without admin auth")
+
+    app.state.signing_key = load_private_key_from_env()
 
     session_factory = build_session_factory_from_env()
     await ensure_license_tables(session_factory)
@@ -82,6 +87,17 @@ async def version() -> VersionOut:
         latest_version=os.getenv("LATEST_LAUNCHER_VERSION", "0.0.0"),
         notes=os.getenv("LATEST_LAUNCHER_NOTES", ""),
     )
+
+
+@app.get("/profile-names", response_model=ProfileNamesOut)
+async def profile_names() -> ProfileNamesOut:
+    """
+    Public, no license/admin auth needed -- same trust level as /version.
+    Lets every deployed backend draw registration display names from one
+    shared, centrally-updatable pool instead of a name list frozen into
+    that install's build (see license_server/profile_names.py).
+    """
+    return ProfileNamesOut(first_names=list(FIRST_NAMES), last_names=list(LAST_NAMES))
 
 
 @app.post("/admin/keys", response_model=GenerateKeysResponse, dependencies=[Depends(require_admin)])
@@ -147,4 +163,13 @@ async def activate(request: ActivateRequest) -> ActivateResponse:
         )
 
     assert result.tier is not None and result.activated_at is not None and result.expires_at is not None
-    return ActivateResponse(tier=result.tier, activated_at=result.activated_at, expires_at=result.expires_at)
+    signature = sign_activation(
+        app.state.signing_key,
+        license_key=request.license_key,
+        hwid=request.hwid,
+        tier=result.tier,
+        expires_at=result.expires_at.isoformat(),
+    )
+    return ActivateResponse(
+        tier=result.tier, activated_at=result.activated_at, expires_at=result.expires_at, signature=signature
+    )

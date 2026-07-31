@@ -22,7 +22,7 @@ def make_account(phone: str) -> AccountConfig:
 def client(monkeypatch):
     accounts = [make_account("+7001"), make_account("+7002")]
 
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
     monkeypatch.delenv("SESSION_ENCRYPTION_ENABLED", raising=False)
@@ -58,7 +58,7 @@ def test_list_accounts_reports_configured_proxy(monkeypatch):
         ),
         make_account("+7002"),
     ]
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
     monkeypatch.delenv("SESSION_ENCRYPTION_ENABLED", raising=False)
@@ -93,7 +93,7 @@ def test_proxy_coverage_detects_a_shared_exit(monkeypatch):
         AccountConfig(api_id=1, api_hash="h" * 32, phone="+7002", proxy=shared_proxy),
         make_account("+7003"),
     ]
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
     monkeypatch.delenv("SESSION_ENCRYPTION_ENABLED", raising=False)
@@ -187,7 +187,7 @@ def test_startup_deduplicates_accounts_before_managers_receive_them(monkeypatch)
 
     monkeypatch.setattr(
         "src.bootstrap.load_accounts",
-        lambda: ([make_account("+7001")], []),
+        lambda **kwargs: ([make_account("+7001")], []),
     )
     monkeypatch.setattr(
         "src.bootstrap.load_tdata_accounts",
@@ -206,7 +206,7 @@ def test_startup_deduplicates_accounts_before_managers_receive_them(monkeypatch)
 def test_rescan_accounts_picks_up_newly_dropped_account(client, monkeypatch):
     monkeypatch.setattr(
         "src.bootstrap.load_accounts",
-        lambda: ([make_account("+7001"), make_account("+7002"), make_account("+7003")], []),
+        lambda **kwargs: ([make_account("+7001"), make_account("+7002"), make_account("+7003")], []),
     )
 
     resp = client.post("/accounts/rescan")
@@ -230,7 +230,7 @@ def test_rescan_accounts_no_new_accounts_is_a_noop(client):
 def test_rescan_accounts_also_finds_new_spares(client, monkeypatch):
     monkeypatch.setattr(
         "src.bootstrap.load_accounts",
-        lambda: ([make_account("+7001"), make_account("+7002")], [make_account("+7999")]),
+        lambda **kwargs: ([make_account("+7001"), make_account("+7002")], [make_account("+7999")]),
     )
 
     resp = client.post("/accounts/rescan")
@@ -240,6 +240,62 @@ def test_rescan_accounts_also_finds_new_spares(client, monkeypatch):
     resp = client.get("/accounts")
     phones = {a["phone"] for a in resp.json()}
     assert "+7999" in phones
+
+
+def test_rescan_accounts_reports_new_phones_and_failures(client, monkeypatch):
+    monkeypatch.setattr(
+        "src.bootstrap.load_accounts",
+        lambda load_failures=None, **kwargs: (
+            [make_account("+7001"), make_account("+7002"), make_account("+7003")],
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        "src.bootstrap.load_tdata_accounts",
+        AsyncMock(side_effect=lambda load_failures=None, **kwargs: (
+            load_failures.append({"file": "broken_tdata", "reason": "invalid tdata folder"})
+            if load_failures is not None else None
+        ) or []),
+    )
+
+    resp = client.post("/accounts/rescan")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["new_phones"] == ["+7003"]
+    assert body["failures"] == [{"file": "broken_tdata", "reason": "invalid tdata folder"}]
+
+
+def test_send_by_id_manager_sees_accounts_registered_via_rescan(client, monkeypatch):
+    monkeypatch.setattr(
+        "src.bootstrap.load_accounts",
+        lambda **kwargs: ([make_account("+7001"), make_account("+7002"), make_account("+7004")], []),
+    )
+
+    client.post("/accounts/rescan")
+
+    from src.api.app import app as fastapi_app
+
+    manager = fastapi_app.state.send_by_id_manager
+    assert "7004" in manager._accounts_by_phone
+
+
+def test_default_credentials_round_trip(client):
+    resp = client.post(
+        "/accounts/default_credentials", json={"api_id": 123456, "api_hash": "a" * 32}
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"api_id": 123456, "api_hash": "a" * 32}
+
+    resp = client.get("/accounts/default_credentials")
+    assert resp.status_code == 200
+    assert resp.json() == {"api_id": 123456, "api_hash": "a" * 32}
+
+
+def test_default_credentials_rejects_a_malformed_hash(client):
+    resp = client.post(
+        "/accounts/default_credentials", json={"api_id": 123456, "api_hash": "not-hex"}
+    )
+    assert resp.status_code == 422
 
 
 def _fake_extraction(exporter_users):
@@ -756,7 +812,7 @@ def test_dedicated_proxy_database_is_initialized_on_startup(monkeypatch, tmp_pat
 
     accounts = [make_account("+7001")]
     database_path = (tmp_path / "proxies.db").as_posix()
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
     monkeypatch.setenv("PROXY_DATABASE_URL", f"sqlite+aiosqlite:///{database_path}")
@@ -782,7 +838,7 @@ def test_local_account_database_is_initialized_on_startup(monkeypatch, tmp_path)
 
     accounts = [make_account("+7001")]
     database_path = tmp_path / "accounts.db"
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setenv("DATABASE_URL", "")
     monkeypatch.setenv("ACCOUNT_DATABASE_URL", f"sqlite+aiosqlite:///{database_path.as_posix()}")
@@ -837,7 +893,7 @@ def test_accounts_use_proxy_inventory_on_startup(monkeypatch, tmp_path):
             """
         )
 
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
     monkeypatch.setenv("PROXY_DATABASE_URL", f"sqlite+aiosqlite:///{database_path.as_posix()}")
@@ -891,7 +947,7 @@ def test_accounts_report_bad_stored_proxy_status(monkeypatch, tmp_path):
             """
         )
 
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
     monkeypatch.setenv("PROXY_DATABASE_URL", f"sqlite+aiosqlite:///{database_path.as_posix()}")
@@ -948,7 +1004,7 @@ def test_deleting_assigned_proxy_reassigns_account_to_remaining_proxy(monkeypatc
             ],
         )
 
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
     monkeypatch.setenv("PROXY_DATABASE_URL", f"sqlite+aiosqlite:///{database_path.as_posix()}")

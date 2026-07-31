@@ -79,7 +79,7 @@ public partial class StoriesViewModel : ObservableObject
     private int autoStopFloodWait;
 
     [ObservableProperty]
-    private bool requireProxy;
+    private bool requireProxy = true;
 
     [ObservableProperty]
     private StoriesStatusDto? latestStatus;
@@ -194,7 +194,7 @@ public partial class StoriesViewModel : ObservableObject
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = LocalizationService.Instance["Stories.ChooseMediaTitle"],
-            Filter = "Media files (*.jpg;*.jpeg;*.png;*.mp4;*.mov)|*.jpg;*.jpeg;*.png;*.mp4;*.mov|All files|*.*",
+            Filter = LocalizationService.Instance["Stories.ChooseMediaFilter"],
         };
         if (dialog.ShowDialog() == true)
             MediaPath = dialog.FileName;

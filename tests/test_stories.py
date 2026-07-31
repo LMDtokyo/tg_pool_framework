@@ -34,27 +34,27 @@ def make_client() -> MagicMock:
 def test_start_rejects_unknown_action_type() -> None:
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
     with pytest.raises(ValueError, match="Unknown action_type"):
-        manager.start(action_type="super_boost")
+        manager.start(require_proxy=False, action_type="super_boost")
 
 
 def test_start_requires_target_for_view_action() -> None:
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
     with pytest.raises(ValueError, match="target_chat"):
-        manager.start(action_type="view")
+        manager.start(require_proxy=False, action_type="view")
 
 
 def test_start_requires_reaction_emoji_for_reaction_action() -> None:
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
     with pytest.raises(ValueError, match="reaction_emoji"):
-        manager.start(action_type="reaction", target_chat="@chan", target_story_id=1)
+        manager.start(require_proxy=False, action_type="reaction", target_chat="@chan", target_story_id=1)
 
 
 def test_start_requires_existing_media_for_post_action(tmp_path: Path) -> None:
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
     with pytest.raises(ValueError, match="media_path"):
-        manager.start(action_type="post")
+        manager.start(require_proxy=False, action_type="post")
     with pytest.raises(ValueError, match="not found"):
-        manager.start(action_type="post", media_path=str(tmp_path / "missing.jpg"))
+        manager.start(require_proxy=False, action_type="post", media_path=str(tmp_path / "missing.jpg"))
 
 
 def test_start_rejects_unknown_privacy(tmp_path: Path) -> None:
@@ -62,7 +62,7 @@ def test_start_rejects_unknown_privacy(tmp_path: Path) -> None:
     photo.write_bytes(b"fake-jpeg")
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
     with pytest.raises(ValueError, match="privacy"):
-        manager.start(action_type="post", media_path=str(photo), privacy="everyone-but-my-boss")
+        manager.start(require_proxy=False, action_type="post", media_path=str(photo), privacy="everyone-but-my-boss")
 
 
 async def test_second_start_while_running_raises(monkeypatch) -> None:
@@ -70,10 +70,10 @@ async def test_second_start_while_running_raises(monkeypatch) -> None:
     monkeypatch.setattr("src.api.stories.ClientFactory.build", lambda _account: client)
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(action_type="view", target_chat="@chan", target_story_id=1, delay_min_sec=0, delay_max_sec=0)
+    manager.start(require_proxy=False, action_type="view", target_chat="@chan", target_story_id=1, delay_min_sec=0, delay_max_sec=0)
 
     with pytest.raises(StoriesAlreadyRunningError):
-        manager.start(action_type="view", target_chat="@chan", target_story_id=1)
+        manager.start(require_proxy=False, action_type="view", target_chat="@chan", target_story_id=1)
 
     await manager._run.task
 
@@ -84,7 +84,7 @@ async def test_view_job_sends_read_stories_request(monkeypatch, tmp_path: Path) 
     pool_guard = PoolAccessGuard()
     manager = StoriesManager([make_account("+100")], pool_guard)
 
-    job_id = manager.start(
+    job_id = manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_story_id=42,
@@ -111,7 +111,7 @@ async def test_reaction_job_sends_story_reaction_request(monkeypatch, tmp_path: 
     monkeypatch.setattr("src.api.stories.ClientFactory.build", lambda _account: client)
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="reaction",
         target_chat="@chan",
         target_story_id=7,
@@ -135,7 +135,7 @@ async def test_post_job_uploads_photo_and_sends_story(monkeypatch, tmp_path: Pat
     monkeypatch.setattr("src.api.stories.ClientFactory.build", lambda _account: client)
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="post",
         media_path=str(photo),
         caption="hello",
@@ -165,7 +165,7 @@ async def test_post_job_uploads_video_as_document(monkeypatch, tmp_path: Path) -
     monkeypatch.setattr("src.api.stories.ClientFactory.build", lambda _account: client)
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="post",
         media_path=str(video),
         delay_min_sec=0,
@@ -191,7 +191,7 @@ async def test_daily_cap_skip_is_recorded_and_does_not_connect(monkeypatch, tmp_
     manager = StoriesManager([make_account("+100")], PoolAccessGuard(), redis_client=object())
     monkeypatch.setattr(manager, "_check_daily_cap", AsyncMock(return_value=False))
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_story_id=1,
@@ -217,7 +217,7 @@ async def test_ban_signal_is_recorded_against_the_sender_proxy(monkeypatch, tmp_
         [make_account("+100", proxy=proxy)], PoolAccessGuard(), proxy_repository=proxy_repository
     )
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_story_id=1,
@@ -238,7 +238,7 @@ async def test_flood_wait_beyond_cap_fails_without_retrying(monkeypatch, tmp_pat
     monkeypatch.setattr("src.api.stories.ClientFactory.build", lambda _account: client)
     manager = StoriesManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_story_id=1,

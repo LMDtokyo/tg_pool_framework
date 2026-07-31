@@ -180,7 +180,7 @@ public partial class ScheduledCampaignsViewModel : ObservableObject
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Title = LocalizationService.Instance["ScheduledCampaigns.ChooseDatabaseTitle"],
-            Filter = "Audience files (*.txt;*.csv;*.json;*.xlsx;*.xls)|*.txt;*.csv;*.json;*.xlsx;*.xls|All files|*.*",
+            Filter = LocalizationService.Instance["ScheduledCampaigns.ChooseDatabaseFilter"],
         };
         if (dialog.ShowDialog() == true)
             DatabasePath = dialog.FileName;

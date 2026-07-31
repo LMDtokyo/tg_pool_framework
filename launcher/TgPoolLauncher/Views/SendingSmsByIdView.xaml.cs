@@ -79,7 +79,9 @@ public partial class SendingSmsByIdView : UserControl
         if (string.IsNullOrWhiteSpace(path))
             return;
         DatabasePathTextBox.Text = path;
-        AddAction("Database", $"Using freshly parsed database: {Path.GetFileName(path)}.");
+        AddAction(
+            LocalizationService.Instance["SendById.DatabaseLabel"],
+            string.Format(LocalizationService.Instance["SendById.UsingParsedDatabaseFormat"], Path.GetFileName(path)));
     }
 
     private void BoldButton_Click(object sender, RoutedEventArgs e) =>
@@ -101,26 +103,26 @@ public partial class SendingSmsByIdView : UserControl
     {
         _random = new Random();
         UpdatePreview();
-        AddAction("Preview", "Generated a new text variation.");
+        AddAction(LocalizationService.Instance["SendById.JobLabelPreview"], LocalizationService.Instance["SendById.PreviewRegenerated"]);
     }
 
     private void ForwardButton_Click(object sender, RoutedEventArgs e) =>
         ShowModal(
             ModalKind.Forward,
-            "Enter link(s) to post in channel",
-            "Add one Telegram post link per line.");
+            LocalizationService.Instance["SendById.ForwardModalTitle"],
+            LocalizationService.Instance["SendById.ForwardModalSubtitle"]);
 
     private void AttachFileButton_Click(object sender, RoutedEventArgs e) =>
         ShowModal(
             ModalKind.File,
-            "Add file",
-            "Choose one or more local files, or enter direct file links.");
+            LocalizationService.Instance["SendById.FileModalTitle"],
+            LocalizationService.Instance["SendById.FileModalSubtitle"]);
 
     private void PostbotButton_Click(object sender, RoutedEventArgs e) =>
         ShowModal(
             ModalKind.Postbot,
-            "Repost via Postbot",
-            "Enter the bot username and one or more post IDs.");
+            LocalizationService.Instance["SendById.PostbotModalTitle"],
+            LocalizationService.Instance["SendById.PostbotModalSubtitle"]);
 
     private void ClearMessageButton_Click(object sender, RoutedEventArgs e)
     {
@@ -138,14 +140,16 @@ public partial class SendingSmsByIdView : UserControl
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select Telegram user ID database",
-            Filter = "Audience databases|*.txt;*.csv;*.xlsx;*.xls;*.json|All files|*.*",
+            Title = LocalizationService.Instance["SendById.SelectDatabaseDialogTitle"],
+            Filter = LocalizationService.Instance["SendById.DatabaseFileFilter"],
             CheckFileExists = true,
         };
         if (dialog.ShowDialog() == true)
         {
             DatabasePathTextBox.Text = dialog.FileName;
-            AddAction("Database", $"Selected {Path.GetFileName(dialog.FileName)}.");
+            AddAction(
+                LocalizationService.Instance["SendById.DatabaseLabel"],
+                string.Format(LocalizationService.Instance["SendById.DatabaseSelectedFormat"], Path.GetFileName(dialog.FileName)));
         }
     }
 
@@ -156,8 +160,8 @@ public partial class SendingSmsByIdView : UserControl
             return;
         ShowModal(
             ModalKind.Accounts,
-            "Select sender accounts",
-            "Only checked accounts will be used for this job.");
+            LocalizationService.Instance["SendById.AccountsModalTitle"],
+            LocalizationService.Instance["SendById.AccountsModalSubtitle"]);
     }
 
     private void ResetButton_Click(object sender, RoutedEventArgs e) => ResetForm();
@@ -169,12 +173,12 @@ public partial class SendingSmsByIdView : UserControl
 
         if (string.IsNullOrWhiteSpace(DatabasePathTextBox.Text))
         {
-            AddAction("Sending SMS by ID", "Select a user ID database before starting.");
+            AddAction(LocalizationService.Instance["SendById.JobLabelSendingSmsById"], LocalizationService.Instance["SendById.SelectDatabaseBeforeStarting"]);
             return;
         }
         if (_senderPhones.Count == 0)
         {
-            AddAction("Sending SMS by ID", "Select at least one sender account.");
+            AddAction(LocalizationService.Instance["SendById.JobLabelSendingSmsById"], LocalizationService.Instance["SendById.SelectAtLeastOneAccount"]);
             return;
         }
 
@@ -183,7 +187,7 @@ public partial class SendingSmsByIdView : UserControl
         {
             if (!TryParseSchedule(ScheduleAtTextBox.Text, out scheduleAt))
             {
-                AddAction("Sending SMS by ID", "Enter a future local time as yyyy-MM-dd HH:mm.");
+                AddAction(LocalizationService.Instance["SendById.JobLabelSendingSmsById"], LocalizationService.Instance["SendById.EnterFutureScheduleTime"]);
                 return;
             }
         }
@@ -235,7 +239,7 @@ public partial class SendingSmsByIdView : UserControl
             && request.ForwardLinks.Count == 0
             && request.BotRelayMessageIds.Count == 0)
         {
-            AddAction("Sending SMS by ID", "Add message text, media, a repost link, or a Postbot post.");
+            AddAction(LocalizationService.Instance["SendById.JobLabelSendingSmsById"], LocalizationService.Instance["SendById.AddMessageContentRequired"]);
             return;
         }
 
@@ -243,23 +247,25 @@ public partial class SendingSmsByIdView : UserControl
         _pollCancellation = new CancellationTokenSource();
         var ct = _pollCancellation.Token;
         _programActions.Clear();
-        ResultsSummaryText.Text = "Starting...";
+        ResultsSummaryText.Text = LocalizationService.Instance["SendById.StatusStarting"];
         _isStarting = true;
         SetRunningState(true);
         try
         {
             var response = await _backend.StartSendByIdAsync(request, ct);
-            AddAction("Sending SMS by ID", $"Started job {response.JobId}.");
+            AddAction(
+                LocalizationService.Instance["SendById.JobLabelSendingSmsById"],
+                string.Format(LocalizationService.Instance["SendById.StartedJobFormat"], response.JobId));
             await PollStatusAsync(ct);
         }
         catch (OperationCanceledException)
         {
-            AddAction("Sending SMS by ID", "Status polling stopped.");
+            AddAction(LocalizationService.Instance["SendById.JobLabelSendingSmsById"], LocalizationService.Instance["SendById.StatusPollingStopped"]);
         }
         catch (Exception ex)
         {
-            AddAction("Sending SMS by ID", CleanApiError(ex.Message));
-            ResultsSummaryText.Text = "Could not start";
+            AddAction(LocalizationService.Instance["SendById.JobLabelSendingSmsById"], CleanApiError(ex.Message));
+            ResultsSummaryText.Text = LocalizationService.Instance["SendById.StatusCouldNotStart"];
             SetRunningState(false);
         }
         finally
@@ -275,13 +281,15 @@ public partial class SendingSmsByIdView : UserControl
         try
         {
             await _backend.StopSendByIdAsync();
-            AddAction("Sending SMS by ID", "Stop completed.");
+            AddAction(LocalizationService.Instance["SendById.JobLabelSendingSmsById"], LocalizationService.Instance["SendById.StopCompleted"]);
             var status = await _backend.GetSendByIdStatusAsync();
             ApplyStatus(status);
         }
         catch (Exception ex)
         {
-            AddAction("Sending SMS by ID", $"Stop failed: {CleanApiError(ex.Message)}");
+            AddAction(
+                LocalizationService.Instance["SendById.JobLabelSendingSmsById"],
+                string.Format(LocalizationService.Instance["SendById.StopFailedFormat"], CleanApiError(ex.Message)));
             StopButton.IsEnabled = true;
         }
     }
@@ -300,7 +308,9 @@ public partial class SendingSmsByIdView : UserControl
         }
         catch (Exception ex)
         {
-            AddAction("Results", $"Could not open results: {ex.Message}");
+            AddAction(
+                LocalizationService.Instance["SendById.JobLabelResults"],
+                string.Format(LocalizationService.Instance["SendById.CouldNotOpenResultsFormat"], ex.Message));
         }
     }
 
@@ -311,20 +321,37 @@ public partial class SendingSmsByIdView : UserControl
         switch (_activeModal)
         {
             case ModalKind.Forward:
-                AddAction("Repost", DescribeCount(NonEmptyLines(ForwardLinksTextBox.Text).Count, "post link"));
+                AddAction(
+                    LocalizationService.Instance["SendById.JobLabelRepost"],
+                    DescribeCount(
+                        NonEmptyLines(ForwardLinksTextBox.Text).Count,
+                        LocalizationService.Instance["SendById.RepostLinksClearedText"],
+                        LocalizationService.Instance["SendById.RepostLinksAddedFormat"]));
                 break;
             case ModalKind.File:
-                AddAction("Attachment", DescribeCount(NonEmptyLines(AttachmentLinkTextBox.Text).Count, "file"));
+                AddAction(
+                    LocalizationService.Instance["SendById.JobLabelAttachment"],
+                    DescribeCount(
+                        NonEmptyLines(AttachmentLinkTextBox.Text).Count,
+                        LocalizationService.Instance["SendById.AttachmentsClearedText"],
+                        LocalizationService.Instance["SendById.AttachmentsAddedFormat"]));
                 break;
             case ModalKind.Postbot:
-                AddAction("Postbot", DescribeCount(ParsePositiveInts(PostbotIdsTextBox.Text).Count, "post ID"));
+                AddAction(
+                    LocalizationService.Instance["SendById.JobLabelPostbot"],
+                    DescribeCount(
+                        ParsePositiveInts(PostbotIdsTextBox.Text).Count,
+                        LocalizationService.Instance["SendById.PostbotIdsClearedText"],
+                        LocalizationService.Instance["SendById.PostbotIdsAddedFormat"]));
                 break;
             case ModalKind.Accounts:
                 _senderPhones.Clear();
                 _senderPhones.AddRange(
                     _availableAccounts.Where(item => item.IsSelected).Select(item => item.Phone));
                 SelectedAccountsTextBox.Text = _senderPhones.Count.ToString(CultureInfo.InvariantCulture);
-                AddAction("Accounts", $"Selected {_senderPhones.Count} sender account(s).");
+                AddAction(
+                    LocalizationService.Instance["SendById.JobLabelAccounts"],
+                    string.Format(LocalizationService.Instance["SendById.SelectedAccountsFormat"], _senderPhones.Count));
                 break;
         }
 
@@ -336,8 +363,8 @@ public partial class SendingSmsByIdView : UserControl
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select attachment",
-            Filter = "Supported files|*.jpg;*.jpeg;*.png;*.gif;*.mp4;*.mov;*.ogg;*.mp3;*.wav;*.pdf;*.zip;*.doc;*.docx;*.xls;*.xlsx|All files|*.*",
+            Title = LocalizationService.Instance["SendById.SelectAttachmentDialogTitle"],
+            Filter = LocalizationService.Instance["SendById.AttachmentFileFilter"],
             CheckFileExists = true,
             Multiselect = true,
         };
@@ -354,7 +381,9 @@ public partial class SendingSmsByIdView : UserControl
         FileModalPanel.Visibility = kind == ModalKind.File ? Visibility.Visible : Visibility.Collapsed;
         PostbotModalPanel.Visibility = kind == ModalKind.Postbot ? Visibility.Visible : Visibility.Collapsed;
         AccountsModalPanel.Visibility = kind == ModalKind.Accounts ? Visibility.Visible : Visibility.Collapsed;
-        ModalApplyButton.Content = kind == ModalKind.Accounts ? "Use selected accounts" : "Apply";
+        ModalApplyButton.Content = kind == ModalKind.Accounts
+            ? LocalizationService.Instance["SendById.UseSelectedAccountsButton"]
+            : LocalizationService.Instance["SendById.ModalApplyButton"];
         ModalOverlay.Visibility = Visibility.Visible;
     }
 
@@ -382,7 +411,7 @@ public partial class SendingSmsByIdView : UserControl
         StreamsControlToggle.IsChecked = false;
         AutoStopToggle.IsChecked = false;
         RunControlToggle.IsChecked = false;
-        RequireProxyToggle.IsChecked = false;
+        RequireProxyToggle.IsChecked = true;
         ScheduleAtTextBox.Text = DateTime.Now.AddHours(1).ToString("yyyy-MM-dd HH:mm");
         StreamsTextBox.Text = "4";
         AutoStopBanTextBox.Text = "1";
@@ -394,7 +423,7 @@ public partial class SendingSmsByIdView : UserControl
         PostbotNameTextBox.Text = "@postbot";
         PostbotIdsTextBox.Text = "";
         _lastExportPath = null;
-        ResultsSummaryText.Text = "No results yet";
+        ResultsSummaryText.Text = LocalizationService.Instance["SendById.NoResultsYet"];
         UpdatePreview();
         UpdateMessageSource();
     }
@@ -423,7 +452,9 @@ public partial class SendingSmsByIdView : UserControl
         catch (Exception ex)
         {
             if (logFailure)
-                AddAction("Accounts", $"Could not load accounts: {CleanApiError(ex.Message)}");
+                AddAction(
+                    LocalizationService.Instance["SendById.JobLabelAccounts"],
+                    string.Format(LocalizationService.Instance["SendById.CouldNotLoadAccountsFormat"], CleanApiError(ex.Message)));
         }
     }
 
@@ -454,17 +485,17 @@ public partial class SendingSmsByIdView : UserControl
                 $"{result.State}: ID {result.RecipientId} - {result.Message}"));
         }
 
-        ResultsSummaryText.Text =
-            $"Cycle {status.Cycle}  |  Sent {status.Sent}  |  Failed {status.Failed}  |  "
-            + $"BAN {status.BanCount}  |  SpamBlock {status.SpamblockCount}  |  FloodWait {status.FloodWaitCount}";
+        ResultsSummaryText.Text = string.Format(
+            LocalizationService.Instance["SendById.ResultsSummaryFormat"],
+            status.Cycle, status.Sent, status.Failed, status.BanCount, status.SpamblockCount, status.FloodWaitCount);
         _lastExportPath = status.ExportPath;
         if (status.Finished)
         {
             AddAction(
-                "Sending SMS by ID",
+                LocalizationService.Instance["SendById.JobLabelSendingSmsById"],
                 string.IsNullOrWhiteSpace(status.Error)
-                    ? $"Finished: sent {status.Sent}, failed {status.Failed}."
-                    : $"Finished with error: {status.Error}");
+                    ? string.Format(LocalizationService.Instance["SendById.FinishedFormat"], status.Sent, status.Failed)
+                    : string.Format(LocalizationService.Instance["SendById.FinishedWithErrorFormat"], status.Error));
         }
     }
 
@@ -486,7 +517,9 @@ public partial class SendingSmsByIdView : UserControl
         }
         catch (Exception ex)
         {
-            AddAction("Sending SMS by ID", $"Could not restore job status: {CleanApiError(ex.Message)}");
+            AddAction(
+                LocalizationService.Instance["SendById.JobLabelSendingSmsById"],
+                string.Format(LocalizationService.Instance["SendById.CouldNotRestoreJobStatusFormat"], CleanApiError(ex.Message)));
             SetRunningState(false);
         }
     }
@@ -505,7 +538,7 @@ public partial class SendingSmsByIdView : UserControl
         PreviewTextBlock.Inlines.Clear();
         if (string.IsNullOrWhiteSpace(MessageTextBox.Text))
         {
-            PreviewTextBlock.Inlines.Add(new Run("Message preview will appear here.")
+            PreviewTextBlock.Inlines.Add(new Run(LocalizationService.Instance["SendById.MessagePreviewPlaceholder"])
             {
                 Foreground = (Brush)FindResource("TextFaintBrush"),
             });
@@ -525,11 +558,13 @@ public partial class SendingSmsByIdView : UserControl
         var files = NonEmptyLines(AttachmentLinkTextBox.Text);
         var postbotCount = ParsePositiveInts(PostbotIdsTextBox.Text).Count;
         if (forwardCount > 0)
-            parts.Add($"{forwardCount} repost link(s)");
+            parts.Add(string.Format(LocalizationService.Instance["SendById.RepostLinkCountFormat"], forwardCount));
         if (files.Count > 0)
-            parts.Add(files.Count == 1 ? $"attachment: {Path.GetFileName(files[0])}" : $"{files.Count} attachments");
+            parts.Add(files.Count == 1
+                ? string.Format(LocalizationService.Instance["SendById.AttachmentSingleFormat"], Path.GetFileName(files[0]))
+                : string.Format(LocalizationService.Instance["SendById.AttachmentsCountFormat"], files.Count));
         if (postbotCount > 0)
-            parts.Add($"{postbotCount} Postbot post(s)");
+            parts.Add(string.Format(LocalizationService.Instance["SendById.PostbotPostCountFormat"], postbotCount));
 
         MessageSourceText.Text = string.Join("  |  ", parts);
         MessageSourceText.Visibility = parts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -753,8 +788,8 @@ public partial class SendingSmsByIdView : UserControl
         return string.Join("  |  ", parts);
     }
 
-    private static string DescribeCount(int count, string noun) =>
-        count == 0 ? $"{noun} cleared." : $"Added {count} {noun}{(count == 1 ? "" : "s")}.";
+    private static string DescribeCount(int count, string clearedText, string addedFormat) =>
+        count == 0 ? clearedText : string.Format(addedFormat, count);
 
     private static string CleanApiError(string value)
     {

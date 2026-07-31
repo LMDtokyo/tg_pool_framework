@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -8,11 +10,23 @@ from telethon.errors import FloodWaitError, UserDeactivatedBanError
 from telethon.tl.functions.messages import GetMessagesViewsRequest, SendReactionRequest
 
 from src.accounts.proxy_safety import UnprotectedAccountsError
+from src.accounts.warmup_policy import WarmupPolicy
 from src.api.engagement import EngagementAlreadyRunningError, EngagementManager
 from src.api.pool_guard import PoolAccessGuard
 from src.config import AccountConfig, ProxyConfig
 
 pytestmark = pytest.mark.unit
+
+
+class _FakeRegistry:
+    """Minimal registry.get(phone) stand-in -- only .first_seen is read by account_age_days()."""
+
+    def __init__(self, first_seen_by_phone: dict) -> None:
+        self._first_seen_by_phone = first_seen_by_phone
+
+    def get(self, phone: str):
+        first_seen = self._first_seen_by_phone.get(phone)
+        return None if first_seen is None else SimpleNamespace(first_seen=first_seen)
 
 
 def make_account(phone: str, proxy: ProxyConfig | None = None) -> AccountConfig:
@@ -35,25 +49,25 @@ def make_client() -> MagicMock:
 def test_start_rejects_unknown_action_type() -> None:
     manager = EngagementManager([make_account("+100")], PoolAccessGuard())
     with pytest.raises(ValueError, match="Unknown action_type"):
-        manager.start(action_type="super_like", target_chat="@chan", target_message_id=1)
+        manager.start(require_proxy=False, action_type="super_like", target_chat="@chan", target_message_id=1)
 
 
 def test_start_requires_reaction_emoji_for_reaction_action() -> None:
     manager = EngagementManager([make_account("+100")], PoolAccessGuard())
     with pytest.raises(ValueError, match="reaction_emoji"):
-        manager.start(action_type="reaction", target_chat="@chan", target_message_id=1)
+        manager.start(require_proxy=False, action_type="reaction", target_chat="@chan", target_message_id=1)
 
 
 def test_start_requires_poll_option_index_for_poll_vote_action() -> None:
     manager = EngagementManager([make_account("+100")], PoolAccessGuard())
     with pytest.raises(ValueError, match="poll_option_index"):
-        manager.start(action_type="poll_vote", target_chat="@chan", target_message_id=1)
+        manager.start(require_proxy=False, action_type="poll_vote", target_chat="@chan", target_message_id=1)
 
 
 def test_start_requires_comment_text_for_comment_action() -> None:
     manager = EngagementManager([make_account("+100")], PoolAccessGuard())
     with pytest.raises(ValueError, match="comment_text"):
-        manager.start(action_type="comment", target_chat="@chan", target_message_id=1)
+        manager.start(require_proxy=False, action_type="comment", target_chat="@chan", target_message_id=1)
 
 
 async def test_start_caps_participants_to_max_total_accounts(monkeypatch) -> None:
@@ -62,7 +76,7 @@ async def test_start_caps_participants_to_max_total_accounts(monkeypatch) -> Non
     manager = EngagementManager(
         [make_account("+100"), make_account("+200"), make_account("+300")], PoolAccessGuard()
     )
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_message_id=1,
@@ -83,10 +97,10 @@ async def test_second_start_while_running_raises(monkeypatch) -> None:
     # started job's task has not run at all yet -- is_running is still guaranteed
     # True for this immediately-following second call, with no need to keep the
     # first job artificially stuck mid-connect.
-    manager.start(action_type="view", target_chat="@chan", target_message_id=1, delay_min_sec=0, delay_max_sec=0)
+    manager.start(require_proxy=False, action_type="view", target_chat="@chan", target_message_id=1, delay_min_sec=0, delay_max_sec=0)
 
     with pytest.raises(EngagementAlreadyRunningError):
-        manager.start(action_type="view", target_chat="@chan", target_message_id=1)
+        manager.start(require_proxy=False, action_type="view", target_chat="@chan", target_message_id=1)
 
     await manager._run.task
 
@@ -97,7 +111,7 @@ async def test_reaction_job_sends_correct_request_and_releases_pool(monkeypatch,
     pool_guard = PoolAccessGuard()
     manager = EngagementManager([make_account("+100")], pool_guard)
 
-    job_id = manager.start(
+    job_id = manager.start(require_proxy=False,
         action_type="reaction",
         target_chat="@chan",
         target_message_id=42,
@@ -127,7 +141,7 @@ async def test_view_job_sends_increment_request(monkeypatch, tmp_path: Path) -> 
     monkeypatch.setattr("src.api.engagement.ClientFactory.build", lambda _account: client)
     manager = EngagementManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_message_id=7,
@@ -152,7 +166,7 @@ async def test_poll_vote_job_clicks_the_chosen_option(monkeypatch, tmp_path: Pat
     monkeypatch.setattr("src.api.engagement.ClientFactory.build", lambda _account: client)
     manager = EngagementManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="poll_vote",
         target_chat="@chan",
         target_message_id=9,
@@ -175,7 +189,7 @@ async def test_poll_vote_job_fails_cleanly_when_message_has_no_poll(monkeypatch,
     monkeypatch.setattr("src.api.engagement.ClientFactory.build", lambda _account: client)
     manager = EngagementManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="poll_vote",
         target_chat="@chan",
         target_message_id=9,
@@ -197,7 +211,7 @@ async def test_comment_job_sends_message_with_comment_to(monkeypatch, tmp_path: 
     monkeypatch.setattr("src.api.engagement.ClientFactory.build", lambda _account: client)
     manager = EngagementManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="comment",
         target_chat="@chan",
         target_message_id=5,
@@ -214,6 +228,35 @@ async def test_comment_job_sends_message_with_comment_to(monkeypatch, tmp_path: 
     assert "Nice post" in client.send_message.await_args.args[1]
 
 
+def test_warmup_throttles_a_young_account_below_its_configured_cap():
+    registry = _FakeRegistry({"+100": datetime.now(timezone.utc)})
+    policy = WarmupPolicy(duration_days=7, min_multiplier=3.0, max_daily_messages_day0=10, max_daily_messages_full=200)
+    manager = EngagementManager(
+        [make_account("+100")], PoolAccessGuard(), registry=registry, warmup_policy=policy
+    )
+
+    assert manager._capped_daily_limit("+100", 80) == 10
+    assert manager._delay_multiplier("+100") == pytest.approx(3.0)
+
+
+def test_warmup_does_not_tighten_the_cap_for_a_mature_account():
+    registry = _FakeRegistry({"+100": datetime.now(timezone.utc) - timedelta(days=30)})
+    policy = WarmupPolicy(duration_days=7, min_multiplier=3.0, max_daily_messages_day0=10, max_daily_messages_full=200)
+    manager = EngagementManager(
+        [make_account("+100")], PoolAccessGuard(), registry=registry, warmup_policy=policy
+    )
+
+    assert manager._capped_daily_limit("+100", 80) == 80
+    assert manager._delay_multiplier("+100") == pytest.approx(1.0)
+
+
+def test_no_warmup_policy_configured_means_no_throttling():
+    manager = EngagementManager([make_account("+100")], PoolAccessGuard())
+
+    assert manager._capped_daily_limit("+100", 80) == 80
+    assert manager._delay_multiplier("+100") == 1.0
+
+
 async def test_daily_cap_skip_is_recorded_and_does_not_connect(monkeypatch, tmp_path: Path) -> None:
     client = make_client()
     monkeypatch.setattr("src.api.engagement.ClientFactory.build", lambda _account: client)
@@ -222,7 +265,7 @@ async def test_daily_cap_skip_is_recorded_and_does_not_connect(monkeypatch, tmp_
     )
     monkeypatch.setattr(manager, "_check_daily_cap", AsyncMock(return_value=False))
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_message_id=1,
@@ -252,7 +295,7 @@ async def test_auto_stop_ban_halts_remaining_accounts(monkeypatch, tmp_path: Pat
         [make_account("+100"), make_account("+200")], PoolAccessGuard()
     )
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_message_id=1,
@@ -292,7 +335,7 @@ async def test_status_reports_unproxied_senders_even_without_require_proxy(
         PoolAccessGuard(),
     )
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_message_id=1,
@@ -318,7 +361,7 @@ async def test_ban_signal_is_recorded_against_the_sender_proxy(monkeypatch, tmp_
         proxy_repository=proxy_repository,
     )
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_message_id=1,
@@ -339,7 +382,7 @@ async def test_flood_wait_beyond_cap_fails_without_retrying(monkeypatch, tmp_pat
     monkeypatch.setattr("src.api.engagement.ClientFactory.build", lambda _account: client)
     manager = EngagementManager([make_account("+100")], PoolAccessGuard())
 
-    manager.start(
+    manager.start(require_proxy=False,
         action_type="view",
         target_chat="@chan",
         target_message_id=1,

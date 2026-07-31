@@ -66,6 +66,20 @@ class ScriptReloadedEvent:
     script_name: str
 
 
+@dataclass(frozen=True)
+class AccountsDiscoveredEvent:
+    """
+    Emitted by AccountDiscoveryPoller (src/accounts/discovery_poller.py) after a
+    background sweep of ACCOUNTS_DIR/SPARE_ACCOUNTS_DIR/TDATA_ACCOUNTS_DIR finds
+    something new -- an operator who just dropped a purchased account base into
+    the folder doesn't have to notice on their own or click Refresh.
+    """
+    loaded_count: int
+    loaded_phones: list
+    failed_count: int
+    failed_reasons: list  # ["79161234567.session: no .json companion...", ...]
+
+
 # ---------------------------------------------------------------------------
 # EventBus
 # ---------------------------------------------------------------------------

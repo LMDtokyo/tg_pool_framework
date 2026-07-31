@@ -120,12 +120,18 @@ public partial class ParsingViewModel : ObservableObject
             // correctly here without any chcp/codepage juggling -- cmd.exe's `type` reads
             // UTF-16-with-BOM via its native wide-char path, sidestepping the legacy OEM
             // byte-translation that garbles multi-byte UTF-8 even under `chcp 65001`.
-            Process.Start(new ProcessStartInfo
+            var psi = new ProcessStartInfo
             {
                 FileName = "cmd.exe",
-                Arguments = $"/k type \"{fullPath}\"",
                 UseShellExecute = true,
-            });
+            };
+            // ArgumentList (not a hand-built Arguments string) so fullPath can never be
+            // mistaken for extra cmd.exe tokens -- e.g. a report folder name containing
+            // "&" or "|" would otherwise chain onto/replace the `type` command.
+            psi.ArgumentList.Add("/k");
+            psi.ArgumentList.Add("type");
+            psi.ArgumentList.Add(fullPath);
+            Process.Start(psi);
         }
         catch
         {
@@ -217,7 +223,7 @@ public partial class ParsingViewModel : ObservableObject
         {
             Title = LocalizationService.Instance["Parsing.DownloadTxtDialogTitle"],
             FileName = Path.GetFileName(source),
-            Filter = "Text files (*.txt)|*.txt|All files|*.*",
+            Filter = LocalizationService.Instance["Parsing.DownloadTxtDialogFilter"],
             InitialDirectory = AppPaths.Exports,
         };
         if (dialog.ShowDialog() == true)

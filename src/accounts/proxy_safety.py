@@ -32,6 +32,19 @@ class UnprotectedAccountsError(ValueError):
         )
 
 
+class SharedProxyError(ValueError):
+    """Raised when require_proxy=True and two or more selected senders share one proxy."""
+
+    def __init__(self, groups: Dict[str, List[str]]) -> None:
+        self.groups = groups
+        detail = "; ".join(f"{', '.join(phones)} (same proxy)" for phones in groups.values())
+        super().__init__(
+            "Multiple accounts in this run share one proxy, which Telegram can "
+            f"correlate as one operator: {detail}. Assign each a distinct proxy "
+            "or disable require_proxy to run anyway."
+        )
+
+
 def unproxied_phones(accounts: Iterable[AccountConfig]) -> List[str]:
     """Phones (input order) whose account has no assigned proxy."""
     return [account.phone for account in accounts if account.proxy is None]
@@ -61,3 +74,10 @@ def ensure_all_proxied(accounts: Iterable[AccountConfig]) -> None:
     missing = unproxied_phones(accounts)
     if missing:
         raise UnprotectedAccountsError(missing)
+
+
+def ensure_no_shared_proxies(accounts: Iterable[AccountConfig]) -> None:
+    """Raises SharedProxyError if two or more given accounts share one proxy."""
+    groups = shared_proxy_groups(accounts)
+    if groups:
+        raise SharedProxyError(groups)

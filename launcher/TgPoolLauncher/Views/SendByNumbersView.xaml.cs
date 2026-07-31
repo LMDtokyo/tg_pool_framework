@@ -12,6 +12,7 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using Microsoft.Win32;
+using TgPoolLauncher.Localization;
 using TgPoolLauncher.Models;
 using TgPoolLauncher.Services;
 
@@ -62,26 +63,26 @@ public partial class SendByNumbersView : UserControl
     {
         _random = new Random();
         UpdatePreview();
-        AddAction("Preview", "Generated a new text variation.");
+        AddAction(LocalizationService.Instance["SendByNumbers.JobLabelPreview"], LocalizationService.Instance["SendByNumbers.PreviewRegenerated"]);
     }
 
     private void ForwardButton_Click(object sender, RoutedEventArgs e) =>
         ShowModal(
             ModalKind.Forward,
-            "Enter link(s) to post in channel",
-            "Add one Telegram post link per line.");
+            LocalizationService.Instance["SendByNumbers.ForwardModalTitle"],
+            LocalizationService.Instance["SendByNumbers.ForwardModalSubtitle"]);
 
     private void AttachFileButton_Click(object sender, RoutedEventArgs e) =>
         ShowModal(
             ModalKind.File,
-            "Add file",
-            "Choose one or more local files, or enter direct file links.");
+            LocalizationService.Instance["SendByNumbers.FileModalTitle"],
+            LocalizationService.Instance["SendByNumbers.FileModalSubtitle"]);
 
     private void PostbotButton_Click(object sender, RoutedEventArgs e) =>
         ShowModal(
             ModalKind.Postbot,
-            "Repost via Postbot",
-            "Enter the bot username and one or more post IDs.");
+            LocalizationService.Instance["SendByNumbers.PostbotModalTitle"],
+            LocalizationService.Instance["SendByNumbers.PostbotModalSubtitle"]);
 
     private void ClearMessageButton_Click(object sender, RoutedEventArgs e)
     {
@@ -99,8 +100,8 @@ public partial class SendByNumbersView : UserControl
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Import Telegram phone numbers",
-            Filter = "Phone number lists|*.txt;*.csv|All files|*.*",
+            Title = LocalizationService.Instance["SendByNumbers.ImportPhoneNumbersDialogTitle"],
+            Filter = LocalizationService.Instance["SendByNumbers.PhoneNumbersFileFilter"],
             CheckFileExists = true,
         };
         if (dialog.ShowDialog() == true)
@@ -108,11 +109,15 @@ public partial class SendByNumbersView : UserControl
             try
             {
                 PhoneNumbersTextBox.Text = File.ReadAllText(dialog.FileName);
-                AddAction("Phone numbers", $"Imported {ParsePhoneNumbers(PhoneNumbersTextBox.Text).Count} unique number(s).");
+                AddAction(
+                    LocalizationService.Instance["SendByNumbers.PhoneNumbersLabel"],
+                    string.Format(LocalizationService.Instance["SendByNumbers.ImportedNumbersFormat"], ParsePhoneNumbers(PhoneNumbersTextBox.Text).Count));
             }
             catch (Exception ex)
             {
-                AddAction("Phone numbers", $"Could not import {Path.GetFileName(dialog.FileName)}: {ex.Message}");
+                AddAction(
+                    LocalizationService.Instance["SendByNumbers.PhoneNumbersLabel"],
+                    string.Format(LocalizationService.Instance["SendByNumbers.ImportFailedFormat"], Path.GetFileName(dialog.FileName), ex.Message));
             }
         }
     }
@@ -124,8 +129,8 @@ public partial class SendByNumbersView : UserControl
             return;
         ShowModal(
             ModalKind.Accounts,
-            "Select sender accounts",
-            "Only checked accounts will be used for this job.");
+            LocalizationService.Instance["SendByNumbers.AccountsModalTitle"],
+            LocalizationService.Instance["SendByNumbers.AccountsModalSubtitle"]);
     }
 
     private void ResetButton_Click(object sender, RoutedEventArgs e) => ResetForm();
@@ -138,12 +143,12 @@ public partial class SendByNumbersView : UserControl
         var phoneNumbers = ParsePhoneNumbers(PhoneNumbersTextBox.Text);
         if (phoneNumbers.Count == 0)
         {
-            AddAction("Send by numbers", "Enter at least one valid phone number.");
+            AddAction(LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"], LocalizationService.Instance["SendByNumbers.EnterValidPhoneNumber"]);
             return;
         }
         if (_senderPhones.Count == 0)
         {
-            AddAction("Send by numbers", "Select at least one sender account.");
+            AddAction(LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"], LocalizationService.Instance["SendByNumbers.SelectAtLeastOneAccount"]);
             return;
         }
 
@@ -152,7 +157,7 @@ public partial class SendByNumbersView : UserControl
         {
             if (!TryParseSchedule(ScheduleAtTextBox.Text, out scheduleAt))
             {
-                AddAction("Send by numbers", "Enter a future local time as yyyy-MM-dd HH:mm.");
+                AddAction(LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"], LocalizationService.Instance["SendByNumbers.EnterFutureScheduleTime"]);
                 return;
             }
         }
@@ -204,7 +209,7 @@ public partial class SendByNumbersView : UserControl
             && request.ForwardLinks.Count == 0
             && request.BotRelayMessageIds.Count == 0)
         {
-            AddAction("Send by numbers", "Add message text, media, a repost link, or a Postbot post.");
+            AddAction(LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"], LocalizationService.Instance["SendByNumbers.AddMessageContentRequired"]);
             return;
         }
 
@@ -212,23 +217,25 @@ public partial class SendByNumbersView : UserControl
         _pollCancellation = new CancellationTokenSource();
         var ct = _pollCancellation.Token;
         _programActions.Clear();
-        ResultsSummaryText.Text = "Starting...";
+        ResultsSummaryText.Text = LocalizationService.Instance["SendByNumbers.StatusStarting"];
         _isStarting = true;
         SetRunningState(true);
         try
         {
             var response = await _backend.StartSendByNumbersAsync(request, ct);
-            AddAction("Send by numbers", $"Started job {response.JobId}.");
+            AddAction(
+                LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"],
+                string.Format(LocalizationService.Instance["SendByNumbers.StartedJobFormat"], response.JobId));
             await PollStatusAsync(ct);
         }
         catch (OperationCanceledException)
         {
-            AddAction("Send by numbers", "Status polling stopped.");
+            AddAction(LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"], LocalizationService.Instance["SendByNumbers.StatusPollingStopped"]);
         }
         catch (Exception ex)
         {
-            AddAction("Send by numbers", CleanApiError(ex.Message));
-            ResultsSummaryText.Text = "Could not start";
+            AddAction(LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"], CleanApiError(ex.Message));
+            ResultsSummaryText.Text = LocalizationService.Instance["SendByNumbers.StatusCouldNotStart"];
             SetRunningState(false);
         }
         finally
@@ -244,13 +251,15 @@ public partial class SendByNumbersView : UserControl
         try
         {
             await _backend.StopSendByNumbersAsync();
-            AddAction("Send by numbers", "Stop completed.");
+            AddAction(LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"], LocalizationService.Instance["SendByNumbers.StopCompleted"]);
             var status = await _backend.GetSendByNumbersStatusAsync();
             ApplyStatus(status);
         }
         catch (Exception ex)
         {
-            AddAction("Send by numbers", $"Stop failed: {CleanApiError(ex.Message)}");
+            AddAction(
+                LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"],
+                string.Format(LocalizationService.Instance["SendByNumbers.StopFailedFormat"], CleanApiError(ex.Message)));
             StopButton.IsEnabled = true;
         }
     }
@@ -269,7 +278,9 @@ public partial class SendByNumbersView : UserControl
         }
         catch (Exception ex)
         {
-            AddAction("Results", $"Could not open results: {ex.Message}");
+            AddAction(
+                LocalizationService.Instance["SendByNumbers.JobLabelResults"],
+                string.Format(LocalizationService.Instance["SendByNumbers.CouldNotOpenResultsFormat"], ex.Message));
         }
     }
 
@@ -280,20 +291,37 @@ public partial class SendByNumbersView : UserControl
         switch (_activeModal)
         {
             case ModalKind.Forward:
-                AddAction("Repost", DescribeCount(NonEmptyLines(ForwardLinksTextBox.Text).Count, "post link"));
+                AddAction(
+                    LocalizationService.Instance["SendByNumbers.JobLabelRepost"],
+                    DescribeCount(
+                        NonEmptyLines(ForwardLinksTextBox.Text).Count,
+                        LocalizationService.Instance["SendByNumbers.RepostLinksClearedText"],
+                        LocalizationService.Instance["SendByNumbers.RepostLinksAddedFormat"]));
                 break;
             case ModalKind.File:
-                AddAction("Attachment", DescribeCount(NonEmptyLines(AttachmentLinkTextBox.Text).Count, "file"));
+                AddAction(
+                    LocalizationService.Instance["SendByNumbers.JobLabelAttachment"],
+                    DescribeCount(
+                        NonEmptyLines(AttachmentLinkTextBox.Text).Count,
+                        LocalizationService.Instance["SendByNumbers.AttachmentsClearedText"],
+                        LocalizationService.Instance["SendByNumbers.AttachmentsAddedFormat"]));
                 break;
             case ModalKind.Postbot:
-                AddAction("Postbot", DescribeCount(ParsePositiveInts(PostbotIdsTextBox.Text).Count, "post ID"));
+                AddAction(
+                    LocalizationService.Instance["SendByNumbers.JobLabelPostbot"],
+                    DescribeCount(
+                        ParsePositiveInts(PostbotIdsTextBox.Text).Count,
+                        LocalizationService.Instance["SendByNumbers.PostbotIdsClearedText"],
+                        LocalizationService.Instance["SendByNumbers.PostbotIdsAddedFormat"]));
                 break;
             case ModalKind.Accounts:
                 _senderPhones.Clear();
                 _senderPhones.AddRange(
                     _availableAccounts.Where(item => item.IsSelected).Select(item => item.Phone));
                 SelectedAccountsTextBox.Text = _senderPhones.Count.ToString(CultureInfo.InvariantCulture);
-                AddAction("Accounts", $"Selected {_senderPhones.Count} sender account(s).");
+                AddAction(
+                    LocalizationService.Instance["SendByNumbers.JobLabelAccounts"],
+                    string.Format(LocalizationService.Instance["SendByNumbers.SelectedAccountsFormat"], _senderPhones.Count));
                 break;
         }
 
@@ -305,8 +333,8 @@ public partial class SendByNumbersView : UserControl
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select attachment",
-            Filter = "Supported files|*.jpg;*.jpeg;*.png;*.gif;*.mp4;*.mov;*.ogg;*.mp3;*.wav;*.pdf;*.zip;*.doc;*.docx;*.xls;*.xlsx|All files|*.*",
+            Title = LocalizationService.Instance["SendByNumbers.SelectAttachmentDialogTitle"],
+            Filter = LocalizationService.Instance["SendByNumbers.AttachmentFileFilter"],
             CheckFileExists = true,
             Multiselect = true,
         };
@@ -323,7 +351,9 @@ public partial class SendByNumbersView : UserControl
         FileModalPanel.Visibility = kind == ModalKind.File ? Visibility.Visible : Visibility.Collapsed;
         PostbotModalPanel.Visibility = kind == ModalKind.Postbot ? Visibility.Visible : Visibility.Collapsed;
         AccountsModalPanel.Visibility = kind == ModalKind.Accounts ? Visibility.Visible : Visibility.Collapsed;
-        ModalApplyButton.Content = kind == ModalKind.Accounts ? "Use selected accounts" : "Apply";
+        ModalApplyButton.Content = kind == ModalKind.Accounts
+            ? LocalizationService.Instance["SendByNumbers.UseSelectedAccountsButton"]
+            : LocalizationService.Instance["SendByNumbers.ModalApplyButton"];
         ModalOverlay.Visibility = Visibility.Visible;
     }
 
@@ -351,7 +381,7 @@ public partial class SendByNumbersView : UserControl
         StreamsControlToggle.IsChecked = false;
         AutoStopToggle.IsChecked = false;
         RunControlToggle.IsChecked = false;
-        RequireProxyToggle.IsChecked = false;
+        RequireProxyToggle.IsChecked = true;
         ScheduleAtTextBox.Text = DateTime.Now.AddHours(1).ToString("yyyy-MM-dd HH:mm");
         StreamsTextBox.Text = "4";
         AutoStopBanTextBox.Text = "1";
@@ -363,7 +393,7 @@ public partial class SendByNumbersView : UserControl
         PostbotNameTextBox.Text = "@postbot";
         PostbotIdsTextBox.Text = "";
         _lastExportPath = null;
-        ResultsSummaryText.Text = "No results yet";
+        ResultsSummaryText.Text = LocalizationService.Instance["SendByNumbers.NoResultsYet"];
         UpdatePreview();
         UpdateMessageSource();
     }
@@ -392,7 +422,9 @@ public partial class SendByNumbersView : UserControl
         catch (Exception ex)
         {
             if (logFailure)
-                AddAction("Accounts", $"Could not load accounts: {CleanApiError(ex.Message)}");
+                AddAction(
+                    LocalizationService.Instance["SendByNumbers.JobLabelAccounts"],
+                    string.Format(LocalizationService.Instance["SendByNumbers.CouldNotLoadAccountsFormat"], CleanApiError(ex.Message)));
         }
     }
 
@@ -420,17 +452,17 @@ public partial class SendByNumbersView : UserControl
                 $"{result.State}: {result.RecipientPhone} - {result.Message}"));
         }
 
-        ResultsSummaryText.Text =
-            $"Cycle {status.Cycle}  |  Sent {status.Sent}  |  Failed {status.Failed}  |  "
-            + $"BAN {status.BanCount}  |  SpamBlock {status.SpamblockCount}  |  FloodWait {status.FloodWaitCount}";
+        ResultsSummaryText.Text = string.Format(
+            LocalizationService.Instance["SendByNumbers.ResultsSummaryFormat"],
+            status.Cycle, status.Sent, status.Failed, status.BanCount, status.SpamblockCount, status.FloodWaitCount);
         _lastExportPath = status.ExportPath;
         if (status.Finished)
         {
             AddAction(
-                "Send by numbers",
+                LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"],
                 string.IsNullOrWhiteSpace(status.Error)
-                    ? $"Finished: sent {status.Sent}, failed {status.Failed}."
-                    : $"Finished with error: {status.Error}");
+                    ? string.Format(LocalizationService.Instance["SendByNumbers.FinishedFormat"], status.Sent, status.Failed)
+                    : string.Format(LocalizationService.Instance["SendByNumbers.FinishedWithErrorFormat"], status.Error));
         }
     }
 
@@ -452,7 +484,9 @@ public partial class SendByNumbersView : UserControl
         }
         catch (Exception ex)
         {
-            AddAction("Send by numbers", $"Could not restore job status: {CleanApiError(ex.Message)}");
+            AddAction(
+                LocalizationService.Instance["SendByNumbers.JobLabelSendByNumbers"],
+                string.Format(LocalizationService.Instance["SendByNumbers.CouldNotRestoreJobStatusFormat"], CleanApiError(ex.Message)));
             SetRunningState(false);
         }
     }
@@ -471,7 +505,7 @@ public partial class SendByNumbersView : UserControl
         PreviewTextBlock.Inlines.Clear();
         if (string.IsNullOrWhiteSpace(MessageTextBox.Text))
         {
-            PreviewTextBlock.Inlines.Add(new Run("Message preview will appear here.")
+            PreviewTextBlock.Inlines.Add(new Run(LocalizationService.Instance["SendByNumbers.MessagePreviewPlaceholder"])
             {
                 Foreground = (Brush)FindResource("TextFaintBrush"),
             });
@@ -491,11 +525,13 @@ public partial class SendByNumbersView : UserControl
         var files = NonEmptyLines(AttachmentLinkTextBox.Text);
         var postbotCount = ParsePositiveInts(PostbotIdsTextBox.Text).Count;
         if (forwardCount > 0)
-            parts.Add($"{forwardCount} repost link(s)");
+            parts.Add(string.Format(LocalizationService.Instance["SendByNumbers.RepostLinkCountFormat"], forwardCount));
         if (files.Count > 0)
-            parts.Add(files.Count == 1 ? $"attachment: {Path.GetFileName(files[0])}" : $"{files.Count} attachments");
+            parts.Add(files.Count == 1
+                ? string.Format(LocalizationService.Instance["SendByNumbers.AttachmentSingleFormat"], Path.GetFileName(files[0]))
+                : string.Format(LocalizationService.Instance["SendByNumbers.AttachmentsCountFormat"], files.Count));
         if (postbotCount > 0)
-            parts.Add($"{postbotCount} Postbot post(s)");
+            parts.Add(string.Format(LocalizationService.Instance["SendByNumbers.PostbotPostCountFormat"], postbotCount));
 
         MessageSourceText.Text = string.Join("  |  ", parts);
         MessageSourceText.Visibility = parts.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -727,8 +763,8 @@ public partial class SendByNumbersView : UserControl
         return string.Join("  |  ", parts);
     }
 
-    private static string DescribeCount(int count, string noun) =>
-        count == 0 ? $"{noun} cleared." : $"Added {count} {noun}{(count == 1 ? "" : "s")}.";
+    private static string DescribeCount(int count, string clearedText, string addedFormat) =>
+        count == 0 ? clearedText : string.Format(addedFormat, count);
 
     private static string CleanApiError(string value)
     {

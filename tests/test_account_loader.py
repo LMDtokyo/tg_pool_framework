@@ -30,8 +30,16 @@ from src.accounts.account_loader import (
     load_from_tdata,
     load_accounts_from_directory,
 )
+from src.api.telegram_auth import FingerprintCatalog, TelegramFingerprint
 from src.config import ProxyConfig
 from src.proxy.tdata_converter import TDataConverter, TDataFingerprint, TDataSessionResult
+
+
+def make_fingerprint(device: str, app_version: str) -> TelegramFingerprint:
+    return TelegramFingerprint(
+        app_id=1, app_hash="a" * 32, sdk=23, device=device, app_version=app_version,
+        lang_code="en", system_lang_code="en", lang_pack="android", tz_offset=0, perf_cat=0,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +145,37 @@ class TestLoadFromSessionJsonPair:
         assert account.api_id == 12345678
         assert account.api_hash == "abc" * 11
         assert account.phone == "+79001234567"
+
+    def test_api_id_and_api_hash_are_accepted_as_aliases(self, tmp_path):
+        data = {
+            "api_id": 12345678,
+            "api_hash": "abc" * 11,
+            "phone": "+79001234567",
+        }
+        sf = self._write_pair(tmp_path, data)
+        account = load_from_session_json_pair(str(sf))
+
+        assert account.api_id == 12345678
+        assert account.api_hash == "abc" * 11
+
+    def test_app_id_wins_when_both_app_id_and_api_id_are_present(self, tmp_path):
+        data = {
+            "app_id": 111,
+            "api_id": 222,
+            "app_hash": "abc" * 11,
+            "phone": "+79001234567",
+        }
+        sf = self._write_pair(tmp_path, data)
+        account = load_from_session_json_pair(str(sf))
+
+        assert account.api_id == 111
+
+    def test_missing_both_app_id_and_api_id_raises(self, tmp_path):
+        data = {"app_hash": "abc" * 11, "phone": "+79001234567"}
+        sf = self._write_pair(tmp_path, data)
+
+        with pytest.raises(ValueError, match="app_id/api_id"):
+            load_from_session_json_pair(str(sf))
 
     def test_json_phone_without_plus_is_canonicalized(self, tmp_path):
         data = {
@@ -284,6 +323,57 @@ class TestLoadAccountsFromDirectory:
         fake_file.write_bytes(b"")
         with pytest.raises(NotADirectoryError):
             load_accounts_from_directory(str(fake_file))
+
+    def test_bare_sessions_with_a_catalog_get_distinct_fingerprints_and_sidecars(self, tmp_path):
+        (tmp_path / "79001111111.session").write_bytes(b"x")
+        (tmp_path / "79002222222.session").write_bytes(b"x")
+        catalog = FingerprintCatalog(
+            [make_fingerprint("Pixel 8", "10.1.0"), make_fingerprint("Galaxy S24", "10.2.0")]
+        )
+
+        accounts = load_accounts_from_directory(
+            str(tmp_path), api_id=12345, api_hash="abc" * 11, fingerprint_catalog=catalog
+        )
+
+        assert len(accounts) == 2
+        signatures = {(a.device_model, a.app_version) for a in accounts}
+        assert signatures == {("Pixel 8", "10.1.0"), ("Galaxy S24", "10.2.0")}
+        assert (tmp_path / "79001111111.json").exists()
+        assert (tmp_path / "79002222222.json").exists()
+
+    def test_bare_session_without_a_catalog_falls_back_to_defaults(self, tmp_path):
+        (tmp_path / "79001111111.session").write_bytes(b"x")
+
+        accounts = load_accounts_from_directory(
+            str(tmp_path), api_id=12345, api_hash="abc" * 11
+        )
+
+        assert accounts[0].device_model == "Samsung Galaxy S23"
+        assert not (tmp_path / "79001111111.json").exists()
+
+    def test_used_fingerprints_set_is_shared_across_two_directories(self, tmp_path):
+        primary_dir = tmp_path / "primary"
+        spare_dir = tmp_path / "spare"
+        primary_dir.mkdir()
+        spare_dir.mkdir()
+        (primary_dir / "79001111111.session").write_bytes(b"x")
+        (spare_dir / "79002222222.session").write_bytes(b"x")
+        catalog = FingerprintCatalog(
+            [make_fingerprint("Pixel 8", "10.1.0"), make_fingerprint("Galaxy S24", "10.2.0")]
+        )
+        used: set = set()
+
+        primary = load_accounts_from_directory(
+            str(primary_dir), api_id=1, api_hash="a" * 32,
+            fingerprint_catalog=catalog, used_fingerprints=used,
+        )
+        spare = load_accounts_from_directory(
+            str(spare_dir), api_id=1, api_hash="a" * 32,
+            fingerprint_catalog=catalog, used_fingerprints=used,
+        )
+
+        combined = {(a.device_model, a.app_version) for a in primary + spare}
+        assert len(combined) == 2  # no duplicate assigned across the two directories
 
 
 # ---------------------------------------------------------------------------

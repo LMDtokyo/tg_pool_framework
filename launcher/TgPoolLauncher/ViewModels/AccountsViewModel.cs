@@ -44,6 +44,15 @@ public partial class AccountsViewModel : ObservableObject
     [ObservableProperty]
     private FilterOption selectedGeoFilter;
 
+    [ObservableProperty]
+    private string defaultApiId = "";
+
+    [ObservableProperty]
+    private string defaultApiHash = "";
+
+    [ObservableProperty]
+    private string defaultCredentialsStatus = "";
+
     public ObservableCollection<SelectableAccountRow> Accounts { get; } = new();
 
     public ObservableCollection<FilterOption> StatusOptions { get; } = new();
@@ -68,6 +77,48 @@ public partial class AccountsViewModel : ObservableObject
             if (e.PropertyName == "Item[]")
                 LoadCommand.Execute(null);
         };
+
+        _ = LoadDefaultCredentialsAsync();
+    }
+
+    private async Task LoadDefaultCredentialsAsync()
+    {
+        try
+        {
+            var current = await _backend.GetDefaultCredentialsAsync();
+            if (current.ApiId > 0)
+            {
+                DefaultApiId = current.ApiId.ToString();
+                DefaultApiHash = current.ApiHash;
+            }
+        }
+        catch (Exception)
+        {
+            // ignored -- the field just starts empty if the backend isn't reachable yet
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveDefaultCredentialsAsync()
+    {
+        if (!int.TryParse(DefaultApiId, out var apiId) || apiId <= 0
+            || DefaultApiHash.Length != 32 || !DefaultApiHash.All(Uri.IsHexDigit))
+        {
+            DefaultCredentialsStatus = LocalizationService.Instance["Accounts.DefaultCredentialsInvalid"];
+            return;
+        }
+
+        try
+        {
+            await _backend.SetDefaultCredentialsAsync(apiId, DefaultApiHash);
+            DefaultCredentialsCacheFile.Save(
+                AppPaths.Data, new CachedDefaultCredentials { ApiId = apiId, ApiHash = DefaultApiHash });
+            DefaultCredentialsStatus = LocalizationService.Instance["Accounts.DefaultCredentialsSaved"];
+        }
+        catch (Exception)
+        {
+            DefaultCredentialsStatus = LocalizationService.Instance["Accounts.DefaultCredentialsSaveFailed"];
+        }
     }
 
 #pragma warning disable MVVMTK0034

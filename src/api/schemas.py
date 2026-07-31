@@ -201,8 +201,15 @@ class RecheckResponse(BaseModel):
     flood: int
 
 
+class AccountLoadFailureOut(BaseModel):
+    file: str
+    reason: str
+
+
 class RescanResponse(BaseModel):
     new_accounts: int
+    new_phones: List[str] = Field(default_factory=list)
+    failures: List[AccountLoadFailureOut] = Field(default_factory=list)
 
 
 class ParseFilterIn(BaseModel):
@@ -326,6 +333,16 @@ class ProxyCoverageOut(BaseModel):
 
 class ProxyDeleteResponse(BaseModel):
     deleted: int
+
+
+class DefaultCredentialsIn(BaseModel):
+    api_id: int = Field(gt=0)
+    api_hash: str = Field(pattern="^[0-9a-fA-F]{32}$")
+
+
+class DefaultCredentialsOut(BaseModel):
+    api_id: int = 0
+    api_hash: str = ""
 
 
 class StoredProxyCheckRequest(BaseModel):
@@ -483,6 +500,7 @@ class InviteByNumberStartRequest(BaseModel):
     delay_max_sec: float = 10.0
     max_flood_wait_sec: float = 500.0
     message_template: str = "{invite_link}"
+    require_proxy: bool = True
 
 
 class InviteByNumberStartResponse(BaseModel):
@@ -507,6 +525,7 @@ class InviteByNumberStatusResponse(BaseModel):
     per_account: Dict[str, int] = Field(default_factory=dict)
     finished: bool = False
     error: Optional[str] = None
+    unproxied_senders: List[str] = Field(default_factory=list)
     results: List[InviteByNumberResultOut] = Field(default_factory=list)
 
 
@@ -590,7 +609,7 @@ class SendByNumbersStartRequest(BaseModel):
     auto_stop_spamblock: int = 0
     auto_stop_floodwait: int = 0
     repeat_every_hours: Optional[float] = None
-    require_proxy: bool = False
+    require_proxy: bool = True
     results_dir: str = "exports"
 
 
@@ -647,7 +666,7 @@ class SendByIdStartRequest(BaseModel):
     auto_stop_spamblock: int = 0
     auto_stop_floodwait: int = 0
     repeat_every_hours: Optional[float] = None
-    require_proxy: bool = False
+    require_proxy: bool = True
     results_dir: str = "exports"
 
 
@@ -735,7 +754,7 @@ class EngagementStartRequest(BaseModel):
     auto_stop_ban: int = 0
     auto_stop_spamblock: int = 0
     auto_stop_floodwait: int = 0
-    require_proxy: bool = False
+    require_proxy: bool = True
     results_dir: str = "exports"
 
 
@@ -787,7 +806,7 @@ class StoriesStartRequest(BaseModel):
     auto_stop_ban: int = 0
     auto_stop_spamblock: int = 0
     auto_stop_floodwait: int = 0
-    require_proxy: bool = False
+    require_proxy: bool = True
     results_dir: str = "exports"
 
 

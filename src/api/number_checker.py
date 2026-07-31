@@ -36,6 +36,7 @@ from telethon.tl.types import (
 
 from src.accounts.connection_manager import ClientFactory
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
+from src.api.security_utils import scrub_secrets
 from src.config import AccountConfig
 
 logger = logging.getLogger(__name__)
@@ -498,7 +499,7 @@ class NumberCheckerManager:
                         phone=target,
                         state="failed",
                         account_phone=sender,
-                        message=f"{type(exc).__name__}: {exc}",
+                        message=f"{type(exc).__name__}: {scrub_secrets(str(exc))}",
                     )
                     logger.warning("Number check failed %s via %s: %s", target, sender, exc)
 
@@ -529,7 +530,7 @@ class NumberCheckerManager:
                 self._set_pending(
                     Path(run.result_path),
                     target,
-                    f"Account unavailable: {type(exc).__name__}: {exc}",
+                    f"Account unavailable: {type(exc).__name__}: {scrub_secrets(str(exc))}",
                     only_if_unfinished=True,
                 )
         finally:

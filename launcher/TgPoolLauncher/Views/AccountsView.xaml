@@ -122,8 +122,30 @@
             </WrapPanel>
         </Border>
 
-        <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Foreground="{StaticResource TextMutedBrush}"
-                    FontSize="12" Margin="4,10,0,0" />
+        <StackPanel Grid.Row="1" Margin="4,10,0,0">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextMutedBrush}" FontSize="12" TextWrapping="Wrap" />
+
+            <!-- Applied to bare .session files dropped into Data\Accounts with no .json
+                 companion. Without this, such accounts are silently skipped. -->
+            <Expander Header="{tr:Tr Accounts.DefaultCredentialsHeader}" Margin="0,10,0,0"
+                      Foreground="{StaticResource TextMutedBrush}">
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,4">
+                    <TextBlock Text="{tr:Tr Accounts.DefaultApiIdLabel}" VerticalAlignment="Center"
+                               Margin="0,0,8,0" Foreground="{StaticResource TextMutedBrush}" FontSize="12" />
+                    <TextBox x:Name="DefaultApiIdTextBox" Width="120" Height="30"
+                             Text="{Binding DefaultApiId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,16,0" />
+                    <TextBlock Text="{tr:Tr Accounts.DefaultApiHashLabel}" VerticalAlignment="Center"
+                               Margin="0,0,8,0" Foreground="{StaticResource TextMutedBrush}" FontSize="12" />
+                    <TextBox x:Name="DefaultApiHashTextBox" Width="260" Height="30"
+                             Text="{Binding DefaultApiHash, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,16,0" />
+                    <Button Content="{tr:Tr Accounts.SaveDefaultCredentials}" Height="30"
+                            Command="{Binding SaveDefaultCredentialsCommand}" />
+                    <TextBlock Text="{Binding DefaultCredentialsStatus}" VerticalAlignment="Center"
+                               Margin="12,0,0,0" FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                               TextWrapping="Wrap" MaxWidth="320" />
+                </StackPanel>
+            </Expander>
+        </StackPanel>
 
         <!-- Table card -->
         <Border x:Name="TableCard" Grid.Row="2" Background="#17171A" BorderBrush="{StaticResource TableBorderBrush}"
@@ -133,7 +155,7 @@
             </Border.Effect>
 
             <DataGrid ItemsSource="{Binding Accounts}" AutoGenerateColumns="False" IsReadOnly="True"
-                      CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeColumns="False"
+                      CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeColumns="True"
                       CanUserReorderColumns="False" CanUserSortColumns="True"
                       GridLinesVisibility="None" HeadersVisibility="Column" RowHeaderWidth="0"
                       ColumnHeaderHeight="40" Background="#17171A" BorderThickness="0"

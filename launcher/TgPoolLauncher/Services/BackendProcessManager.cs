@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 
 namespace TgPoolLauncher.Services;
 
@@ -23,6 +24,14 @@ public sealed class BackendProcessManager : IAsyncDisposable
 
     public Uri BaseUri { get; }
     public string? LastStartupError { get; private set; }
+
+    /// <summary>
+    /// Random per-launch secret shared only with this specific child process
+    /// (via the LOCAL_API_TOKEN env var, see src/api/local_auth.py) -- lets
+    /// the backend tell "the launcher that spawned me" apart from any other
+    /// local process that might otherwise reach its loopback port.
+    /// </summary>
+    public string LocalApiToken { get; } = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
     public BackendProcessManager(
         string repoRoot,
@@ -68,6 +77,7 @@ public sealed class BackendProcessManager : IAsyncDisposable
         if (_environmentVariables is not null)
             foreach (var (key, value) in _environmentVariables)
                 psi.EnvironmentVariables[key] = value;
+        psi.EnvironmentVariables["LOCAL_API_TOKEN"] = LocalApiToken;
 
         try
         {

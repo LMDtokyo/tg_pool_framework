@@ -69,5 +69,66 @@ internal static class NumberCheckerStrings
         table.Add("NumberChecker.CancelButton", "Отмена", "Cancel", "取消");
         table.Add("NumberChecker.UseSelectedAccountsButton", "Использовать выбранные аккаунты", "Use selected accounts", "使用所选账号");
         table.Add("NumberChecker.CloseTooltip", "Закрыть", "Close", "关闭");
+
+        table.Add("NumberChecker.SelectDatabaseDialogTitle", "Выбрать number_checker.xlsx", "Select number_checker.xlsx", "选择 number_checker.xlsx");
+        table.Add("NumberChecker.DatabaseFileFilter",
+            "Книга проверки номеров (number_checker.xlsx)|number_checker.xlsx|Книги Excel (*.xlsx)|*.xlsx",
+            "Number checker workbook (number_checker.xlsx)|number_checker.xlsx|Excel workbooks (*.xlsx)|*.xlsx",
+            "号码检查工作簿 (number_checker.xlsx)|number_checker.xlsx|Excel 工作簿 (*.xlsx)|*.xlsx");
+
+        table.Add("NumberChecker.NoActiveAccountsMessage", "Активные аккаунты недоступны.", "No active accounts are available.", "没有可用的活跃账号。");
+        table.Add("NumberChecker.ActiveAccountsAvailableFormat", "Доступно активных аккаунтов: {0}", "{0} active account(s) available", "有 {0} 个活跃账号可用");
+        table.Add("NumberChecker.CouldNotLoadAccountsFormat", "Не удалось загрузить аккаунты: {0}", "Could not load accounts: {0}", "无法加载账号：{0}");
+
+        table.Add("NumberChecker.PhoneNumbersHeaderFormat", "НОМЕРА ТЕЛЕФОНОВ : {0}", "PHONE NUMBERS : {0}", "电话号码：{0}");
+
+        table.Add("NumberChecker.JobLabel", "Проверщик номеров", "Number checker", "号码检查器");
+        table.Add("NumberChecker.ResultsJobLabel", "Результаты", "Results", "结果");
+
+        table.Add("NumberChecker.StopBeforeResetMessage",
+            "Остановите активную задачу проверки перед сбросом.",
+            "Stop the active checker job before resetting.",
+            "重置前请先停止正在运行的检查任务。");
+        table.Add("NumberChecker.SelectAccountBeforeStartMessage",
+            "Выберите хотя бы один активный аккаунт перед запуском.",
+            "Select at least one active account before starting.",
+            "开始前请至少选择一个活跃账号。");
+        table.Add("NumberChecker.ChoosePreviousDatabaseMessage",
+            "Выберите number_checker.xlsx из предыдущего запуска проверки.",
+            "Choose number_checker.xlsx from a previous checker run.",
+            "请选择上一次检查生成的 number_checker.xlsx。");
+        table.Add("NumberChecker.EnterPhoneNumberMessage",
+            "Введите хотя бы один номер телефона.",
+            "Enter at least one phone number.",
+            "请至少输入一个电话号码。");
+        table.Add("NumberChecker.StartedJobFormat", "Задача {0} запущена.", "Started job {0}.", "任务 {0} 已启动。");
+        table.Add("NumberChecker.StoppedMessage",
+            "Остановлено. Незавершённые номера остаются в number_checker.xlsx.",
+            "Stopped. Unfinished numbers remain in number_checker.xlsx.",
+            "已停止。未完成的号码仍保留在 number_checker.xlsx 中。");
+        table.Add("NumberChecker.StopFailedFormat", "Не удалось остановить: {0}", "Stop failed: {0}", "停止失败：{0}");
+        table.Add("NumberChecker.StopBeforeClearMessage",
+            "Остановите активную задачу проверки перед очисткой результатов.",
+            "Stop the active checker job before clearing results.",
+            "清除结果前请先停止正在运行的检查任务。");
+        table.Add("NumberChecker.CouldNotOpenResultsFormat", "Не удалось открыть результаты: {0}", "Could not open results: {0}", "无法打开结果：{0}");
+
+        table.Add("NumberChecker.CheckingSummaryFormat",
+            "Проверка {0} номер(ов)  |  Найдено {1}  |  Не найдено {2}  |  В ожидании {3}",
+            "Checking {0} number(s)  |  Found {1}  |  Not found {2}  |  Pending {3}",
+            "正在检查 {0} 个号码  |  已找到 {1}  |  未找到 {2}  |  待处理 {3}");
+        table.Add("NumberChecker.CompletedSummaryFormat",
+            "Завершено {0} номер(ов)  |  Найдено {1}  |  Не найдено {2}  |  Ошибок {3}  |  В ожидании {4}",
+            "Completed {0} number(s)  |  Found {1}  |  Not found {2}  |  Failed {3}  |  Pending {4}",
+            "已完成 {0} 个号码  |  已找到 {1}  |  未找到 {2}  |  失败 {3}  |  待处理 {4}");
+
+        table.Add("NumberChecker.CouldNotRestoreJobStatusFormat",
+            "Не удалось восстановить статус задачи: {0}",
+            "Could not restore job status: {0}",
+            "无法恢复任务状态：{0}");
+        table.Add("NumberChecker.ReadyStateMessage",
+            "Готово. Введите номера телефонов или выберите number_checker.xlsx, выберите активные аккаунты, затем нажмите «Старт».",
+            "Ready. Enter phone numbers or select number_checker.xlsx, choose active accounts, then press Start.",
+            "准备就绪。请输入电话号码或选择 number_checker.xlsx，选择活跃账号，然后点击“开始”。");
     }
 }

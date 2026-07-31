@@ -39,6 +39,7 @@ internal static class CommonStrings
         table.Add("Nav.JsonGenerator", "JSON-генератор", "JSON Generator", "JSON 生成器");
         table.Add("Nav.Engagement", "Накрутка", "Engagement", "互动增长");
         table.Add("Nav.Stories", "Сторис", "Stories", "快拍");
+        table.Add("Nav.Manual", "Руководство", "Manual", "使用手册");
 
         table.Add("App.BackendFailedMessage",
             "Не удалось запустить backend-сервис (python -m uvicorn src.api.app:app).\n" +
@@ -51,5 +52,11 @@ internal static class CommonStrings
             "Активация лицензии не выполнена. Запусти TgPoolActivator.exe вручную и введи ключ.",
             "License activation was not completed. Run TgPoolActivator.exe manually and enter your key.",
             "许可证激活未完成。请手动运行 TgPoolActivator.exe 并输入密钥。");
+
+        table.Add("License.NoStatus", "Статус лицензии недоступен", "License status unavailable", "许可证状态不可用");
+        table.Add("License.Expired", "Лицензия истекла", "License expired", "许可证已过期");
+        table.Add("License.DaysLeftFormatOne", "Остался {0} день", "{0} day left", "剩余 {0} 天");
+        table.Add("License.DaysLeftFormatFew", "Осталось {0} дня", "{0} days left", "剩余 {0} 天");
+        table.Add("License.DaysLeftFormatMany", "Осталось {0} дней", "{0} days left", "剩余 {0} 天");
     }
 }

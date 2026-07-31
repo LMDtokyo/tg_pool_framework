@@ -22,6 +22,7 @@ from typing import Any, Tuple, Type
 from fastapi import WebSocket, WebSocketDisconnect
 
 from src.monitoring.event_bus import (
+    AccountsDiscoveredEvent,
     AccountStatusEvent,
     EventBus,
     MessageDeliveredEvent,
@@ -35,6 +36,7 @@ _FORWARDED_EVENTS: Tuple[Type[Any], ...] = (
     AccountStatusEvent,
     MessageDeliveredEvent,
     MetricUpdateEvent,
+    AccountsDiscoveredEvent,
 )
 
 

@@ -24,11 +24,11 @@
 
                         <StackPanel Style="{StaticResource FieldGroupStyle}">
                             <TextBlock Text="{tr:Tr Engagement.ActionTypeLabel}" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox SelectedValue="{Binding ActionType}" SelectedValuePath="Content" HorizontalAlignment="Stretch">
-                                <ComboBoxItem Content="reaction" />
-                                <ComboBoxItem Content="view" />
-                                <ComboBoxItem Content="poll_vote" />
-                                <ComboBoxItem Content="comment" />
+                            <ComboBox SelectedValue="{Binding ActionType}" SelectedValuePath="Tag" HorizontalAlignment="Stretch">
+                                <ComboBoxItem Tag="reaction" Content="{tr:Tr Engagement.ActionReaction}" />
+                                <ComboBoxItem Tag="view" Content="{tr:Tr Engagement.ActionView}" />
+                                <ComboBoxItem Tag="poll_vote" Content="{tr:Tr Engagement.ActionPollVote}" />
+                                <ComboBoxItem Tag="comment" Content="{tr:Tr Engagement.ActionComment}" />
                             </ComboBox>
                         </StackPanel>
 
@@ -251,12 +251,13 @@
                             <DataTemplate>
                                 <Grid Margin="0,4">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="140" />
-                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="64" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{Binding AccountPhone}" FontSize="12" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="1" Text="{Binding State}" FontSize="12" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" ToolTip="{Binding State}"
                                                Foreground="{StaticResource AccentBrush}" />
                                     <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="12" TextTrimming="CharacterEllipsis"
                                                VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" />

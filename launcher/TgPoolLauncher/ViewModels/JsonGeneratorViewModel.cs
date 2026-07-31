@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TgPoolLauncher.Localization;
 using TgPoolLauncher.Models;
 using TgPoolLauncher.Services;
 
@@ -30,7 +31,7 @@ public partial class JsonGeneratorViewModel : ObservableObject
     private JsonGeneratorStatusDto? latestStatus;
 
     [ObservableProperty]
-    private string statusMessage = "Ready to generate Telegram Expert JSON sidecars.";
+    private string statusMessage = LocalizationService.Instance["JsonGenerator.ReadyStatus"];
 
     public bool IsRunning => LatestStatus?.Running == true;
     public ObservableCollection<JsonGeneratorResult> Results { get; } = new();
@@ -58,11 +59,15 @@ public partial class JsonGeneratorViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(value?.Error))
             StatusMessage = value.Error;
         else if (value?.Running == true)
-            StatusMessage = $"Generating files… {value.Results.Count} of {value.Total}";
+            StatusMessage = string.Format(
+                LocalizationService.Instance["JsonGenerator.GeneratingStatusFormat"],
+                value.Results.Count, value.Total);
         else if (value?.Finished == true)
-            StatusMessage = value.Cancelled
-                ? $"Stopped after {value.Results.Count} of {value.Total} accounts."
-                : $"Completed {value.Results.Count} of {value.Total} accounts.";
+            StatusMessage = string.Format(
+                value.Cancelled
+                    ? LocalizationService.Instance["JsonGenerator.StoppedStatusFormat"]
+                    : LocalizationService.Instance["JsonGenerator.CompletedStatusFormat"],
+                value.Results.Count, value.Total);
     }
 
     private async Task RefreshStatusAsync()
@@ -80,7 +85,7 @@ public partial class JsonGeneratorViewModel : ObservableObject
     {
         try
         {
-            StatusMessage = "Starting JSON generation…";
+            StatusMessage = LocalizationService.Instance["JsonGenerator.StartingStatus"];
             await _backend.StartJsonGeneratorAsync(new JsonGeneratorStartRequest
             {
                 DatabasePath = DatabasePath,
@@ -120,7 +125,7 @@ public partial class JsonGeneratorViewModel : ObservableObject
         {
             await _backend.ClearJsonGeneratorAsync();
             Results.Clear();
-            StatusMessage = "Activity cleared.";
+            StatusMessage = LocalizationService.Instance["JsonGenerator.ActivityClearedStatus"];
             await RefreshStatusAsync();
         }
         catch (Exception ex) { StatusMessage = ex.Message; }
@@ -134,7 +139,7 @@ public partial class JsonGeneratorViewModel : ObservableObject
         DatabasePath = Path.Combine(AppPaths.Fingerprints, "telegram_devices.xlsx");
         SessionsDir = AppPaths.Sessions;
         OutputDir = AppPaths.JsonGenerator;
-        StatusMessage = "Settings reset to project defaults.";
+        StatusMessage = LocalizationService.Instance["JsonGenerator.SettingsResetStatus"];
     }
 
     [RelayCommand]
@@ -142,8 +147,8 @@ public partial class JsonGeneratorViewModel : ObservableObject
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Select the parameter generator database",
-            Filter = "Parameter databases (*.xlsx;*.xlsm;*.csv;*.json)|*.xlsx;*.xlsm;*.csv;*.json|All files (*.*)|*.*",
+            Title = LocalizationService.Instance["JsonGenerator.BrowseDatabaseDialogTitle"],
+            Filter = LocalizationService.Instance["JsonGenerator.BrowseDatabaseDialogFilter"],
             InitialDirectory = Path.GetDirectoryName(DatabasePath),
         };
         if (dialog.ShowDialog() == true)
@@ -151,10 +156,12 @@ public partial class JsonGeneratorViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void BrowseSessionsDir() => BrowseFolder("Select the folder with .session files", SessionsDir, value => SessionsDir = value);
+    private void BrowseSessionsDir() => BrowseFolder(
+        LocalizationService.Instance["JsonGenerator.BrowseSessionsDirDialogTitle"], SessionsDir, value => SessionsDir = value);
 
     [RelayCommand]
-    private void BrowseOutputDir() => BrowseFolder("Select the folder for generated files", OutputDir, value => OutputDir = value);
+    private void BrowseOutputDir() => BrowseFolder(
+        LocalizationService.Instance["JsonGenerator.BrowseOutputDirDialogTitle"], OutputDir, value => OutputDir = value);
 
     private static void BrowseFolder(string title, string initialDirectory, Action<string> assign)
     {

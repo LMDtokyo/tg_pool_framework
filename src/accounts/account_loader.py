@@ -16,10 +16,15 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import uuid
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Set, TYPE_CHECKING
 
 from src.config import AccountConfig, ProxyConfig
+
+if TYPE_CHECKING:
+    from src.api.telegram_auth import FingerprintCatalog, TelegramFingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -119,9 +124,15 @@ def load_from_session_json_pair(
     Loads account credentials from a .session + .json companion pair.
 
     Required JSON keys:
-      app_id      (int)   Telegram API ID
-      app_hash    (str)   Telegram API hash
-      phone       (str)   Account phone, e.g. "+79001234567"
+      app_id (or api_id)   (int)   Telegram API ID
+      app_hash (or api_hash) (str) Telegram API hash
+      phone                 (str) Account phone, e.g. "+79001234567"
+
+    api_id/api_hash are accepted as aliases for app_id/app_hash -- Telethon's
+    own constructor parameters (and most third-party tools/marketplaces that
+    export a Telegram session) use that naming, not this app's app_id/app_hash,
+    so requiring the exact latter name would silently reject most externally
+    -sourced account files.
 
     Optional JSON keys:
       device      (str)   Device model string (default: "Samsung Galaxy S23")
@@ -148,13 +159,19 @@ def load_from_session_json_pair(
     with json_file.open("r", encoding="utf-8") as fh:
         data = json.load(fh)
 
-    missing = {"app_id", "app_hash", "phone"} - data.keys()
+    app_id_value = data.get("app_id", data.get("api_id"))
+    app_hash_value = data.get("app_hash", data.get("api_hash"))
+    missing = [
+        name for name, value in (
+            ("app_id/api_id", app_id_value), ("app_hash/api_hash", app_hash_value), ("phone", data.get("phone")),
+        ) if value is None
+    ]
     if missing:
-        raise ValueError(f"JSON {json_file} missing required fields: {missing}")
+        raise ValueError(f"JSON {json_file} missing required fields: {', '.join(missing)}")
 
     return AccountConfig(
-        api_id=int(data["app_id"]),
-        api_hash=str(data["app_hash"]),
+        api_id=int(app_id_value),
+        api_hash=str(app_hash_value),
         phone=str(data["phone"]),
         proxy=proxy,
         device_model=str(data.get("device", "Samsung Galaxy S23")),
@@ -227,20 +244,65 @@ async def load_from_tdata(
 # Batch directory loader
 # ---------------------------------------------------------------------------
 
+def _write_fingerprint_sidecar(
+    base_text: str, *, api_id: int, api_hash: str, phone: str, fingerprint: "TelegramFingerprint"
+) -> None:
+    """
+    Persists a chosen fingerprint next to a bare-imported session (same shape
+    src/api/json_generator.py writes), so every future load finds the .json
+    companion and reuses this exact fingerprint via load_from_session_json_pair()
+    instead of choosing (or falling back to a default) again.
+    """
+    payload = {
+        "app_id": api_id,
+        "app_hash": api_hash,
+        "phone": phone,
+        "device": fingerprint.device,
+        "system": f"SDK {fingerprint.sdk}",
+        "app_version": fingerprint.app_version,
+        "lang_code": fingerprint.lang_code,
+        "system_lang_code": fingerprint.system_lang_code,
+        "lang_pack": fingerprint.lang_pack,
+        "sdk": fingerprint.sdk,
+        "tz_offset": fingerprint.tz_offset,
+        "perf_cat": fingerprint.perf_cat,
+    }
+    json_path = Path(f"{base_text}.json")
+    temporary = json_path.with_suffix(f".json.{uuid.uuid4().hex[:8]}.tmp")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temporary, json_path)
+
+
 def load_accounts_from_directory(
     directory: str,
     api_id: int = 0,
     api_hash: str = "",
     proxies: Optional[List[ProxyConfig]] = None,
     accounts_per_proxy: int = 1,
+    fingerprint_catalog: "Optional[FingerprintCatalog]" = None,
+    used_fingerprints: Optional[Set[tuple]] = None,
+    load_failures: Optional[List[dict]] = None,
 ) -> List[AccountConfig]:
     """
     Scans a directory for .session files and loads all accounts found.
 
     Resolution per .session file:
       1. If a .json companion exists → load_from_session_json_pair().
-      2. Otherwise, if api_id/api_hash were supplied → bare session load.
+      2. Otherwise, if api_id/api_hash were supplied → bare session load. If
+         fingerprint_catalog is given, a fresh (device, app_version) pair is
+         chosen and persisted as a .json companion right here -- without a
+         catalog, every such account instead falls back to AccountConfig's
+         identical hardcoded defaults, which is exactly the duplicate-device
+         signal this catalog exists to avoid.
       3. Otherwise → skip with a warning.
+
+    used_fingerprints, if given, is updated in place with every signature
+    assigned here -- pass the same set across multiple directories (e.g.
+    primary + spare) so accounts in different directories don't collide either.
+
+    load_failures, if given, is appended in place with {"file": ..., "reason": ...}
+    for every session skipped or errored -- lets a caller report back to the
+    operator exactly what didn't load and why, instead of only a backend log line.
 
     Proxy assignment follows the accounts_per_proxy Round-Robin rule.
     Files are processed in alphabetical order for deterministic allocation.
@@ -262,6 +324,7 @@ def load_accounts_from_directory(
 
     allocator = ProxyAllocator(proxies or [], accounts_per_proxy=accounts_per_proxy)
     accounts: List[AccountConfig] = []
+    used_fingerprints = used_fingerprints if used_fingerprints is not None else set()
 
     for sf in session_files:
         proxy = allocator.next()
@@ -275,21 +338,51 @@ def load_accounts_from_directory(
         try:
             if json_companion.exists():
                 account = load_from_session_json_pair(str(sf), proxy=proxy)
+                used_fingerprints.add((account.device_model, account.app_version))
             elif api_id and api_hash:
                 phone_raw = Path(base_text).name
                 phone = phone_raw if phone_raw.startswith("+") else f"+{phone_raw}"
-                account = AccountConfig(
-                    api_id=api_id,
-                    api_hash=api_hash,
-                    phone=phone,
-                    proxy=proxy,
-                    session_dir=str(dir_path),
-                )
+                if fingerprint_catalog is not None:
+                    fingerprint = fingerprint_catalog.choose(avoid=used_fingerprints)
+                    used_fingerprints.add(fingerprint.signature())
+                    _write_fingerprint_sidecar(
+                        base_text, api_id=api_id, api_hash=api_hash, phone=phone, fingerprint=fingerprint
+                    )
+                    account = AccountConfig(
+                        api_id=api_id,
+                        api_hash=api_hash,
+                        phone=phone,
+                        proxy=proxy,
+                        device_model=fingerprint.device,
+                        system_version=f"SDK {fingerprint.sdk}",
+                        app_version=fingerprint.app_version,
+                        lang_code=fingerprint.lang_code,
+                        system_lang_code=fingerprint.system_lang_code,
+                        lang_pack=fingerprint.lang_pack,
+                        sdk=fingerprint.sdk,
+                        tz_offset=fingerprint.tz_offset,
+                        perf_cat=fingerprint.perf_cat,
+                        session_dir=str(dir_path),
+                    )
+                else:
+                    logger.warning(
+                        "No fingerprint catalog configured -- %s will fall back to "
+                        "AccountConfig's default device signature, identical to every "
+                        "other bare-imported account with no catalog.",
+                        sf.name,
+                    )
+                    account = AccountConfig(
+                        api_id=api_id,
+                        api_hash=api_hash,
+                        phone=phone,
+                        proxy=proxy,
+                        session_dir=str(dir_path),
+                    )
             else:
-                logger.warning(
-                    "Skipping %s: no .json companion and no api_id/api_hash provided.",
-                    sf.name,
-                )
+                reason = "no .json companion and no default api_id/api_hash configured"
+                logger.warning("Skipping %s: %s.", sf.name, reason)
+                if load_failures is not None:
+                    load_failures.append({"file": sf.name, "reason": reason})
                 continue
 
             accounts.append(account)
@@ -297,6 +390,8 @@ def load_accounts_from_directory(
 
         except Exception as exc:
             logger.error("Failed to load %s: %s", sf.name, exc)
+            if load_failures is not None:
+                load_failures.append({"file": sf.name, "reason": str(exc)})
 
     logger.info("Loaded %d accounts from '%s'.", len(accounts), directory)
     return accounts

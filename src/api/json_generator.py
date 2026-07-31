@@ -73,10 +73,12 @@ class JsonGeneratorManager:
         run = _Run(job_id=job_id, total=len(sessions))
 
         async def _runner() -> None:
+            used_signatures: set = set()
             try:
                 for session in sessions:
                     await asyncio.sleep(0)
-                    fingerprint = catalog.choose()
+                    fingerprint = catalog.choose(avoid=used_signatures)
+                    used_signatures.add(fingerprint.signature())
                     account = session.stem
                     phone = account if account.startswith("+") else f"+{account}"
                     target_session = destination / session.name

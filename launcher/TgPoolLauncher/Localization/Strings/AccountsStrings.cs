@@ -30,6 +30,26 @@ internal static class AccountsStrings
             "重新读取列表——会包含添加到 Data\\Accounts 的账户");
         table.Add("Accounts.RecheckPool", "Перепроверить пул", "Recheck pool", "重新检测账户池");
 
+        table.Add("Accounts.DefaultCredentialsHeader",
+            "Api_id/api_hash по умолчанию (для файлов без .json)",
+            "Default api_id/api_hash (for files with no .json)",
+            "默认 api_id/api_hash（用于没有 .json 的文件）");
+        table.Add("Accounts.DefaultApiIdLabel", "api_id", "api_id", "api_id");
+        table.Add("Accounts.DefaultApiHashLabel", "api_hash", "api_hash", "api_hash");
+        table.Add("Accounts.SaveDefaultCredentials", "Сохранить", "Save", "保存");
+        table.Add("Accounts.DefaultCredentialsInvalid",
+            "api_id должен быть числом, api_hash — 32 hex-символа",
+            "api_id must be a number, api_hash must be 32 hex characters",
+            "api_id 必须是数字，api_hash 必须是 32 位十六进制字符");
+        table.Add("Accounts.DefaultCredentialsSaved",
+            "Сохранено — применяется сразу, без перезапуска",
+            "Saved — applies immediately, no restart needed",
+            "已保存——立即生效，无需重启");
+        table.Add("Accounts.DefaultCredentialsSaveFailed",
+            "Не удалось сохранить — бэкенд недоступен",
+            "Failed to save — backend unreachable",
+            "保存失败——无法连接后端");
+
         table.Add("Accounts.ColAccount", "Аккаунт", "Account", "账户");
         table.Add("Accounts.ColGeo", "Гео", "Geo", "地区");
         table.Add("Accounts.ColStatus", "Статус", "Status", "状态");

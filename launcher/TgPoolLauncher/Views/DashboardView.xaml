@@ -77,6 +77,29 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Background AccountDiscoveryPoller found something new in
+                     Data\Accounts/Data\Tdata since the last sweep (src/accounts/discovery_poller.py). -->
+                <Border Margin="0,0,0,20" Padding="16,12" CornerRadius="10"
+                        Background="{StaticResource GlassBackgroundBrush}"
+                        BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                        Visibility="{Binding HasAccountDiscovery, Converter={StaticResource BoolToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <iconPacks:PackIconMaterial Grid.Column="0" Kind="AccountPlusOutline" Width="20" Height="20"
+                                                     Margin="0,0,12,0" VerticalAlignment="Center"
+                                                     Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Grid.Column="1" Text="{Binding AccountDiscoverySummaryText}"
+                                   VerticalAlignment="Center" TextWrapping="Wrap" FontSize="13"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <Button Grid.Column="2" Content="{tr:Tr Common.Done}" VerticalAlignment="Center"
+                                Command="{Binding DismissAccountDiscoveryCommand}" />
+                    </Grid>
+                </Border>
+
                 <!-- Hero banner + quick-links sidebar -->
                 <Grid Margin="0,0,0,20">
                     <Grid.ColumnDefinitions>

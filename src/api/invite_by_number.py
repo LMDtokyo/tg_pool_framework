@@ -21,7 +21,9 @@ from telethon.tl.functions.contacts import DeleteContactsRequest, ImportContacts
 from telethon.tl.types import InputPhoneContact, PeerUser, User
 
 from src.accounts.connection_manager import ClientFactory
+from src.accounts.proxy_safety import ensure_all_proxied, ensure_no_shared_proxies, unproxied_phones
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
+from src.api.security_utils import scrub_secrets
 from src.config import AccountConfig
 
 logger = logging.getLogger(__name__)
@@ -68,6 +70,7 @@ class _Run:
     finished: bool = False
     error: Optional[str] = None
     per_account: Dict[str, int] = field(default_factory=dict)
+    unproxied_senders: List[str] = field(default_factory=list)
 
 
 def normalize_phone(value: str) -> Optional[str]:
@@ -153,6 +156,7 @@ class InviteByNumberManager:
         delay_max_sec: float = 10.0,
         max_flood_wait_sec: float = 500.0,
         message_template: str = "{invite_link}",
+        require_proxy: bool = True,
     ) -> str:
         if self.is_running:
             raise InviteByNumberAlreadyRunningError("An invite-by-number job is already running.")
@@ -194,6 +198,14 @@ class InviteByNumberManager:
                 links.append(InviteSenderLink(sender_phone=sender, invite_link=invite))
         if not links:
             raise ValueError("No valid sender/invite-link pairs provided.")
+
+        sender_accounts = [
+            self._accounts_by_phone[self._phone_key(link.sender_phone)] for link in links
+        ]
+        if require_proxy:
+            ensure_all_proxied(sender_accounts)
+            ensure_no_shared_proxies(sender_accounts)
+        unproxied = unproxied_phones(sender_accounts)
 
         max_per_account = max(1, int(max_per_account))
         delay_min_sec = max(0.0, float(delay_min_sec))
@@ -246,7 +258,7 @@ class InviteByNumberManager:
                 )
             )
 
-        run = _Run(job_id=job_id, shutdown_event=shutdown_event, results=results)
+        run = _Run(job_id=job_id, shutdown_event=shutdown_event, results=results, unproxied_senders=unproxied)
         logger.info(
             "Invite-by-number job %s queued %d recipient(s) across %d sender link(s)",
             job_id,
@@ -292,6 +304,7 @@ class InviteByNumberManager:
             "per_account": dict(self._run.per_account),
             "finished": self._run.finished,
             "error": self._run.error,
+            "unproxied_senders": self._run.unproxied_senders,
             "results": [
                 {
                     "recipient_id": row.recipient_id,
@@ -412,7 +425,7 @@ class InviteByNumberManager:
                     run.failed += 1
                 except Exception as exc:
                     row.state = "failed"
-                    row.message = f"{type(exc).__name__}: {exc}"
+                    row.message = f"{type(exc).__name__}: {scrub_secrets(str(exc))}"
                     run.failed += 1
                     logger.warning(
                         "Invite send failed %s -> %s: %s",

@@ -16,6 +16,27 @@ enabled — so the ramp survives restarts instead of resetting every time.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.accounts.account_registry import AccountRegistry
+
+
+def account_age_days(registry: "Optional[AccountRegistry]", phone: str) -> float:
+    """
+    Age of `phone` since RegistryEntry.first_seen, in days.
+
+    Unknown (no registry, phone not registered yet, or first_seen missing)
+    resolves to infinity rather than 0 -- age is unknown, not zero, so a
+    missing registry never adds throttling that wasn't already there.
+    """
+    if registry is None:
+        return float("inf")
+    entry = registry.get(phone)
+    if entry is None or entry.first_seen is None:
+        return float("inf")
+    return (datetime.now(timezone.utc) - entry.first_seen).total_seconds() / 86400.0
 
 
 @dataclass(frozen=True)

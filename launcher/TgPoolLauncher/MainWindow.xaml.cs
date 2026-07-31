@@ -14,6 +14,8 @@ public partial class MainWindow : Window
     private readonly AutoRegisterNavigationViewModel _autoRegisterNavigation;
     private bool _syncingChildSelection;
 
+    public LicenseStatusViewModel LicenseStatus { get; }
+
     public MainWindow(
         DashboardView dashboardView,
         AccountsView accountsView,
@@ -26,11 +28,14 @@ public partial class MainWindow : Window
         TextRandomizerView textRandomizerView,
         EngagementView engagementView,
         StoriesView storiesView,
+        ManualView manualView,
         AutoRegisterHostView autoRegisterHostView,
-        AutoRegisterNavigationViewModel autoRegisterNavigation)
+        AutoRegisterNavigationViewModel autoRegisterNavigation,
+        LicenseStatusViewModel licenseStatus)
     {
         InitializeComponent();
         _autoRegisterNavigation = autoRegisterNavigation;
+        LicenseStatus = licenseStatus;
         AutoRegisterMenu.DataContext = autoRegisterNavigation;
         InviteMenu.DataContext = autoRegisterNavigation;
         SendingSmsMenu.DataContext = autoRegisterNavigation;
@@ -46,6 +51,7 @@ public partial class MainWindow : Window
         TextRandomizerTab.Content = textRandomizerView;
         EngagementTab.Content = engagementView;
         StoriesTab.Content = storiesView;
+        ManualTab.Content = manualView;
         AutoRegisterTab.Content = autoRegisterHostView;
     }
 

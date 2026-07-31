@@ -51,8 +51,14 @@ class ActivateResponse(BaseModel):
     tier: str
     activated_at: datetime
     expires_at: datetime
+    signature: str
 
 
 class VersionOut(BaseModel):
     latest_version: str
     notes: str = ""
+
+
+class ProfileNamesOut(BaseModel):
+    first_names: List[str]
+    last_names: List[str]

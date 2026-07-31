@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import secrets
 import sqlite3
 import uuid
 from contextlib import asynccontextmanager, suppress
@@ -17,6 +18,8 @@ from dotenv import load_dotenv
 from src import bootstrap
 from src.accounts.account_manager_service import AccountManagerService
 from src.accounts.account_registry import AccountRegistry, RegistryEntry
+from src.accounts.cooldown_scheduler import CooldownScheduler
+from src.accounts.discovery_poller import AccountDiscoveryPoller
 from src.accounts.health_checker import AccountStatus
 from src.accounts.proxy_safety import shared_proxy_groups, unproxied_phones
 from src.accounts.session_crypto import load_key_from_env
@@ -66,6 +69,8 @@ from src.api.number_checker import (
 )
 from src.api.json_generator import JsonGeneratorAlreadyRunningError, JsonGeneratorManager
 from src.api.license_gate import LicenseGateMiddleware
+from src.api.local_auth import LocalAuthMiddleware
+from src.features.messaging import build_warmup_policy
 from src.api.parsing import ParsingAlreadyRunningError, ParsingManager
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
 from src.api.proxy_check import ProxyCheckAlreadyRunningError, ProxyCheckManager
@@ -238,6 +243,11 @@ async def lifespan(app: FastAPI):
     # simply not enforced, everything else (streams, stagger delay, auto-stop) still works.
     redis_client = bootstrap.build_redis_client()
 
+    # Opt-in shared secret between this process and whatever spawned it (see
+    # src/api/local_auth.py) -- unset -> no local-auth enforcement, matching every
+    # other opt-in env var in this app.
+    app.state.local_api_token = os.getenv("LOCAL_API_TOKEN", "")
+
     # Licensing is opt-in via LICENSE_SERVER_URL, same as DATABASE_URL/REDIS_URL elsewhere in
     # this app: unset -> the gate middleware waves every request through unchanged, so local
     # development never needs a running license server. Set it once license_server is deployed.
@@ -274,6 +284,10 @@ async def lifespan(app: FastAPI):
     await registry.load_from_repository()
     # Safe to call unconditionally: register_many() only adds new phones, existing ones keep their state.
     await registry.register_many(primary + spares)
+
+    # Opt-in (WARMUP_ENABLED) -- None means every manager below runs unthrottled by
+    # account age, same as before this was wired in from src/features/messaging.py.
+    warmup_policy = build_warmup_policy()
 
     policy = _build_timing_policy()
     health_checker = bootstrap.build_health_checker(policy, event_bus)
@@ -330,12 +344,18 @@ async def lifespan(app: FastAPI):
         pool_guard=pool_guard,
         session_encryption_key=session_encryption_key,
         proxy_repository=proxy_repository,
+        redis_client=redis_client,
+        registry=registry,
+        warmup_policy=warmup_policy,
     )
     app.state.send_by_id_manager = SendByIdManager(
         accounts=list(primary) + list(spares),
         pool_guard=pool_guard,
         session_encryption_key=session_encryption_key,
         proxy_repository=proxy_repository,
+        redis_client=redis_client,
+        registry=registry,
+        warmup_policy=warmup_policy,
     )
     app.state.engagement_manager = EngagementManager(
         accounts=list(primary) + list(spares),
@@ -343,6 +363,8 @@ async def lifespan(app: FastAPI):
         session_encryption_key=session_encryption_key,
         redis_client=redis_client,
         proxy_repository=proxy_repository,
+        registry=registry,
+        warmup_policy=warmup_policy,
     )
     app.state.stories_manager = StoriesManager(
         accounts=list(primary) + list(spares),
@@ -350,6 +372,8 @@ async def lifespan(app: FastAPI):
         session_encryption_key=session_encryption_key,
         redis_client=redis_client,
         proxy_repository=proxy_repository,
+        registry=registry,
+        warmup_policy=warmup_policy,
     )
 
     scheduled_campaign_repository = (
@@ -372,6 +396,43 @@ async def lifespan(app: FastAPI):
     scheduled_campaigns_task = (
         asyncio.create_task(app.state.scheduled_campaign_manager.run(scheduled_campaigns_shutdown))
         if app.state.scheduled_campaign_manager is not None
+        else None
+    )
+
+    # Opt-in (COOLDOWN_SCHEDULER_ENABLED), same convention as WARMUP_ENABLED --
+    # was built (src/accounts/cooldown_scheduler.py) but never reachable from this
+    # API; without it, an account flagged SPAMBLOCK/FROZEN/FLOOD stays excluded
+    # from the pool forever even after Telegram lifts the restriction.
+    cooldown_shutdown = asyncio.Event()
+    cooldown_enabled = os.getenv("COOLDOWN_SCHEDULER_ENABLED", "0").lower() in ("1", "true", "yes")
+    cooldown_task = (
+        asyncio.create_task(
+            CooldownScheduler(
+                registry,
+                health_checker,
+                poll_interval=bootstrap.env_float("COOLDOWN_POLL_INTERVAL_SEC", "60"),
+            ).run(cooldown_shutdown)
+        )
+        if cooldown_enabled
+        else None
+    )
+
+    # On by default (unlike warmup/cooldown) -- this only reads directories and
+    # registers whatever load_accounts_from_directory()/ensure_all_proxied() would
+    # already accept via the manual Refresh button; it just does it on a timer so
+    # an operator who drops a purchased account base into Data\Accounts doesn't
+    # have to notice and click Refresh themselves.
+    discovery_shutdown = asyncio.Event()
+    discovery_enabled = os.getenv("ACCOUNT_DISCOVERY_ENABLED", "1").lower() in ("1", "true", "yes")
+    discovery_task = (
+        asyncio.create_task(
+            AccountDiscoveryPoller(
+                _rescan_account_storage,
+                event_bus,
+                poll_interval=bootstrap.env_float("ACCOUNT_DISCOVERY_POLL_INTERVAL_SEC", "20"),
+            ).run(discovery_shutdown)
+        )
+        if discovery_enabled
         else None
     )
 
@@ -422,12 +483,32 @@ async def lifespan(app: FastAPI):
     def current_fingerprint_signatures() -> List[tuple]:
         return [(account.device_model, account.app_version) for account in primary + spares]
 
+    # Best-effort: a shared, centrally-updatable name pool (see
+    # license_server/profile_names.py) instead of every install stamping new
+    # accounts from the same fixed list baked into the build. Unreachable/disabled
+    # license server -> TelegramAuthenticator falls back to its own built-in list.
+    profile_name_provider = None
+    if licensing_enabled:
+        try:
+            profile_first_names, profile_last_names = await LicenseServerClient(
+                license_server_url
+            ).fetch_profile_names()
+
+            def profile_name_provider() -> tuple:
+                return secrets.choice(profile_first_names), secrets.choice(profile_last_names)
+        except Exception as exc:
+            logger.warning(
+                "Could not fetch the shared profile-name pool from the license server "
+                "-- falling back to the built-in list: %s", exc
+            )
+
     telegram_authenticator = TelegramAuthenticator(
         fingerprint_file=fingerprint_file,
         accounts_dir=accounts_dir,
         encryption_key=session_encryption_key,
         proxy_provider=next_registration_proxy,
         fingerprint_signatures_provider=current_fingerprint_signatures,
+        profile_name_provider=profile_name_provider,
     )
     app.state.hero_sms_activation_manager = HeroSmsActivationManager(
         authenticator=telegram_authenticator,
@@ -460,6 +541,12 @@ async def lifespan(app: FastAPI):
         if scheduled_campaigns_task is not None:
             scheduled_campaigns_shutdown.set()
             await scheduled_campaigns_task
+        if cooldown_task is not None:
+            cooldown_shutdown.set()
+            await cooldown_task
+        if discovery_task is not None:
+            discovery_shutdown.set()
+            await discovery_task
         await app.state.invite_by_number_manager.stop()
         await app.state.number_checker_manager.stop()
         await app.state.send_by_numbers_manager.stop()
@@ -484,14 +571,25 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="tg_pool_framework control API", lifespan=lifespan)
 app.add_middleware(LicenseGateMiddleware, allow_prefixes=("/health", "/license"))
+app.add_middleware(LocalAuthMiddleware)
 
 
-async def _rescan_account_storage() -> int:
+async def _rescan_account_storage() -> tuple[List[str], List[dict]]:
+    """
+    Picks up accounts dropped into ACCOUNTS_DIR/SPARE_ACCOUNTS_DIR/TDATA_ACCOUNTS_DIR
+    since the last scan. Returns (newly_registered_phones, load_failures) so a
+    caller (the manual /accounts/rescan endpoint, or the background discovery
+    poller) can report back exactly what happened, not just a bare count.
+    """
     registry: AccountRegistry = app.state.registry
     primary: list = app.state.primary_accounts
     spares: list = app.state.spare_accounts
 
-    fresh_primary, fresh_spares = bootstrap.load_accounts()
+    load_failures: List[dict] = []
+    fresh_primary, fresh_spares = bootstrap.load_accounts(load_failures=load_failures)
+    fresh_tdata = await bootstrap.load_tdata_accounts(load_failures=load_failures)
+    fresh_primary = _dedupe_accounts_by_phone(fresh_primary + fresh_tdata)
+
     proxy_inventory = await _load_proxy_inventory(app.state.proxy_repository)
     fresh_primary = _apply_proxy_inventory(fresh_primary, proxy_inventory)
     fresh_spares = _apply_proxy_inventory(fresh_spares, proxy_inventory)
@@ -507,11 +605,13 @@ async def _rescan_account_storage() -> int:
     for account in new_primary + new_spares:
         invite_manager.register_account(account)
         app.state.number_checker_manager.register_account(account)
+        app.state.send_by_id_manager.register_account(account)
         app.state.send_by_numbers_manager.register_account(account)
         app.state.engagement_manager.register_account(account)
         app.state.stories_manager.register_account(account)
 
-    return len(new_primary) + len(new_spares)
+    new_phones = [a.phone for a in new_primary + new_spares]
+    return new_phones, load_failures
 
 
 @app.get("/health")
@@ -594,7 +694,8 @@ async def datamoll_purchase(
             accounts_dir=app.state.accounts_dir,
             tdata_dir=app.state.tdata_accounts_dir,
         )
-        new_accounts = await _rescan_account_storage()
+        new_phones, _load_failures = await _rescan_account_storage()
+        new_accounts = len(new_phones)
         return schemas.DatamollPurchaseOut(
             order_id=int(order["order_id"]),
             external_order_id=str(
@@ -1148,6 +1249,34 @@ async def accounts_proxy_coverage() -> schemas.ProxyCoverageOut:
     )
 
 
+@app.get("/accounts/default_credentials", response_model=schemas.DefaultCredentialsOut)
+async def get_default_credentials() -> schemas.DefaultCredentialsOut:
+    """
+    The api_id/api_hash applied to bare .session files dropped into
+    ACCOUNTS_DIR/SPARE_ACCOUNTS_DIR with no .json companion (see
+    load_accounts_from_directory). Read fresh from the environment every call
+    so it reflects whatever set_default_credentials() last wrote.
+    """
+    return schemas.DefaultCredentialsOut(
+        api_id=int(os.getenv("TG_API_ID_DEFAULT", "0") or "0"),
+        api_hash=os.getenv("TG_API_HASH_DEFAULT", ""),
+    )
+
+
+@app.post("/accounts/default_credentials", response_model=schemas.DefaultCredentialsOut)
+async def set_default_credentials(body: schemas.DefaultCredentialsIn) -> schemas.DefaultCredentialsOut:
+    """
+    Takes effect immediately for the next rescan (manual or the background
+    AccountDiscoveryPoller) -- no backend restart needed, since
+    bootstrap.load_accounts() reads these env vars fresh on every call.
+    Not persisted here; the WPF launcher re-sends its saved value on every
+    startup (same pattern as LicenseGateway.SyncBackendAsync for the license key).
+    """
+    os.environ["TG_API_ID_DEFAULT"] = str(body.api_id)
+    os.environ["TG_API_HASH_DEFAULT"] = body.api_hash
+    return schemas.DefaultCredentialsOut(api_id=body.api_id, api_hash=body.api_hash)
+
+
 @app.post("/accounts/{phone}/role")
 async def assign_role(phone: str, body: schemas.AssignValueRequest) -> dict:
     manager: AccountManagerService = app.state.account_manager
@@ -1189,8 +1318,13 @@ async def recheck_accounts(body: schemas.RecheckRequest) -> schemas.RecheckRespo
 
 @app.post("/accounts/rescan", response_model=schemas.RescanResponse)
 async def rescan_accounts() -> schemas.RescanResponse:
-    """Re-scans the accounts directories for new .session+.json pairs and registers them."""
-    return schemas.RescanResponse(new_accounts=await _rescan_account_storage())
+    """Re-scans the accounts/tdata directories for newly dropped accounts and registers them."""
+    new_phones, load_failures = await _rescan_account_storage()
+    return schemas.RescanResponse(
+        new_accounts=len(new_phones),
+        new_phones=new_phones,
+        failures=[schemas.AccountLoadFailureOut(**f) for f in load_failures],
+    )
 
 
 @app.post("/number_checker/start", response_model=schemas.NumberCheckerStartResponse)
@@ -1531,6 +1665,7 @@ async def start_invite_by_number(
             delay_max_sec=body.delay_max_sec,
             max_flood_wait_sec=body.max_flood_wait_sec,
             message_template=body.message_template,
+            require_proxy=body.require_proxy,
         )
     except InviteByNumberAlreadyRunningError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

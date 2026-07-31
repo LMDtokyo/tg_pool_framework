@@ -370,6 +370,23 @@ public sealed class BackendClient
         return (await resp.Content.ReadFromJsonAsync<RescanResponse>(ct))!;
     }
 
+    /// <summary>api_id/api_hash currently applied to bare .session drops with no .json companion.</summary>
+    public async Task<DefaultCredentialsDto> GetDefaultCredentialsAsync(CancellationToken ct = default)
+    {
+        var result = await _http.GetFromJsonAsync<DefaultCredentialsDto>("/accounts/default_credentials", ct);
+        return result ?? new DefaultCredentialsDto();
+    }
+
+    /// <summary>Takes effect immediately (no backend restart needed) -- see set_default_credentials().</summary>
+    public async Task<DefaultCredentialsDto> SetDefaultCredentialsAsync(
+        int apiId, string apiHash, CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync(
+            "/accounts/default_credentials", new DefaultCredentialsDto { ApiId = apiId, ApiHash = apiHash }, ct);
+        resp.EnsureSuccessStatusCode();
+        return (await resp.Content.ReadFromJsonAsync<DefaultCredentialsDto>(ct))!;
+    }
+
     private async Task PostVoidAsync<T>(string path, T body, CancellationToken ct)
     {
         var resp = await _http.PostAsJsonAsync(path, body, ct);

@@ -6,6 +6,9 @@ internal static class StoriesStrings
     {
         table.Add("Stories.Title", "Сторис", "Stories", "快拍");
         table.Add("Stories.ActionTypeLabel", "Действие", "Action", "操作类型");
+        table.Add("Stories.ActionView", "Просмотр", "View", "浏览");
+        table.Add("Stories.ActionReaction", "Реакция", "Reaction", "回应");
+        table.Add("Stories.ActionPost", "Публикация", "Post", "发布");
         table.Add("Stories.TargetChatLabel", "Канал/чат (@username или ID)", "Channel/chat (@username or ID)", "频道/群组（@用户名 或 ID）");
         table.Add("Stories.TargetStoryIdLabel", "ID сторис", "Story ID", "快拍 ID");
         table.Add("Stories.ReactionEmojiLabel", "Эмодзи реакции", "Reaction emoji", "反应表情");
@@ -13,6 +16,8 @@ internal static class StoriesStrings
         table.Add("Stories.MediaPathLabel", "Файл (фото или видео)", "Media file (photo or video)", "媒体文件（图片或视频）");
         table.Add("Stories.CaptionLabel", "Подпись (необязательно)", "Caption (optional)", "说明文字（可选）");
         table.Add("Stories.PrivacyLabel", "Кто увидит", "Who can see it", "谁可以看到");
+        table.Add("Stories.PrivacyEveryone", "Все", "Everyone", "所有人");
+        table.Add("Stories.PrivacyContacts", "Только контакты", "Contacts only", "仅联系人");
         table.Add("Stories.PeriodHoursLabel", "Часов в архиве", "Hours visible", "展示时长（小时）");
         table.Add("Stories.PeriodHoursTooltip", "Оставьте пустым для стандартных 24 часов", "Leave empty for the standard 24 hours", "留空则默认 24 小时");
         table.Add("Stories.SenderPhonesLabel", "Аккаунты (необязательно)", "Accounts (optional)", "账号（可选）");
@@ -44,6 +49,10 @@ internal static class StoriesStrings
             "启用后，只要所选账号中有任何一个未配置代理，任务就不会启动");
 
         table.Add("Stories.ChooseMediaTitle", "Выбрать файл", "Choose media file", "选择媒体文件");
+        table.Add("Stories.ChooseMediaFilter",
+            "Медиафайлы (*.jpg;*.jpeg;*.png;*.mp4;*.mov)|*.jpg;*.jpeg;*.png;*.mp4;*.mov|Все файлы|*.*",
+            "Media files (*.jpg;*.jpeg;*.png;*.mp4;*.mov)|*.jpg;*.jpeg;*.png;*.mp4;*.mov|All files|*.*",
+            "媒体文件 (*.jpg;*.jpeg;*.png;*.mp4;*.mov)|*.jpg;*.jpeg;*.png;*.mp4;*.mov|所有文件|*.*");
 
         table.Add("Stories.ProgressHeader", "ПРОГРЕСС", "PROGRESS", "进度");
         table.Add("Stories.NotRunning", "Не запущено", "Not running", "未运行");

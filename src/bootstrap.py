@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from src.config import AccountConfig, ProxyConfig
 
@@ -200,10 +200,33 @@ def _load_accounts_from_env() -> List[AccountConfig]:
     return accounts
 
 
-def load_accounts() -> Tuple[List[AccountConfig], List[AccountConfig]]:
+def _load_fingerprint_catalog_for_bare_import():
+    """
+    Best-effort: a bare .session (no .json companion) needs a real, unique
+    fingerprint instead of AccountConfig's hardcoded defaults (see
+    load_accounts_from_directory). Missing/invalid catalog file -> None,
+    same graceful-degradation convention as build_redis_client() -- callers
+    fall back to the old default-signature behavior rather than failing startup.
+    """
+    accounts_dir = os.getenv("ACCOUNTS_DIR", "accounts")
+    path = os.getenv(
+        "TELEGRAM_FINGERPRINT_FILE",
+        os.path.join(os.path.dirname(accounts_dir), "Fingerprints", "telegram_devices.xlsx"),
+    )
+    from src.api.telegram_auth import FingerprintCatalog
+
+    try:
+        return FingerprintCatalog.load(path)
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def load_accounts(load_failures: Optional[List[dict]] = None) -> Tuple[List[AccountConfig], List[AccountConfig]]:
     from src.accounts.account_loader import load_accounts_from_directory
 
     proxies_raw = load_proxies_from_env()
+    fingerprint_catalog = _load_fingerprint_catalog_for_bare_import()
+    used_fingerprints: set = set()
 
     accounts_dir = os.getenv("ACCOUNTS_DIR", "")
     if accounts_dir and os.path.isdir(accounts_dir):
@@ -213,6 +236,9 @@ def load_accounts() -> Tuple[List[AccountConfig], List[AccountConfig]]:
             api_hash=os.getenv("TG_API_HASH_DEFAULT", ""),
             proxies=proxies_raw or None,
             accounts_per_proxy=env_int("ACCOUNTS_PER_PROXY", "1"),
+            fingerprint_catalog=fingerprint_catalog,
+            used_fingerprints=used_fingerprints,
+            load_failures=load_failures,
         )
     else:
         primary = _load_accounts_from_env()
@@ -226,12 +252,15 @@ def load_accounts() -> Tuple[List[AccountConfig], List[AccountConfig]]:
             api_hash=os.getenv("TG_API_HASH_DEFAULT", ""),
             proxies=proxies_raw or None,
             accounts_per_proxy=env_int("ACCOUNTS_PER_PROXY", "1"),
+            fingerprint_catalog=fingerprint_catalog,
+            used_fingerprints=used_fingerprints,
+            load_failures=load_failures,
         )
 
     return primary, spare
 
 
-async def load_tdata_accounts() -> List[AccountConfig]:
+async def load_tdata_accounts(load_failures: Optional[List[dict]] = None) -> List[AccountConfig]:
     """
     Convert every tdata folder found under TDATA_ACCOUNTS_DIR into AccountConfig,
     via load_from_tdata() (src/accounts/account_loader.py -> TDataConverter).
@@ -240,6 +269,9 @@ async def load_tdata_accounts() -> List[AccountConfig]:
     returned by find_tdata_folders()) -> 2FA cloud password, for accounts
     protected by two-step verification. A folder with no matching entry is
     converted with password=None -- fine unless that specific account has 2FA.
+
+    load_failures, if given, is appended in place with {"file": ..., "reason": ...}
+    for every tdata folder that failed to convert.
     """
     tdata_dir = os.getenv("TDATA_ACCOUNTS_DIR", "")
     if not tdata_dir or not os.path.isdir(tdata_dir):
@@ -265,6 +297,8 @@ async def load_tdata_accounts() -> List[AccountConfig]:
             accounts.append(account)
         except Exception as exc:
             logger.error("Failed to convert tdata folder %s: %s", tdata_path, exc)
+            if load_failures is not None:
+                load_failures.append({"file": os.path.basename(tdata_path), "reason": str(exc)})
 
     logger.info("Converted %d account(s) from tdata under %s.", len(accounts), tdata_dir)
     return accounts
