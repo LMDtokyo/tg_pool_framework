@@ -6,6 +6,7 @@
              xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="700">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -38,8 +39,12 @@
             <CheckBox Content="{tr:Tr Tdata.AllAccountsCheckbox}"
                       IsChecked="{Binding AllAccounts}" Margin="0,0,0,16" />
 
-            <Button Content="{tr:Tr Tdata.ConvertButton}" Padding="20,8" HorizontalAlignment="Left"
-                    Command="{Binding StartCommand}" />
+            <StackPanel Orientation="Horizontal">
+                <Button Content="{tr:Tr Tdata.ConvertButton}" Padding="20,8" HorizontalAlignment="Left"
+                        Command="{Binding StartCommand}" />
+                <ProgressBar Width="20" Height="20" Margin="12,0,0,0" IsIndeterminate="True"
+                             Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
 
             <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource DangerBrush}" Margin="0,12,0,0" TextWrapping="Wrap" />
         </StackPanel>
@@ -54,4 +59,5 @@
             </DataGrid.Columns>
         </DataGrid>
     </Grid>
+    </ScrollViewer>
 </UserControl>

@@ -14,13 +14,14 @@ namespace TgPoolLauncher.Services;
 public sealed class EventStreamClient : IAsyncDisposable
 {
     private readonly Uri _uri;
+    private readonly string? _localApiToken;
     private CancellationTokenSource? _cts;
     private Task? _runTask;
 
     public event Action<EventEnvelope>? EventReceived;
     public event Action<bool>? ConnectionStateChanged;
 
-    public EventStreamClient(Uri backendBaseUri)
+    public EventStreamClient(Uri backendBaseUri, string? localApiToken = null)
     {
         var builder = new UriBuilder(backendBaseUri)
         {
@@ -28,6 +29,7 @@ public sealed class EventStreamClient : IAsyncDisposable
             Path = "/ws/events",
         };
         _uri = builder.Uri;
+        _localApiToken = localApiToken;
     }
 
     public void Start()
@@ -61,6 +63,8 @@ public sealed class EventStreamClient : IAsyncDisposable
         while (!ct.IsCancellationRequested)
         {
             using var socket = new ClientWebSocket();
+            if (!string.IsNullOrEmpty(_localApiToken))
+                socket.Options.SetRequestHeader("X-Local-Token", _localApiToken);
             try
             {
                 await socket.ConnectAsync(_uri, ct);

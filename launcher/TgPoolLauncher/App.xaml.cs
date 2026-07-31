@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.IO;
+using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -68,11 +70,12 @@ public partial class App : System.Windows.Application
                 {
                     var processManager = sp.GetRequiredService<BackendProcessManager>();
                     http.BaseAddress = processManager.BaseUri;
+                    http.DefaultRequestHeaders.Add("X-Local-Token", processManager.LocalApiToken);
                 });
                 services.AddSingleton(sp =>
                 {
                     var processManager = sp.GetRequiredService<BackendProcessManager>();
-                    return new EventStreamClient(processManager.BaseUri);
+                    return new EventStreamClient(processManager.BaseUri, processManager.LocalApiToken);
                 });
                 services.AddHttpClient<RecommendedToolsService>();
 
@@ -93,6 +96,8 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<SmsPoolViewModel>();
                 services.AddSingleton<GrizzlySmsViewModel>();
                 services.AddSingleton<DatamollViewModel>();
+                services.AddSingleton<ManualViewModel>();
+                services.AddSingleton<LicenseStatusViewModel>();
 
                 services.AddSingleton<DashboardView>();
                 services.AddSingleton<AccountsView>();
@@ -116,6 +121,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<EngagementView>();
                 services.AddSingleton<StoriesView>();
                 services.AddSingleton<AutoRegisterHostView>();
+                services.AddSingleton<ManualView>();
                 services.AddSingleton<MainWindow>();
             })
             .Build();
@@ -147,8 +153,14 @@ public partial class App : System.Windows.Application
 
         // Forward the console activator's cached key+hwid to the local backend, which now
         // owns its own periodic re-validation against the license server (src/licensing) --
-        // this call just seeds that state, it doesn't gate this WPF process itself.
-        await LicenseGateway.SyncBackendAsync(_host.Services.GetRequiredService<BackendClient>(), AppPaths.Data);
+        // this call just seeds that state, it doesn't gate this WPF process itself. The
+        // returned status (tier + expiry) also feeds the sidebar's subscription countdown.
+        var licenseStatus = await LicenseGateway.SyncBackendAsync(_host.Services.GetRequiredService<BackendClient>(), AppPaths.Data);
+        _host.Services.GetRequiredService<LicenseStatusViewModel>().SetStatus(licenseStatus);
+
+        // Same reasoning: the backend process's env vars are fixed at launch, so whatever
+        // default api_id/api_hash the operator saved last session must be re-sent here.
+        await SyncDefaultCredentialsAsync(_host.Services.GetRequiredService<BackendClient>());
 
         _host.Services.GetRequiredService<EventStreamClient>().Start();
 
@@ -158,6 +170,22 @@ public partial class App : System.Windows.Application
         InitializeTrayIcon();
         mainWindow.Show();
         mainWindow.FadeIn();
+    }
+
+    /// <summary>No-op if nothing was ever saved (Accounts tab, "default api_id/api_hash" field).</summary>
+    private static async Task SyncDefaultCredentialsAsync(BackendClient backend)
+    {
+        var cached = DefaultCredentialsCacheFile.TryLoad(AppPaths.Data);
+        if (cached is null || cached.ApiId <= 0 || string.IsNullOrEmpty(cached.ApiHash))
+            return;
+        try
+        {
+            await backend.SetDefaultCredentialsAsync(cached.ApiId, cached.ApiHash);
+        }
+        catch (HttpRequestException)
+        {
+            // best-effort -- a stale/unreachable backend must not block startup
+        }
     }
 
     private void InitializeTrayIcon()
@@ -263,6 +291,9 @@ public partial class App : System.Windows.Application
         return File.Exists(venvPython) ? venvPython : "python";
     }
 
+    private static readonly Regex ApiHashPattern = new(@"\b[0-9a-fA-F]{32}\b", RegexOptions.Compiled);
+    private static readonly Regex CredentialUrlPattern = new(@"://[^/\s:@]+:[^/\s:@]+@", RegexOptions.Compiled);
+
     /// <summary>
     /// Persists a crash report under Data\Crashes -- falls back to the base
     /// directory if a crash happens before AppPaths.Initialize() has run.
@@ -274,11 +305,24 @@ public partial class App : System.Windows.Application
         {
             var dir = string.IsNullOrEmpty(AppPaths.Crashes) ? AppContext.BaseDirectory : AppPaths.Crashes;
             var path = Path.Combine(dir, $"crash-{DateTime.Now:yyyyMMdd-HHmmss}.log");
-            File.WriteAllText(path, $"{kind}\n{details}");
+            File.WriteAllText(path, $"{kind}\n{ScrubSecrets(details)}");
         }
         catch
         {
             // best-effort -- swallow so the crash handler itself can't throw
         }
+    }
+
+    /// <summary>
+    /// Redacts secret-shaped substrings (api_hash-style hex, credential URLs) that
+    /// could theoretically end up embedded in an exception's message or Data before
+    /// this best-effort dump lands on disk. Defense in depth, not a guarantee --
+    /// nothing in this app currently puts a raw secret into an exception.
+    /// </summary>
+    private static string ScrubSecrets(string text)
+    {
+        text = ApiHashPattern.Replace(text, "[redacted]");
+        text = CredentialUrlPattern.Replace(text, "://[redacted]@");
+        return text;
     }
 }

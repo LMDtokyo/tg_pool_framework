@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Xml.Linq;
 using Microsoft.Win32;
+using TgPoolLauncher.Localization;
 using TgPoolLauncher.Models;
 using TgPoolLauncher.Services;
 
@@ -16,11 +17,16 @@ namespace TgPoolLauncher.Views;
 
 public partial class InviteByNumberView : UserControl
 {
-    private static readonly string ReceiverIdsPlaceholder =
-        "List of Telegram receiver IDs (export ID column), one per line:\n" +
-        "8535286786\n8820638155\n@username\n\n" +
-        "Load a parse export xlsx (ID column) via Use base data, or paste IDs here.\n" +
-        "Paste https://t.me/... invite links under each sender account in Groups, then press Run.";
+    // Sample ID baked into the placeholder text in every language (see
+    // InviteByNumberStrings.ReceiverIdsPlaceholder) -- used to detect an
+    // untouched box regardless of which language it was populated in.
+    private const string PlaceholderSentinel = "8535286786";
+
+    private static string ReceiverIdsPlaceholder =>
+        LocalizationService.Instance["InviteByNumber.ReceiverIdsPlaceholder"];
+
+    private static string DatabasePathPlaceholder =>
+        LocalizationService.Instance["InviteByNumber.DatabasePathPlaceholder"];
 
     private static readonly HashSet<string> PhoneHeaderNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -50,6 +56,8 @@ public partial class InviteByNumberView : UserControl
         _backend = backend;
         InitializeComponent();
         ProgramActionsGrid.ItemsSource = _programActions;
+        PhoneNumbersTextBox.Text = ReceiverIdsPlaceholder;
+        BaseDataPathTextBox.Text = DatabasePathPlaceholder;
         Loaded += async (_, _) => await LoadAccountGroupsAsync();
     }
 
@@ -66,7 +74,7 @@ public partial class InviteByNumberView : UserControl
     {
         _useBaseData = false;
         BaseDataPanel.Visibility = Visibility.Collapsed;
-        BaseDataPathTextBox.Text = "Path to the database file";
+        BaseDataPathTextBox.Text = DatabasePathPlaceholder;
         UseBaseDataOkButton.Background = (System.Windows.Media.Brush)FindResource("SurfaceHoverBrush");
         UseBaseDataNoButton.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#6D0616")!;
         UpdateReceiverIdsHeader();
@@ -76,8 +84,8 @@ public partial class InviteByNumberView : UserControl
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select receiver ID database",
-            Filter = "Excel workbook (*.xlsx)|*.xlsx",
+            Title = LocalizationService.Instance["InviteByNumber.SelectDatabaseDialogTitle"],
+            Filter = LocalizationService.Instance["InviteByNumber.ExcelWorkbookFilter"],
             CheckFileExists = true,
             Multiselect = false,
         };
@@ -92,10 +100,12 @@ public partial class InviteByNumberView : UserControl
         {
             _programActions.Insert(0, new ProgramActionRow(
                 DateTime.Now.ToString("HH:mm:ss"),
-                account: "Base data",
+                account: LocalizationService.Instance["InviteByNumber.BaseDataJobLabel"],
                 recipientId: "",
                 state: "ready",
-                message: $"No Telegram IDs found in the ID column of {Path.GetFileName(dialog.FileName)}"));
+                message: string.Format(
+                    LocalizationService.Instance["InviteByNumber.NoIdsFoundFormat"],
+                    Path.GetFileName(dialog.FileName))));
             UpdateReceiverIdsHeader();
             return;
         }
@@ -129,20 +139,20 @@ public partial class InviteByNumberView : UserControl
         if (recipients.Count == 0)
         {
             AddStatusRow(
-                "Invite by number",
+                LocalizationService.Instance["InviteByNumber.JobLabel"],
                 "ready",
                 _useBaseData
-                    ? "Load a parse export xlsx with Telegram IDs in the ID column, or paste IDs on the right."
-                    : "Paste receiver Telegram IDs on the right before running.");
+                    ? LocalizationService.Instance["InviteByNumber.NoBaseDataMessage"]
+                    : LocalizationService.Instance["InviteByNumber.NoManualIdsMessage"]);
             return;
         }
 
         if (senderLinks.Count == 0)
         {
             AddStatusRow(
-                "Invite by number",
+                LocalizationService.Instance["InviteByNumber.JobLabel"],
                 "ready",
-                "Enter at least one https://t.me/... invite link under a saved account in Groups.");
+                LocalizationService.Instance["InviteByNumber.NoInviteLinksMessage"]);
             return;
         }
 
@@ -153,7 +163,7 @@ public partial class InviteByNumberView : UserControl
             var senderPhone = ResolveSenderPhone(link.SenderAccount);
             if (senderPhone is null)
             {
-                AddStatusRow(link.SenderAccount, "failed", "Could not map sender label to a saved account phone.");
+                AddStatusRow(link.SenderAccount, "failed", LocalizationService.Instance["InviteByNumber.SenderMappingFailedMessage"]);
                 return;
             }
             senderPhones.Add(senderPhone);
@@ -183,7 +193,10 @@ public partial class InviteByNumberView : UserControl
                 account: DisplayAccount(row, senderPhones),
                 recipientId: row.ReceiverId,
                 state: "pending",
-                message: $"Queued for {DisplayAccount(row, senderPhones)} (ID {row.ReceiverId})"));
+                message: string.Format(
+                    LocalizationService.Instance["InviteByNumber.QueuedForFormat"],
+                    DisplayAccount(row, senderPhones),
+                    row.ReceiverId)));
         }
 
         try
@@ -196,22 +209,29 @@ public partial class InviteByNumberView : UserControl
                 DelayMinSec = ParseNonNegativeDouble(DelayMinTextBox.Text, 1),
                 DelayMaxSec = ParseNonNegativeDouble(DelayMaxTextBox.Text, 10),
                 MaxFloodWaitSec = ParseNonNegativeDouble(MaxFloodWaitTextBox.Text, 500),
+                RequireProxy = RequireProxyToggle.IsChecked == true,
             }, ct);
 
-            AddStatusRow("Invite by number", "running", $"Started job {response.JobId}");
+            AddStatusRow(
+                LocalizationService.Instance["InviteByNumber.JobLabel"],
+                "running",
+                string.Format(LocalizationService.Instance["InviteByNumber.StartedJobFormat"], response.JobId));
             await PollInviteStatusAsync(ct);
         }
         catch (OperationCanceledException)
         {
-            AddStatusRow("Invite by number", "ready", "Invite requests stopped.");
+            AddStatusRow(
+                LocalizationService.Instance["InviteByNumber.JobLabel"],
+                "ready",
+                LocalizationService.Instance["InviteByNumber.RequestsStoppedMessage"]);
         }
         catch (Exception ex)
         {
-            AddStatusRow("Invite by number", "failed", ex.Message);
+            AddStatusRow(LocalizationService.Instance["InviteByNumber.JobLabel"], "failed", ex.Message);
             foreach (var row in _programActions.Where(r => r.State is "pending" or "sending" or "waiting"))
             {
                 row.State = "failed";
-                row.Message = "Job failed to start.";
+                row.Message = LocalizationService.Instance["InviteByNumber.JobFailedToStartMessage"];
             }
         }
     }
@@ -222,11 +242,17 @@ public partial class InviteByNumberView : UserControl
         try
         {
             await _backend.StopInviteByNumberAsync();
-            AddStatusRow("Invite by number", "ready", "Stop requested.");
+            AddStatusRow(
+                LocalizationService.Instance["InviteByNumber.JobLabel"],
+                "ready",
+                LocalizationService.Instance["InviteByNumber.StopRequestedMessage"]);
         }
         catch (Exception ex)
         {
-            AddStatusRow("Invite by number", "failed", $"Stop failed: {ex.Message}");
+            AddStatusRow(
+                LocalizationService.Instance["InviteByNumber.JobLabel"],
+                "failed",
+                string.Format(LocalizationService.Instance["InviteByNumber.StopFailedFormat"], ex.Message));
         }
     }
 
@@ -237,7 +263,7 @@ public partial class InviteByNumberView : UserControl
         _pollCancellation = null;
         _programActions.Clear();
         _baseReceivers.Clear();
-        BaseDataPathTextBox.Text = "Path to the database file";
+        BaseDataPathTextBox.Text = DatabasePathPlaceholder;
         UpdateReceiverIdsHeader();
     }
 
@@ -271,16 +297,16 @@ public partial class InviteByNumberView : UserControl
             row.Time = DateTime.Now.ToString("HH:mm:ss");
             row.State = result.State;
             row.Message = string.IsNullOrWhiteSpace(result.Message)
-                ? $"{result.State} via {result.SenderPhone}"
+                ? string.Format(LocalizationService.Instance["InviteByNumber.ViaSenderFormat"], result.State, result.SenderPhone)
                 : result.Message;
         }
 
         if (status.Finished)
         {
             var summary = status.Error is null
-                ? $"Finished: sent {status.Sent}, failed {status.Failed}."
-                : $"Finished with error: {status.Error}";
-            AddStatusRow("Invite by number", status.Error is null ? "sent" : "failed", summary);
+                ? string.Format(LocalizationService.Instance["InviteByNumber.FinishedSummaryFormat"], status.Sent, status.Failed)
+                : string.Format(LocalizationService.Instance["InviteByNumber.FinishedErrorFormat"], status.Error);
+            AddStatusRow(LocalizationService.Instance["InviteByNumber.JobLabel"], status.Error is null ? "sent" : "failed", summary);
         }
     }
 
@@ -347,7 +373,9 @@ public partial class InviteByNumberView : UserControl
     {
         if (PhoneNumbersHeaderText is null)
             return;
-        PhoneNumbersHeaderText.Text = $"RECEIVER IDs : {CollectRecipients().Count}";
+        PhoneNumbersHeaderText.Text = string.Format(
+            LocalizationService.Instance["InviteByNumber.ReceiverIdsHeaderFormat"],
+            CollectRecipients().Count);
     }
 
     private static string DisplayAccount(ReceiverRow row, ISet<string>? senderPhones = null)
@@ -361,12 +389,15 @@ public partial class InviteByNumberView : UserControl
 
     private static string BuildReadyMessage(ReceiverRow row, string fileName)
     {
-        var parts = new List<string> { $"ID {row.ReceiverId}" };
+        var parts = new List<string> { string.Format(LocalizationService.Instance["InviteByNumber.IdLabelFormat"], row.ReceiverId) };
         if (!string.IsNullOrWhiteSpace(row.Username))
             parts.Add(row.Username);
         if (!string.IsNullOrWhiteSpace(row.PhoneNumber))
             parts.Add(row.PhoneNumber);
-        return $"Added {string.Join(" / ", parts)} from {fileName}";
+        return string.Format(
+            LocalizationService.Instance["InviteByNumber.AddedFromFileFormat"],
+            string.Join(" / ", parts),
+            fileName);
     }
 
     private static bool IsSenderPhone(string? phone, ISet<string>? senderPhones)
@@ -402,8 +433,7 @@ public partial class InviteByNumberView : UserControl
     private static List<string> ParseReceiverIdsText(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw)
-            || raw.StartsWith("List of Telegram receiver IDs", StringComparison.OrdinalIgnoreCase)
-            || raw.StartsWith("List of phone numbers", StringComparison.OrdinalIgnoreCase))
+            || raw.Contains(PlaceholderSentinel, StringComparison.Ordinal))
         {
             return [];
         }

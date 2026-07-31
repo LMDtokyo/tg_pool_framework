@@ -130,6 +130,11 @@ class LicenseStateRow(Base):
     tier: Mapped[str] = mapped_column(Text, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_validated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # Ed25519 signature (hex) over license_key|hwid|tier|expires_at from the license
+    # server (see src/licensing/signature.py). Empty for rows written before this
+    # column existed, or by a license_server not yet upgraded to sign responses --
+    # such rows are treated as unverified, not trusted blindly, on restore_cached().
+    signature: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False

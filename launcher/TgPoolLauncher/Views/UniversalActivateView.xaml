@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1080">
     <UserControl.Resources>
@@ -94,11 +95,12 @@
     </UserControl.Resources>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto">
         <Grid Margin="16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.05*" MinWidth="430" />
+                <ColumnDefinition Width="1.05*" MinWidth="300" />
                 <ColumnDefinition Width="18" />
-                <ColumnDefinition Width="1.25*" MinWidth="420" />
+                <ColumnDefinition Width="1.25*" MinWidth="280" />
             </Grid.ColumnDefinitions>
 
             <!-- Registration configuration -->
@@ -115,17 +117,18 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock x:Name="PageTitleText" Text="UNIVERSAL (ACTIVATE)" Style="{StaticResource SectionTitleStyle}" />
-                            <TextBlock x:Name="PageSubtitleText" Text="Configure universal SMS activation and account defaults"
+                            <TextBlock x:Name="PageTitleText" Text="{tr:Tr UniversalActivate.Title}" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock x:Name="PageSubtitleText" Text="{tr:Tr UniversalActivate.Subtitle}" TextWrapping="Wrap"
                                        Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,5,0,0" />
                         </StackPanel>
-                        <Border Grid.Column="1" Width="102" Height="32"
+                        <Border Grid.Column="1" MinWidth="102" Height="32"
                                 Background="{StaticResource AccentTintBrush}" CornerRadius="9" Padding="10,0">
                             <Grid>
                                 <Ellipse Width="7" Height="7" Fill="{StaticResource TextFaintBrush}"
                                          Margin="0,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                                <TextBlock Text=" Not running" Foreground="{StaticResource TextMutedBrush}"
-                                           FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Text="{tr:Tr UniversalActivate.NotRunning}" Foreground="{StaticResource TextMutedBrush}"
+                                           FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                             </Grid>
                         </Border>
                     </Grid>
@@ -142,31 +145,31 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
-                                            <TextBlock Text="Use SMS service" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBlock Text="{tr:Tr UniversalActivate.UseSmsServiceLabel}" Style="{StaticResource FieldLabelStyle}" />
                                             <CheckBox Style="{StaticResource SwitchStyle}" IsChecked="True" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="2">
-                                            <TextBlock Text="SMS service" Style="{StaticResource FieldLabelStyle}" />
-                                            <ComboBox x:Name="SmsServiceCombo" SelectedIndex="0" Height="42">
-                                                <ComboBoxItem Content="hero-sms.com" />
-                                                <ComboBoxItem Content="sms-activate.guru" />
-                                                <ComboBoxItem Content="5sim.net" />
-                                                <ComboBoxItem Content="Custom provider" />
+                                            <TextBlock Text="{tr:Tr UniversalActivate.SmsServiceLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                            <ComboBox x:Name="SmsServiceCombo" SelectedIndex="0" SelectedValuePath="Tag" Height="42">
+                                                <ComboBoxItem Tag="hero-sms.com" Content="hero-sms.com" />
+                                                <ComboBoxItem Tag="sms-activate.guru" Content="sms-activate.guru" />
+                                                <ComboBoxItem Tag="5sim.net" Content="5sim.net" />
+                                                <ComboBoxItem Tag="custom" Content="{tr:Tr UniversalActivate.ProviderCustom}" />
                                             </ComboBox>
                                         </StackPanel>
                                     </Grid>
 
-                                    <TextBlock Text="API key" Style="{StaticResource FieldLabelStyle}" />
-                                    <TextBox Height="44" Margin="0,0,0,14" ToolTip="API key from the selected SMS service" />
+                                    <TextBlock Text="{tr:Tr UniversalActivate.ApiKeyLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox Height="44" Margin="0,0,0,14" ToolTip="{tr:Tr UniversalActivate.ApiKeyTooltip}" />
 
-                                    <TextBlock Text="Registration database" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr UniversalActivate.RegistrationDatabaseLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <Grid Margin="0,0,0,14">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBox Height="44" ToolTip="Path to the registration database" />
-                                        <Button Grid.Column="1" Margin="8,0,0,0" Padding="11,6" ToolTip="Choose database file">
+                                        <TextBox Height="44" ToolTip="{tr:Tr UniversalActivate.RegistrationDatabaseTooltip}" />
+                                        <Button Grid.Column="1" Margin="8,0,0,0" Padding="11,6" ToolTip="{tr:Tr UniversalActivate.ChooseDatabaseFileTooltip}">
                                             <iconPacks:PackIconMaterial Kind="FolderOpenOutline" Width="15" Height="15" />
                                         </Button>
                                     </Grid>
@@ -181,7 +184,7 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="44" />
                                         </Grid.RowDefinitions>
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Balance"
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{tr:Tr UniversalActivate.BalanceLabel}"
                                                    Style="{StaticResource FieldLabelStyle}" />
                                         <TextBox Grid.Row="1" Grid.Column="0" Text="RUB  0.00"
                                                  Height="44" IsReadOnly="True" />
@@ -189,14 +192,14 @@
                                                 Height="34" VerticalAlignment="Center">
                                             <StackPanel Orientation="Horizontal">
                                                 <iconPacks:PackIconMaterial Kind="CloudDownloadOutline" Width="14" Height="14" Margin="0,0,7,0" />
-                                                <TextBlock Text="Get data" />
+                                                <TextBlock Text="{tr:Tr UniversalActivate.GetDataButton}" />
                                             </StackPanel>
                                         </Button>
                                     </Grid>
 
-                                    <TextBlock Text="Available countries" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr UniversalActivate.AvailableCountriesLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ComboBox SelectedIndex="0" Height="42" Margin="0,0,0,14">
-                                        <ComboBoxItem Content="Select a country" IsEnabled="False" />
+                                        <ComboBoxItem Content="{tr:Tr UniversalActivate.SelectCountryPlaceholder}" IsEnabled="False" />
                                     </ComboBox>
 
                                     <Grid Margin="0,0,0,14">
@@ -209,81 +212,81 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="42" />
                                         </Grid.RowDefinitions>
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Available operators"
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{tr:Tr UniversalActivate.AvailableOperatorsLabel}"
                                                    Style="{StaticResource FieldLabelStyle}" />
                                         <ComboBox Grid.Row="1" Grid.Column="0" SelectedIndex="0" Height="42">
-                                            <ComboBoxItem Content="Select an operator" IsEnabled="False" />
+                                            <ComboBoxItem Content="{tr:Tr UniversalActivate.SelectOperatorPlaceholder}" IsEnabled="False" />
                                         </ComboBox>
                                         <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource PrimaryButtonStyle}"
                                                 Height="34" VerticalAlignment="Center">
                                             <StackPanel Orientation="Horizontal">
                                                 <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Margin="0,0,7,0" />
-                                                <TextBlock Text="Refresh" />
+                                                <TextBlock Text="{tr:Tr Common.Refresh}" />
                                             </StackPanel>
                                         </Button>
                                     </Grid>
 
                                     <UniformGrid Columns="2">
                                         <StackPanel Margin="0,0,8,0">
-                                            <TextBlock Text="Price per SMS" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBlock Text="{tr:Tr UniversalActivate.PricePerSmsLabel}" Style="{StaticResource FieldLabelStyle}" />
                                             <TextBox Text="RUB  0.00" Height="44" IsReadOnly="True" />
                                         </StackPanel>
                                         <StackPanel Margin="8,0,0,0">
-                                            <TextBlock Text="Numbers available" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBlock Text="{tr:Tr UniversalActivate.NumbersAvailableLabel}" Style="{StaticResource FieldLabelStyle}" />
                                             <TextBox Text="0" Height="44" IsReadOnly="True" />
                                         </StackPanel>
                                     </UniformGrid>
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Text="REGISTRATION PARAMETERS" Style="{StaticResource SectionTitleStyle}" Margin="2,2,0,12" />
+                            <TextBlock Text="{tr:Tr UniversalActivate.RegistrationParametersHeader}" Style="{StaticResource SectionTitleStyle}" Margin="2,2,0,12" />
                             <UniformGrid Columns="2">
                                 <StackPanel Margin="0,0,10,14">
-                                    <TextBlock Text="Registration tasks" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr UniversalActivate.RegistrationTasksLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <TextBox Text="5" Height="44" />
                                 </StackPanel>
                                 <StackPanel Margin="0,0,0,14">
-                                    <TextBlock Text="SMS timeout (seconds)" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{tr:Tr UniversalActivate.SmsTimeoutLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <TextBox Text="300" Height="44" />
                                 </StackPanel>
                             </UniformGrid>
 
                             <UniformGrid Columns="2">
                                 <Border Style="{StaticResource SettingTileStyle}">
-                                    <Grid><TextBlock Text="Activate free price" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.ActivateFreePrice}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}" Margin="0,0,0,10">
-                                    <Grid><TextBlock Text="Force voice request" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.ForceVoiceRequest}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}">
-                                    <Grid><TextBlock Text="Emulate mobile phone" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right" IsChecked="True"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.EmulateMobilePhone}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right" IsChecked="True"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}" Margin="0,0,0,10">
-                                    <Grid><TextBlock Text="Set names from file" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.SetNamesFromFile}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}">
-                                    <Grid><TextBlock Text="Reset sessions under 24h" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.ResetSessionsUnder24h}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}" Margin="0,0,0,10">
-                                    <Grid><TextBlock Text="Force reset 2FA" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.ForceReset2FA}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}">
-                                    <Grid><TextBlock Text="Set 2FA" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.Set2FA}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}" Margin="0,0,0,10">
-                                    <Grid><TextBlock Text="Turn off statistics" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.TurnOffStatistics}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}">
-                                    <Grid><TextBlock Text="Streams control" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right" IsChecked="True"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.StreamsControl}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right" IsChecked="True"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}" Margin="0,0,0,10">
-                                    <Grid><TextBlock Text="Proxy SMS requests" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.ProxySmsRequests}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}">
-                                    <Grid><TextBlock Text="Temporary email" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.TemporaryEmail}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right"/></Grid>
                                 </Border>
                                 <Border Style="{StaticResource SettingTileStyle}" Margin="0,0,0,10">
-                                    <Grid><TextBlock Text="Reject code sent to app" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right" IsChecked="True"/></Grid>
+                                    <Grid><TextBlock Text="{tr:Tr UniversalActivate.RejectCodeSentToApp}" VerticalAlignment="Center" FontSize="12" Margin="0,0,52,0" TextWrapping="Wrap"/><CheckBox Style="{StaticResource SwitchStyle}" HorizontalAlignment="Right" IsChecked="True"/></Grid>
                                 </Border>
                             </UniformGrid>
                         </StackPanel>
@@ -309,17 +312,17 @@
                         <Grid Margin="20,17,20,14">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="PROGRAM ACTIVITY" Style="{StaticResource SectionTitleStyle}" />
-                                <TextBlock Text="Registration events will appear here" Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,5,0,0" />
+                                <TextBlock Text="{tr:Tr UniversalActivate.ProgramActivityHeader}" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="{tr:Tr UniversalActivate.ActivitySubtitle}" TextWrapping="Wrap" Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,5,0,0" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Start" IsEnabled="False">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Common.Start}" IsEnabled="False">
                                     <iconPacks:PackIconMaterial Kind="Play" Width="15" Height="15" />
                                 </Button>
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Stop" IsEnabled="False">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Common.Stop}" IsEnabled="False">
                                     <iconPacks:PackIconMaterial Kind="Stop" Width="15" Height="15" />
                                 </Button>
-                                <Button Style="{StaticResource ToolbarIconButtonStyle}" Margin="0" ToolTip="Clear activity" IsEnabled="False">
+                                <Button Style="{StaticResource ToolbarIconButtonStyle}" Margin="0" ToolTip="{tr:Tr UniversalActivate.ClearActivityTooltip}" IsEnabled="False">
                                     <iconPacks:PackIconMaterial Kind="TrashCanOutline" Width="15" Height="15" />
                                 </Button>
                             </StackPanel>
@@ -328,16 +331,16 @@
                         <DataGrid Grid.Row="1" Margin="20,0" AutoGenerateColumns="False" IsReadOnly="True"
                                   CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Time" Width="100" />
-                                <DataGridTextColumn Header="Account" Width="150" />
-                                <DataGridTextColumn Header="Message" Width="*" />
+                                <DataGridTextColumn Header="{tr:Tr UniversalActivate.ColTime}" Width="100" />
+                                <DataGridTextColumn Header="{tr:Tr UniversalActivate.ColAccount}" Width="150" />
+                                <DataGridTextColumn Header="{tr:Tr UniversalActivate.ColMessage}" Width="*" />
                             </DataGrid.Columns>
                         </DataGrid>
 
                         <Grid Grid.Row="2" Margin="20,12,20,16">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="No registration events yet" Foreground="{StaticResource TextFaintBrush}" FontSize="12" />
-                            <TextBlock Grid.Column="1" Text="0 events" Foreground="{StaticResource TextFaintBrush}" FontSize="12" />
+                            <TextBlock Text="{tr:Tr UniversalActivate.NoEventsYet}" Foreground="{StaticResource TextFaintBrush}" FontSize="12" TextWrapping="Wrap" />
+                            <TextBlock Grid.Column="1" Text="{tr:Tr UniversalActivate.EventsCountZero}" Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="10,0,0,0" />
                         </Grid>
                     </Grid>
                 </Border>
@@ -351,30 +354,30 @@
                                 <iconPacks:PackIconMaterial Kind="InformationOutline" Width="16" Height="16" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="IMPORTANT INFORMATION" Style="{StaticResource SectionTitleStyle}" />
-                                <TextBlock Text="Review these notes before starting registration" Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,4,0,0" />
+                                <TextBlock Text="{tr:Tr UniversalActivate.ImportantInfoHeader}" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="{tr:Tr UniversalActivate.ImportantInfoSubtitle}" TextWrapping="Wrap" Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,4,0,0" />
                             </StackPanel>
                         </Grid>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="20,0,14,18">
                             <StackPanel>
                                 <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="9" Padding="14" Margin="0,0,0,10">
                                     <StackPanel>
-                                        <TextBlock Text="Number filtering" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,5" />
-                                        <TextBlock Text="Reject unsuitable phone numbers before registration starts. Filtering avoids spending activation attempts on numbers that do not meet your rules."
+                                        <TextBlock Text="{tr:Tr UniversalActivate.NumberFilteringTitle}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,5" TextWrapping="Wrap" />
+                                        <TextBlock Text="{tr:Tr UniversalActivate.NumberFilteringBody}"
                                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12" TextWrapping="Wrap" LineHeight="18" />
                                     </StackPanel>
                                 </Border>
                                 <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="9" Padding="14" Margin="0,0,0,10">
                                     <StackPanel>
-                                        <TextBlock Text="SMS timeout and voice fallback" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,5" />
-                                        <TextBlock Text="The timeout controls how long a task waits for a code. Voice fallback should only be enabled when it is supported by the selected provider and country."
+                                        <TextBlock Text="{tr:Tr UniversalActivate.SmsTimeoutFallbackTitle}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,5" TextWrapping="Wrap" />
+                                        <TextBlock Text="{tr:Tr UniversalActivate.SmsTimeoutFallbackBody}"
                                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12" TextWrapping="Wrap" LineHeight="18" />
                                     </StackPanel>
                                 </Border>
                                 <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="9" Padding="14">
                                     <StackPanel>
-                                        <TextBlock Text="Session and 2FA options" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,5" />
-                                        <TextBlock Text="Reset and 2FA settings change the generated account files. Confirm the destination database and proxy configuration before launching a batch."
+                                        <TextBlock Text="{tr:Tr UniversalActivate.SessionAnd2FATitle}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,5" TextWrapping="Wrap" />
+                                        <TextBlock Text="{tr:Tr UniversalActivate.SessionAnd2FABody}"
                                                    Foreground="{StaticResource TextMutedBrush}" FontSize="12" TextWrapping="Wrap" LineHeight="18" />
                                     </StackPanel>
                                 </Border>
@@ -384,5 +387,6 @@
                 </Border>
             </Grid>
         </Grid>
+        </ScrollViewer>
     </Grid>
 </UserControl>

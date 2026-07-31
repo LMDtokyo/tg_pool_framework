@@ -1,14 +1,33 @@
+from datetime import datetime
+
 from fastapi.testclient import TestClient
 
 from license_server.app import app
+from src.licensing.signature import verify_activation
+
+
+def _normalize(iso_string: str) -> str:
+    """Pydantic serializes UTC datetimes with a 'Z' suffix; the real client (see
+    src/licensing/client.py) parses the response into a datetime and re-serializes
+    it via datetime.isoformat() (always '+00:00', never 'Z') before verifying --
+    that's the exact string the server signed. Tests must normalize the same way
+    instead of comparing against the raw wire string."""
+    return datetime.fromisoformat(iso_string).isoformat()
 
 _ADMIN_KEY = "test-admin-key"
+# Throwaway Ed25519 pair for tests only -- unrelated to the real key pair
+# (private half lives only in the deployed license server's environment,
+# public half is baked into src/licensing/signature.py). Generated with
+# license_server/generate_signing_key.py.
+_SIGNING_PRIVATE_KEY = "536d31e2f677ece07053995d7bfe5cc73c5b36a3706f4f402ddd01d5a468bf7e"
+_SIGNING_PUBLIC_KEY = "e2982c3a0dda4a4995e02b48089305c2d4a3227bc66ff85f7a39522834da49f7"
 
 
 def _client(monkeypatch, tmp_path):
     db_path = (tmp_path / "license.db").as_posix()
     monkeypatch.setenv("LICENSE_DATABASE_URL", f"sqlite+aiosqlite:///{db_path}")
     monkeypatch.setenv("LICENSE_ADMIN_API_KEY", _ADMIN_KEY)
+    monkeypatch.setenv("LICENSE_SIGNING_PRIVATE_KEY", _SIGNING_PRIVATE_KEY)
     return TestClient(app)
 
 
@@ -46,6 +65,40 @@ def test_generate_then_activate_round_trip(monkeypatch, tmp_path):
         body = activated.json()
         assert body["tier"] == "month"
         assert body["expires_at"] > body["activated_at"]
+        assert verify_activation(
+            license_key=key_code,
+            hwid="machine-a-hardware-uuid",
+            tier=body["tier"],
+            expires_at=_normalize(body["expires_at"]),
+            signature_hex=body["signature"],
+            public_key_hex=_SIGNING_PUBLIC_KEY,
+        )
+
+
+def test_activate_response_signature_rejects_a_tampered_field(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        generated = client.post(
+            "/admin/keys",
+            json={"tier": "month", "count": 1},
+            headers={"X-Admin-Key": _ADMIN_KEY},
+        )
+        key_code = generated.json()["keys"][0]["key_code"]
+
+        activated = client.post(
+            "/license/activate",
+            json={"license_key": key_code, "hwid": "machine-a-hardware-uuid"},
+        )
+        body = activated.json()
+
+        # Simulates a response tampered in transit -- e.g. a bumped expiry.
+        assert not verify_activation(
+            license_key=key_code,
+            hwid="machine-a-hardware-uuid",
+            tier=body["tier"],
+            expires_at="2099-01-01T00:00:00+00:00",
+            signature_hex=body["signature"],
+            public_key_hex=_SIGNING_PUBLIC_KEY,
+        )
 
 
 def test_activate_same_device_twice_succeeds(monkeypatch, tmp_path):
@@ -168,3 +221,13 @@ def test_version_defaults_when_unset(monkeypatch, tmp_path):
         response = client.get("/version")
     assert response.status_code == 200
     assert response.json()["latest_version"] == "0.0.0"
+
+
+def test_profile_names_requires_no_auth_and_returns_nonempty_pools(monkeypatch, tmp_path):
+    with _client(monkeypatch, tmp_path) as client:
+        response = client.get("/profile-names")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["first_names"]) > 0
+    assert len(body["last_names"]) > 0
+    assert all(isinstance(name, str) for name in body["first_names"])

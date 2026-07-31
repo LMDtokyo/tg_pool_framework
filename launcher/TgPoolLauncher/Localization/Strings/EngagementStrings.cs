@@ -6,6 +6,10 @@ internal static class EngagementStrings
     {
         table.Add("Engagement.Title", "Накрутка", "Engagement", "互动增长");
         table.Add("Engagement.ActionTypeLabel", "Действие", "Action", "操作类型");
+        table.Add("Engagement.ActionReaction", "Реакция", "Reaction", "点赞/回应");
+        table.Add("Engagement.ActionView", "Просмотр", "View", "浏览");
+        table.Add("Engagement.ActionPollVote", "Голос в опросе", "Poll vote", "投票");
+        table.Add("Engagement.ActionComment", "Комментарий", "Comment", "评论");
         table.Add("Engagement.TargetChatLabel", "Канал/чат (@username или ID)", "Channel/chat (@username or ID)", "频道/群组（@用户名 或 ID）");
         table.Add("Engagement.TargetMessageIdLabel", "ID поста", "Post ID", "帖子 ID");
         table.Add("Engagement.ReactionEmojiLabel", "Эмодзи реакции", "Reaction emoji", "反应表情");

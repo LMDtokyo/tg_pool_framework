@@ -19,7 +19,7 @@ def _make_account(phone: str) -> AccountConfig:
 
 
 def _base_client(monkeypatch):
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: ([_make_account("+7001")], []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: ([_make_account("+7001")], []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setattr("src.bootstrap.build_db_session_factory", lambda: None)
     monkeypatch.delenv("SESSION_ENCRYPTION_ENABLED", raising=False)

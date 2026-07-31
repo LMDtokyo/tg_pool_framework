@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TgPoolLauncher.Localization;
 using TgPoolLauncher.Models;
 using TgPoolLauncher.Services;
 
@@ -25,13 +26,13 @@ public partial class DatamollViewModel : ObservableObject
     private string apiSecret = "";
 
     [ObservableProperty]
-    private string balanceDisplay = "Not loaded";
+    private string balanceDisplay = LocalizationService.Instance["Datamoll.BalanceNotLoaded"];
 
     [ObservableProperty]
     private string balanceErrorMessage = "";
 
     [ObservableProperty]
-    private string catalogStatusMessage = "Load the live catalog to select a Telegram product.";
+    private string catalogStatusMessage = LocalizationService.Instance["Datamoll.CatalogStatusLoadPrompt"];
 
     [ObservableProperty]
     private string catalogErrorMessage = "";
@@ -58,14 +59,14 @@ public partial class DatamollViewModel : ObservableObject
     private bool isPurchasing;
 
     public string ProductDescription =>
-        SelectedProduct?.Description ?? "Select a product to see its delivery description.";
+        SelectedProduct?.Description ?? LocalizationService.Instance["Datamoll.ProductDescriptionPlaceholder"];
 
     public string CountryDisplay =>
-        SelectedProduct?.CountryName ?? "Not specified";
+        SelectedProduct?.CountryName ?? LocalizationService.Instance["Datamoll.NotSpecified"];
 
     public string StockDisplay => SelectedProduct?.Stock.ToString(CultureInfo.InvariantCulture) ?? "-";
 
-    public string AccountAgeDisplay => SelectedProduct?.AccountAge ?? "Not specified";
+    public string AccountAgeDisplay => SelectedProduct?.AccountAge ?? LocalizationService.Instance["Datamoll.NotSpecified"];
 
     public string OrderRangeDisplay => SelectedProduct?.OrderRangeDisplay ?? "-";
 
@@ -157,9 +158,12 @@ public partial class DatamollViewModel : ObservableObject
             var result = await _backend.GetDatamollBalanceAsync(
                 ApiKey.Trim(),
                 ApiSecret.Trim());
-            BalanceDisplay =
-                $"{result.Currency} {result.AvailableBalance} available"
-                + $"  (balance {result.Balance}, credit {result.CreditLimit})";
+            BalanceDisplay = string.Format(
+                LocalizationService.Instance["Datamoll.BalanceAvailableFormat"],
+                result.Currency,
+                result.AvailableBalance,
+                result.Balance,
+                result.CreditLimit);
         }
         catch (Exception exc)
         {
@@ -176,7 +180,7 @@ public partial class DatamollViewModel : ObservableObject
     {
         IsBusy = true;
         CatalogErrorMessage = "";
-        CatalogStatusMessage = "Loading in-stock Telegram products...";
+        CatalogStatusMessage = LocalizationService.Instance["Datamoll.CatalogLoading"];
         try
         {
             var result = await _backend.GetDatamollCatalogAsync(
@@ -189,8 +193,11 @@ public partial class DatamollViewModel : ObservableObject
                     .ThenBy(item => item.UnitPrice));
             ApplyProductFilter();
             CatalogStatusMessage = _allProducts.Count == 0
-                ? "No in-stock Telegram products are currently available."
-                : $"{Products.Count} of {_allProducts.Count} in-stock Telegram products shown.";
+                ? LocalizationService.Instance["Datamoll.CatalogEmpty"]
+                : string.Format(
+                    LocalizationService.Instance["Datamoll.CatalogShownFormat"],
+                    Products.Count,
+                    _allProducts.Count);
         }
         catch (Exception exc)
         {
@@ -237,9 +244,9 @@ public partial class DatamollViewModel : ObservableObject
         {
             activityRow.OrderId = null;
             activityRow.Total = TotalDisplay;
-            activityRow.Status = "Purchasing";
+            activityRow.Status = LocalizationService.Instance["Datamoll.StatusPurchasing"];
             activityRow.Delivered = 0;
-            activityRow.Message = "Retrying the same order with Datamoll...";
+            activityRow.Message = LocalizationService.Instance["Datamoll.RetryingOrder"];
             var currentIndex = ActivityRows.IndexOf(activityRow);
             if (currentIndex > 0)
                 ActivityRows.Move(currentIndex, 0);
@@ -248,7 +255,7 @@ public partial class DatamollViewModel : ObservableObject
         IsPurchasing = true;
         IsBusy = true;
         OperationErrorMessage = "";
-        OperationStatusMessage = "Purchasing and waiting for Datamoll delivery...";
+        OperationStatusMessage = LocalizationService.Instance["Datamoll.PurchasingWaiting"];
         try
         {
             var result = await _backend.PurchaseDatamollAccountsAsync(
@@ -262,15 +269,26 @@ public partial class DatamollViewModel : ObservableObject
                 });
             activityRow.OrderId = result.OrderId;
             activityRow.Total = $"{result.Currency} {result.TotalAmount}";
-            activityRow.Status = result.ReusedExisting ? "Recovered" : result.Status;
+            activityRow.Status = result.ReusedExisting
+                ? LocalizationService.Instance["Datamoll.StatusRecovered"]
+                : result.Status;
             activityRow.Delivered = result.DeliveredCount;
-            activityRow.Message = result.ReusedExisting
-                ? $"Recovered and imported: {result.ImportedSessions} session, {result.ImportedTdata} tdata."
-                : $"Downloaded and imported: {result.ImportedSessions} session, {result.ImportedTdata} tdata.";
+            activityRow.Message = string.Format(
+                LocalizationService.Instance[
+                    result.ReusedExisting
+                        ? "Datamoll.RecoveredImportedFormat"
+                        : "Datamoll.DownloadedImportedFormat"],
+                result.ImportedSessions,
+                result.ImportedTdata);
             OperationStatusMessage =
-                $"Order {result.OrderId}: {result.RegisteredAccounts} account(s) added to existing storage"
+                string.Format(
+                    LocalizationService.Instance["Datamoll.OrderAddedFormat"],
+                    result.OrderId,
+                    result.RegisteredAccounts)
                 + (result.SkippedExisting > 0
-                    ? $", {result.SkippedExisting} already existed."
+                    ? string.Format(
+                        LocalizationService.Instance["Datamoll.SkippedExistingSuffixFormat"],
+                        result.SkippedExisting)
                     : ".");
             ResetPendingOrder();
             await LoadBalanceAsync();
@@ -278,10 +296,10 @@ public partial class DatamollViewModel : ObservableObject
         }
         catch (Exception exc)
         {
-            activityRow.Status = "Failed";
+            activityRow.Status = LocalizationService.Instance["Datamoll.StatusFailed"];
             activityRow.Message = exc.Message;
             OperationStatusMessage =
-                "The same order ID will be reused if you press Purchase again.";
+                LocalizationService.Instance["Datamoll.SameOrderWillBeReused"];
             OperationErrorMessage = exc.Message;
         }
         finally
@@ -330,8 +348,11 @@ public partial class DatamollViewModel : ObservableObject
         if (_allProducts.Count > 0)
         {
             CatalogStatusMessage = Products.Count == 0
-                ? $"No countries match \"{search}\"."
-                : $"{Products.Count} of {_allProducts.Count} in-stock Telegram products shown.";
+                ? string.Format(LocalizationService.Instance["Datamoll.NoCountriesMatchFormat"], search)
+                : string.Format(
+                    LocalizationService.Instance["Datamoll.CatalogShownFormat"],
+                    Products.Count,
+                    _allProducts.Count);
         }
     }
 }

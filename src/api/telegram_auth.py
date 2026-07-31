@@ -34,6 +34,10 @@ _REQUIRED_COLUMNS = {
     "PERF_CAT",
 }
 
+# Offline/no-license-server fallback only -- when profile_name_provider is
+# configured (see src/api/app.py), TelegramAuthenticator draws from the
+# shared server-side pool (license_server/profile_names.py) instead, so
+# every install isn't stamping accounts from this same fixed 144-name set.
 _FIRST_NAMES = (
     "Alex",
     "Daniel",
@@ -232,6 +236,7 @@ class TelegramAuthenticator:
             [], ProxyConfig | None | Awaitable[ProxyConfig | None]
         ] | None = None,
         fingerprint_signatures_provider: Callable[[], Iterable[Tuple[str, str]]] | None = None,
+        profile_name_provider: Callable[[], Tuple[str, str]] | None = None,
     ) -> None:
         self._fingerprint_file = fingerprint_file
         self._accounts_dir = Path(accounts_dir)
@@ -239,6 +244,7 @@ class TelegramAuthenticator:
         self._catalog: FingerprintCatalog | None = None
         self._proxy_provider = proxy_provider
         self._fingerprint_signatures_provider = fingerprint_signatures_provider
+        self._profile_name_provider = profile_name_provider
 
     def validate_ready(self) -> None:
         try:
@@ -276,8 +282,11 @@ class TelegramAuthenticator:
         logger.debug("TelegramAuthenticator: building client for account %s", account)
         client = ClientFactory.build(account)
         logger.debug("TelegramAuthenticator: client built for account %s", account)
-        first_name = secrets.choice(_FIRST_NAMES)
-        last_name = secrets.choice(_LAST_NAMES)
+        if self._profile_name_provider is not None:
+            first_name, last_name = self._profile_name_provider()
+        else:
+            first_name = secrets.choice(_FIRST_NAMES)
+            last_name = secrets.choice(_LAST_NAMES)
         try:
             await client.connect()
             sent_code = await client.send_code_request(normalized)

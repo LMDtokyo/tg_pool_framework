@@ -21,6 +21,7 @@ from typing import Optional
 
 from src.db.license_repository import LicenseStateRepository, StoredLicenseState
 from src.licensing.client import LicenseError, LicenseServerClient, LicenseServerUnavailableError
+from src.licensing.signature import verify_activation
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,23 @@ class LicenseService:
         cached = await self._repository.load()
         if cached is None:
             return
+        if cached.signature:
+            verified = verify_activation(
+                license_key=cached.license_key,
+                hwid=cached.hwid,
+                tier=cached.tier,
+                expires_at=cached.expires_at.isoformat(),
+                signature_hex=cached.signature,
+            )
+            if not verified:
+                logger.error(
+                    "Cached license state failed signature verification -- discarding "
+                    "(local database was modified outside the app, or corrupted)"
+                )
+                return
+        else:
+            logger.warning("Cached license state has no signature (written before signing was enabled) -- "
+                            "trusting it for this warm start, but it will not survive tampering checks")
         self._license_key = cached.license_key
         self._hwid = cached.hwid
         self._tier = cached.tier
@@ -102,6 +120,28 @@ class LicenseService:
             self._last_reason = type(exc).__name__
             return LicenseStatus(valid=False, reason=self._last_reason)
 
+        if result.signature:
+            verified = verify_activation(
+                license_key=license_key,
+                hwid=hwid,
+                tier=result.tier,
+                expires_at=result.expires_at.isoformat(),
+                signature_hex=result.signature,
+            )
+            if not verified:
+                self._valid = False
+                self._last_reason = "signature_invalid"
+                logger.error(
+                    "License server response failed signature verification -- rejecting "
+                    "(possible network tampering or impersonation)"
+                )
+                return LicenseStatus(valid=False, reason=self._last_reason)
+        else:
+            logger.warning(
+                "License server response is unsigned -- accepting without verification "
+                "(upgrade the license server to enable tamper protection)"
+            )
+
         self._license_key = license_key
         self._hwid = hwid
         self._tier = result.tier
@@ -118,6 +158,7 @@ class LicenseService:
                     tier=result.tier,
                     expires_at=result.expires_at,
                     last_validated_at=self._last_confirmed_at,
+                    signature=result.signature,
                 )
             )
         return LicenseStatus(valid=True, tier=result.tier, expires_at=result.expires_at)

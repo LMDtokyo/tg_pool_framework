@@ -35,7 +35,7 @@ def client(monkeypatch, tmp_path):
     db_path = tmp_path / "scheduled_campaigns_test.db"
     accounts = [make_account("+7001")]
 
-    monkeypatch.setattr("src.bootstrap.load_accounts", lambda: (accounts, []))
+    monkeypatch.setattr("src.bootstrap.load_accounts", lambda **kwargs: (accounts, []))
     monkeypatch.setattr("src.bootstrap.load_tdata_accounts", AsyncMock(return_value=[]))
     monkeypatch.setattr(
         "src.bootstrap.build_db_session_factory",

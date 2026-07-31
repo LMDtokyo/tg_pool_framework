@@ -126,4 +126,28 @@ public sealed class RescanResponse
 {
     [JsonPropertyName("new_accounts")]
     public int NewAccounts { get; init; }
+
+    [JsonPropertyName("new_phones")]
+    public List<string> NewPhones { get; init; } = [];
+
+    [JsonPropertyName("failures")]
+    public List<AccountLoadFailureDto> Failures { get; init; } = [];
+}
+
+public sealed class AccountLoadFailureDto
+{
+    [JsonPropertyName("file")]
+    public string File { get; init; } = "";
+
+    [JsonPropertyName("reason")]
+    public string Reason { get; init; } = "";
+}
+
+public sealed class DefaultCredentialsDto
+{
+    [JsonPropertyName("api_id")]
+    public int ApiId { get; init; }
+
+    [JsonPropertyName("api_hash")]
+    public string ApiHash { get; init; } = "";
 }

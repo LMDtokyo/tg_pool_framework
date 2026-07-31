@@ -5,8 +5,12 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
+             xmlns:conv="clr-namespace:TgPoolLauncher.Converters"
              mc:Ignorable="d"
              d:DesignHeight="720" d:DesignWidth="1040">
+    <UserControl.Resources>
+        <conv:CampaignTypeToLabelConverter x:Key="CampaignTypeToLabelConverter" />
+    </UserControl.Resources>
     <Grid>
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
@@ -159,7 +163,8 @@
                                         <StackPanel Grid.Column="0">
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                                 <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding CampaignType}" FontSize="11" Margin="10,0,0,0"
+                                                <TextBlock Text="{Binding CampaignType, Converter={StaticResource CampaignTypeToLabelConverter}}"
+                                                           FontSize="11" Margin="10,0,0,0"
                                                            VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" />
                                                 <TextBlock Text="{tr:Tr ScheduledCampaigns.DisabledBadge}" FontSize="11" Margin="10,0,0,0"
                                                            VerticalAlignment="Center" Foreground="{StaticResource TextFaintBrush}"

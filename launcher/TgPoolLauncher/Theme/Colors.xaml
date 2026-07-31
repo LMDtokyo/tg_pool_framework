@@ -47,6 +47,22 @@
     <SolidColorBrush x:Key="GlassAccentBorderBrush" Color="#4D3B82F6" />
     <SolidColorBrush x:Key="SkeletonBrush" Color="#16FFFFFF" />
 
+    <!-- Sidebar surface: a faint glass sheen layered over SurfaceBrush, and the
+         blue-to-violet gradient used for the active nav pill / accents. -->
+    <LinearGradientBrush x:Key="SidebarGlassBrush" StartPoint="0,0" EndPoint="0.3,1">
+        <GradientStop Color="#14FFFFFF" Offset="0" />
+        <GradientStop Color="#06FFFFFF" Offset="0.4" />
+        <GradientStop Color="#00FFFFFF" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="NavActiveGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#3B82F6" Offset="0" />
+        <GradientStop Color="#8B5CF6" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="NavGlowBrush" Color="#8B5CF6" />
+    <SolidColorBrush x:Key="LicenseHealthyBrush" Color="#4ADE80" />
+    <SolidColorBrush x:Key="LicenseWarningBrush" Color="#FBBF24" />
+    <SolidColorBrush x:Key="LicenseDangerBrush" Color="#F87171" />
+
     <!-- Soften the native selection chrome on every DataGrid app-wide -->
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2A3B82F6" />
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#F4F4F5" />

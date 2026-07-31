@@ -45,6 +45,8 @@ internal static class ProxyStrings
         table.Add("Rotation.ModeRotating", "Ротационные прокси", "Rotating proxies", "轮换代理");
         table.Add("Rotation.ModeSticky", "Липкие прокси", "Sticky proxies", "粘性代理");
         table.Add("Rotation.ProtocolLabel", "Протокол", "Protocol", "协议");
+        table.Add("Rotation.ProtocolHttp", "HTTP", "HTTP", "HTTP");
+        table.Add("Rotation.ProtocolSocks5", "SOCKS 5", "SOCKS 5", "SOCKS 5");
         table.Add("Rotation.ProxyListLabel", "Ротационные прокси", "Rotating proxies", "轮换代理");
         table.Add("Rotation.StickyProxyListLabel", "Липкие прокси", "Sticky proxies", "粘性代理");
         table.Add("Rotation.RequestCountLabel", "Количество запросов", "Number of requests", "请求数量");

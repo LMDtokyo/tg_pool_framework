@@ -79,8 +79,8 @@
                                 <StackPanel Margin="0,0,0,16">
                                     <TextBlock Text="{tr:Tr Rotation.ProtocolLabel}" Style="{StaticResource FieldLabelStyle}" />
                                     <ComboBox SelectedIndex="{Binding RotationProtocolIndex}">
-                                        <ComboBoxItem Content="HTTP" />
-                                        <ComboBoxItem Content="SOCKS 5" />
+                                        <ComboBoxItem Content="{tr:Tr Rotation.ProtocolHttp}" />
+                                        <ComboBoxItem Content="{tr:Tr Rotation.ProtocolSocks5}" />
                                     </ComboBox>
                                 </StackPanel>
                             </UniformGrid>

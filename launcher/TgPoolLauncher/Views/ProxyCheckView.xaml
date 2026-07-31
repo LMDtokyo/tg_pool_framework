@@ -43,6 +43,7 @@
         </Style>
     </UserControl.Resources>
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -179,4 +180,5 @@
                    Margin="0,8,0,0" MaxWidth="760" HorizontalAlignment="Left"
                    TextWrapping="Wrap" IsHitTestVisible="False" />
     </Grid>
+    </ScrollViewer>
 </UserControl>

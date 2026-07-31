@@ -472,14 +472,14 @@
                                              ToolTip="{tr:Tr SendById.AutoStopBanTooltip}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="SpamBlock" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
+                                    <TextBlock Text="{tr:Tr SendById.AutoStopSpamblockLabel}" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
                                     <TextBox x:Name="AutoStopSpamblockTextBox"
                                              Style="{StaticResource AutoStopFieldStyle}"
                                              IsEnabled="{Binding IsChecked, ElementName=AutoStopToggle}"
                                              ToolTip="{tr:Tr SendById.AutoStopSpamBlockTooltip}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="4">
-                                    <TextBlock Text="FloodWait" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
+                                    <TextBlock Text="{tr:Tr SendById.AutoStopFloodWaitLabel}" Style="{StaticResource FieldLabelStyle}" FontSize="10" Margin="0,0,0,4" />
                                     <TextBox x:Name="AutoStopFloodWaitTextBox"
                                              Style="{StaticResource AutoStopFieldStyle}"
                                              IsEnabled="{Binding IsChecked, ElementName=AutoStopToggle}"
@@ -498,7 +498,7 @@
                             <StackPanel Style="{StaticResource SettingCellStyle}" Margin="0,14,0,0">
                                 <TextBlock Text="{tr:Tr SendById.RequireProxyLabel}" Style="{StaticResource FieldLabelStyle}"
                                            ToolTip="{tr:Tr SendById.RequireProxyTooltip}" />
-                                <ToggleButton x:Name="RequireProxyToggle" Style="{StaticResource OptionToggleStyle}" />
+                                <ToggleButton x:Name="RequireProxyToggle" IsChecked="True" Style="{StaticResource OptionToggleStyle}" />
                             </StackPanel>
                         </StackPanel>
                     </Border>

@@ -158,6 +158,72 @@ async def test_restore_cached_reactivates_without_a_network_call():
     assert client.calls == []
 
 
+async def test_activation_with_a_valid_signature_succeeds(monkeypatch):
+    from src.licensing.client import LicenseActivation
+
+    monkeypatch.setattr("src.licensing.service.verify_activation", lambda **kwargs: True)
+    service, _ = _service(
+        [LicenseActivation(tier="month", activated_at=_NOW, expires_at=_NOW + timedelta(days=30), signature="sig")]
+    )
+    status = await service.activate("KEY", "hwid-1")
+    assert status.valid is True
+    assert service.is_active() is True
+
+
+async def test_activation_with_an_invalid_signature_is_rejected(monkeypatch):
+    from src.licensing.client import LicenseActivation
+
+    monkeypatch.setattr("src.licensing.service.verify_activation", lambda **kwargs: False)
+    service, _ = _service(
+        [LicenseActivation(tier="month", activated_at=_NOW, expires_at=_NOW + timedelta(days=30), signature="sig")]
+    )
+    status = await service.activate("KEY", "hwid-1")
+    assert status.valid is False
+    assert status.reason == "signature_invalid"
+    assert service.is_active() is False
+
+
+async def test_restore_cached_rejects_a_tampered_signature(monkeypatch):
+    monkeypatch.setattr("src.licensing.service.verify_activation", lambda **kwargs: False)
+
+    class _TamperedRepository:
+        async def load(self):
+            return StoredLicenseState(
+                license_key="KEY",
+                hwid="hwid-1",
+                tier="month",
+                expires_at=_NOW + timedelta(days=10),
+                last_validated_at=datetime.now(timezone.utc),
+                signature="tampered-or-stale-signature",
+            )
+
+    service, client = _service([], repository=_TamperedRepository())
+    await service.restore_cached()
+
+    assert service.is_active() is False
+    assert client.calls == []
+
+
+async def test_restore_cached_accepts_a_verified_signature(monkeypatch):
+    monkeypatch.setattr("src.licensing.service.verify_activation", lambda **kwargs: True)
+
+    class _SignedRepository:
+        async def load(self):
+            return StoredLicenseState(
+                license_key="KEY",
+                hwid="hwid-1",
+                tier="month",
+                expires_at=_NOW + timedelta(days=10),
+                last_validated_at=datetime.now(timezone.utc),
+                signature="a-genuine-signature",
+            )
+
+    service, _ = _service([], repository=_SignedRepository())
+    await service.restore_cached()
+
+    assert service.is_active() is True
+
+
 async def test_restore_cached_is_a_no_op_with_no_prior_activation():
     class _EmptyRepository:
         async def load(self):
@@ -197,6 +263,21 @@ async def test_license_state_round_trips_through_sqlite(license_repository):
     loaded = await license_repository.load()
     assert loaded.license_key == state.license_key
     assert loaded.tier == "year"
+
+
+async def test_signature_round_trips_through_sqlite(license_repository):
+    await license_repository.save(
+        StoredLicenseState(
+            license_key="KEY-1",
+            hwid="hwid-1",
+            tier="week",
+            expires_at=_NOW + timedelta(days=7),
+            last_validated_at=_NOW,
+            signature="abcdef0123456789",
+        )
+    )
+    loaded = await license_repository.load()
+    assert loaded.signature == "abcdef0123456789"
 
 
 async def test_saving_again_overwrites_the_single_cached_row(license_repository):

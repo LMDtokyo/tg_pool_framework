@@ -30,6 +30,7 @@ class StoredLicenseState:
     tier: str
     expires_at: datetime
     last_validated_at: datetime
+    signature: str = ""
 
 
 class LicenseStateRepository:
@@ -47,6 +48,7 @@ class LicenseStateRepository:
                     "tier": state.tier,
                     "expires_at": state.expires_at,
                     "last_validated_at": state.last_validated_at,
+                    "signature": state.signature,
                 }
                 stmt = insert_fn(LicenseStateRow).values(id=_ROW_ID, **values)
                 stmt = stmt.on_conflict_do_update(index_elements=["id"], set_=values)
@@ -65,6 +67,7 @@ class LicenseStateRepository:
             tier=row.tier,
             expires_at=_as_utc(row.expires_at),
             last_validated_at=_as_utc(row.last_validated_at),
+            signature=row.signature,
         )
 
 

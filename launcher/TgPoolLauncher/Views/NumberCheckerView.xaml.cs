@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.Win32;
+using TgPoolLauncher.Localization;
 using TgPoolLauncher.Models;
 using TgPoolLauncher.Services;
 
@@ -16,14 +17,8 @@ namespace TgPoolLauncher.Views;
 
 public partial class NumberCheckerView : UserControl
 {
-    private const string PhoneNumbersPlaceholder =
-        "List of phone numbers, each one from a new line, in any format:\n" +
-        "1(222) 333 4455\n" +
-        "1 222 333 4455\n" +
-        "1-222-333-4455\n" +
-        "12223334455\n\n" +
-        "The program removes extra spaces, brackets, and hyphens. New phone numbers are added to number_checker.xlsx and existing rows are updated.\n\n" +
-        "If work was interrupted, enable Use existing results and choose number_checker.xlsx.";
+    private static string PhoneNumbersPlaceholder =>
+        LocalizationService.Instance["NumberChecker.PhoneNumbersPlaceholder"];
 
     private readonly BackendClient _backend;
     private readonly ObservableCollection<SelectableAccount> _accounts = [];
@@ -144,8 +139,8 @@ public partial class NumberCheckerView : UserControl
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select number_checker.xlsx",
-            Filter = "Number checker workbook (number_checker.xlsx)|number_checker.xlsx|Excel workbooks (*.xlsx)|*.xlsx",
+            Title = LocalizationService.Instance["NumberChecker.SelectDatabaseDialogTitle"],
+            Filter = LocalizationService.Instance["NumberChecker.DatabaseFileFilter"],
             CheckFileExists = true,
             Multiselect = false,
         };
@@ -162,7 +157,7 @@ public partial class NumberCheckerView : UserControl
 
     private async Task LoadAccountsAsync()
     {
-        AccountsStatusText.Text = "Loading accounts…";
+        AccountsStatusText.Text = LocalizationService.Instance["NumberChecker.AccountsStatusLoading"];
         try
         {
             var previouslySelected = _accounts
@@ -183,12 +178,14 @@ public partial class NumberCheckerView : UserControl
             }
 
             AccountsStatusText.Text = _accounts.Count == 0
-                ? "No active accounts are available."
-                : $"{_accounts.Count} active account(s) available";
+                ? LocalizationService.Instance["NumberChecker.NoActiveAccountsMessage"]
+                : string.Format(LocalizationService.Instance["NumberChecker.ActiveAccountsAvailableFormat"], _accounts.Count);
         }
         catch (Exception ex)
         {
-            AccountsStatusText.Text = $"Could not load accounts: {CleanError(ex.Message)}";
+            AccountsStatusText.Text = string.Format(
+                LocalizationService.Instance["NumberChecker.CouldNotLoadAccountsFormat"],
+                CleanError(ex.Message));
         }
     }
 
@@ -210,8 +207,9 @@ public partial class NumberCheckerView : UserControl
         if (PhoneNumbersHeaderText is null || PhoneNumbersTextBox is null)
             return;
 
-        PhoneNumbersHeaderText.Text =
-            $"PHONE NUMBERS : {ParsePhoneNumbers(PhoneNumbersTextBox.Text).Count}";
+        PhoneNumbersHeaderText.Text = string.Format(
+            LocalizationService.Instance["NumberChecker.PhoneNumbersHeaderFormat"],
+            ParsePhoneNumbers(PhoneNumbersTextBox.Text).Count);
     }
 
     private void ClearPhoneNumbersButton_Click(object sender, RoutedEventArgs e)
@@ -224,7 +222,9 @@ public partial class NumberCheckerView : UserControl
     {
         if (StopButton.IsEnabled)
         {
-            AddAction("Number checker", "Stop the active checker job before resetting.");
+            AddAction(
+                LocalizationService.Instance["NumberChecker.JobLabel"],
+                LocalizationService.Instance["NumberChecker.StopBeforeResetMessage"]);
             return;
         }
 
@@ -233,19 +233,19 @@ public partial class NumberCheckerView : UserControl
         _determineGender = false;
         _streamsControl = false;
 
-        DatabasePathTextBox.Text = "Path to number_checker.xlsx";
+        DatabasePathTextBox.Text = LocalizationService.Instance["NumberChecker.DatabasePathPlaceholder"];
         PhoneNumbersTextBox.Text = PhoneNumbersPlaceholder;
-        DelayMinTextBox.Text = "min  5 sec";
-        DelayMaxTextBox.Text = "max  10 sec";
-        FloodWaitTextBox.Text = "500 sec";
-        RequestsPerAccountTextBox.Text = "8 req";
-        StreamsCountTextBox.Text = "4 streams";
-        StreamsDelayTextBox.Text = "30–45 sec";
+        DelayMinTextBox.Text = LocalizationService.Instance["NumberChecker.DelayMinPlaceholder"];
+        DelayMaxTextBox.Text = LocalizationService.Instance["NumberChecker.DelayMaxPlaceholder"];
+        FloodWaitTextBox.Text = LocalizationService.Instance["NumberChecker.FloodWaitPlaceholder"];
+        RequestsPerAccountTextBox.Text = LocalizationService.Instance["NumberChecker.RequestsPerAccountPlaceholder"];
+        StreamsCountTextBox.Text = LocalizationService.Instance["NumberChecker.StreamsCountPlaceholder"];
+        StreamsDelayTextBox.Text = LocalizationService.Instance["NumberChecker.StreamsDelayPlaceholder"];
         _accounts.Clear();
         SelectedAccountsTextBox.Text = "0";
         _programActions.Clear();
         _lastExportPath = null;
-        ResultsSummaryText.Text = "No results yet";
+        ResultsSummaryText.Text = LocalizationService.Instance["NumberChecker.NoResultsYet"];
         SetRunningState(false);
         ApplyVisualState();
         UpdatePhoneNumbersHeader();
@@ -261,21 +261,23 @@ public partial class NumberCheckerView : UserControl
         var phoneNumbers = ParsePhoneNumbers(PhoneNumbersTextBox.Text);
         var hasDatabase = _useBaseData
                           && !string.IsNullOrWhiteSpace(DatabasePathTextBox.Text)
-                          && DatabasePathTextBox.Text != "Path to number_checker.xlsx";
+                          && DatabasePathTextBox.Text != LocalizationService.Instance["NumberChecker.DatabasePathPlaceholder"];
 
         if (selectedAccounts.Count == 0)
         {
-            AddAction("Number checker", "Select at least one active account before starting.");
+            AddAction(
+                LocalizationService.Instance["NumberChecker.JobLabel"],
+                LocalizationService.Instance["NumberChecker.SelectAccountBeforeStartMessage"]);
             return;
         }
 
         if (!hasDatabase && phoneNumbers.Count == 0)
         {
             AddAction(
-                "Number checker",
+                LocalizationService.Instance["NumberChecker.JobLabel"],
                 _useBaseData
-                    ? "Choose number_checker.xlsx from a previous checker run."
-                    : "Enter at least one phone number.");
+                    ? LocalizationService.Instance["NumberChecker.ChoosePreviousDatabaseMessage"]
+                    : LocalizationService.Instance["NumberChecker.EnterPhoneNumberMessage"]);
             return;
         }
 
@@ -309,7 +311,9 @@ public partial class NumberCheckerView : UserControl
                 },
                 ct);
 
-            AddAction("Number checker", $"Started job {response.JobId}.");
+            AddAction(
+                LocalizationService.Instance["NumberChecker.JobLabel"],
+                string.Format(LocalizationService.Instance["NumberChecker.StartedJobFormat"], response.JobId));
             SetRunningState(true);
             await PollStatusAsync(ct);
         }
@@ -318,7 +322,7 @@ public partial class NumberCheckerView : UserControl
         }
         catch (Exception ex)
         {
-            AddAction("Number checker", CleanError(ex.Message));
+            AddAction(LocalizationService.Instance["NumberChecker.JobLabel"], CleanError(ex.Message));
             SetRunningState(false);
         }
     }
@@ -331,11 +335,15 @@ public partial class NumberCheckerView : UserControl
             await _backend.StopNumberCheckerAsync();
             var status = await _backend.GetNumberCheckerStatusAsync();
             ApplyStatus(status);
-            AddAction("Number checker", "Stopped. Unfinished numbers remain in number_checker.xlsx.");
+            AddAction(
+                LocalizationService.Instance["NumberChecker.JobLabel"],
+                LocalizationService.Instance["NumberChecker.StoppedMessage"]);
         }
         catch (Exception ex)
         {
-            AddAction("Number checker", $"Stop failed: {CleanError(ex.Message)}");
+            AddAction(
+                LocalizationService.Instance["NumberChecker.JobLabel"],
+                string.Format(LocalizationService.Instance["NumberChecker.StopFailedFormat"], CleanError(ex.Message)));
         }
         finally
         {
@@ -347,11 +355,13 @@ public partial class NumberCheckerView : UserControl
     {
         if (StopButton.IsEnabled)
         {
-            AddAction("Number checker", "Stop the active checker job before clearing results.");
+            AddAction(
+                LocalizationService.Instance["NumberChecker.JobLabel"],
+                LocalizationService.Instance["NumberChecker.StopBeforeClearMessage"]);
             return;
         }
         _programActions.Clear();
-        ResultsSummaryText.Text = "No results yet";
+        ResultsSummaryText.Text = LocalizationService.Instance["NumberChecker.NoResultsYet"];
     }
 
     private void SetRunningState(bool isRunning)
@@ -373,7 +383,9 @@ public partial class NumberCheckerView : UserControl
         }
         catch (Exception ex)
         {
-            AddAction("Results", $"Could not open results: {ex.Message}");
+            AddAction(
+                LocalizationService.Instance["NumberChecker.ResultsJobLabel"],
+                string.Format(LocalizationService.Instance["NumberChecker.CouldNotOpenResultsFormat"], ex.Message));
         }
     }
 
@@ -397,13 +409,14 @@ public partial class NumberCheckerView : UserControl
             DatabasePathTextBox.Text = status.DatabasePath;
 
         ResultsSummaryText.Text = status.JobId is null
-            ? "No results yet"
+            ? LocalizationService.Instance["NumberChecker.NoResultsYet"]
             : status.Running
-                ? $"Checking {status.Total} number(s)  |  Found {status.Found}  |  "
-                  + $"Not found {status.NotFound}  |  Pending {status.Pending}"
-                : $"Completed {status.Total} number(s)  |  Found {status.Found}  |  "
-                  + $"Not found {status.NotFound}  |  Failed {status.Failed}  |  "
-                  + $"Pending {status.Pending}";
+                ? string.Format(
+                    LocalizationService.Instance["NumberChecker.CheckingSummaryFormat"],
+                    status.Total, status.Found, status.NotFound, status.Pending)
+                : string.Format(
+                    LocalizationService.Instance["NumberChecker.CompletedSummaryFormat"],
+                    status.Total, status.Found, status.NotFound, status.Failed, status.Pending);
 
         _programActions.Clear();
         foreach (var result in status.Results.AsEnumerable().Reverse())
@@ -411,7 +424,7 @@ public partial class NumberCheckerView : UserControl
             _programActions.Add(new ProgramActionRow(
                 DateTime.Now.ToString("HH:mm:ss"),
                 string.IsNullOrWhiteSpace(result.AccountPhone)
-                    ? "Number checker"
+                    ? LocalizationService.Instance["NumberChecker.JobLabel"]
                     : result.AccountPhone,
                 $"{result.State}: {result.Phone} - {result.Message}"));
         }
@@ -422,7 +435,7 @@ public partial class NumberCheckerView : UserControl
                 0,
                 new ProgramActionRow(
                     DateTime.Now.ToString("HH:mm:ss"),
-                    "Number checker",
+                    LocalizationService.Instance["NumberChecker.JobLabel"],
                     status.Error));
         }
         else if (status.JobId is null && status.Results.Count == 0)
@@ -450,7 +463,9 @@ public partial class NumberCheckerView : UserControl
         }
         catch (Exception ex)
         {
-            AddAction("Number checker", $"Could not restore job status: {CleanError(ex.Message)}");
+            AddAction(
+                LocalizationService.Instance["NumberChecker.JobLabel"],
+                string.Format(LocalizationService.Instance["NumberChecker.CouldNotRestoreJobStatusFormat"], CleanError(ex.Message)));
             SetRunningState(false);
         }
     }
@@ -468,8 +483,8 @@ public partial class NumberCheckerView : UserControl
         if (_programActions.Count > 0)
             return;
         AddAction(
-            "Number checker",
-            "Ready. Enter phone numbers or select number_checker.xlsx, choose active accounts, then press Start.");
+            LocalizationService.Instance["NumberChecker.JobLabel"],
+            LocalizationService.Instance["NumberChecker.ReadyStateMessage"]);
     }
 
     private static List<string> ParsePhoneNumbers(string? value)

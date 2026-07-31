@@ -30,11 +30,12 @@
         </Style>
     </UserControl.Resources>
 
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
     <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="0.95*" MinWidth="410" />
+            <ColumnDefinition Width="0.95*" MinWidth="390" />
             <ColumnDefinition Width="18" />
-            <ColumnDefinition Width="1.4*" MinWidth="520" />
+            <ColumnDefinition Width="1.4*" MinWidth="190" />
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="0">
@@ -70,6 +71,8 @@
                     </Grid>
                     <TextBlock Text="{Binding BalanceErrorMessage}" Foreground="{StaticResource DangerBrush}"
                                FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <ProgressBar Height="3" Margin="0,0,0,12" IsIndeterminate="True"
+                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
 
                     <TextBlock Text="{tr:Tr Datamoll.SectionTelegramProduct}" Style="{StaticResource SectionTitleStyle}" Margin="0,4,0,12" />
                     <TextBlock Text="{tr:Tr Datamoll.SearchCountryLabel}" Style="{StaticResource FieldLabelStyle}" />
@@ -206,10 +209,10 @@
                             <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnTime}" Binding="{Binding TimeDisplay}" Width="76" />
                             <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnOrder}" Binding="{Binding OrderId}" Width="74" />
                             <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnProduct}" Binding="{Binding Product}" Width="*" MinWidth="150" />
-                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnQty}" Binding="{Binding Quantity}" Width="50" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnQty}" Binding="{Binding Quantity}" Width="62" />
                             <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnTotal}" Binding="{Binding Total}" Width="90" />
                             <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnStatus}" Binding="{Binding Status}" Width="92" />
-                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnDelivered}" Binding="{Binding Delivered}" Width="74" />
+                            <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnDelivered}" Binding="{Binding Delivered}" Width="94" />
                             <DataGridTextColumn Header="{tr:Tr Datamoll.ActivityColumnMessage}" Binding="{Binding Message}" Width="1.4*" MinWidth="180" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -260,4 +263,5 @@
             </Border>
         </Grid>
     </Grid>
+    </ScrollViewer>
 </UserControl>

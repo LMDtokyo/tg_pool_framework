@@ -1,8 +1,10 @@
 import pytest
 
 from src.accounts.proxy_safety import (
+    SharedProxyError,
     UnprotectedAccountsError,
     ensure_all_proxied,
+    ensure_no_shared_proxies,
     shared_proxy_groups,
     unproxied_phones,
 )
@@ -62,3 +64,22 @@ def test_shared_proxy_groups_ignores_unproxied_and_unique_proxies():
     accounts = [_account("+1", _proxy("1.1.1.1", 1)), _account("+2")]
 
     assert shared_proxy_groups(accounts) == {}
+
+
+def test_ensure_no_shared_proxies_passes_when_every_proxy_is_distinct():
+    accounts = [_account("+1", _proxy("1.1.1.1", 1)), _account("+2", _proxy("2.2.2.2", 1))]
+
+    ensure_no_shared_proxies(accounts)  # should not raise
+
+
+def test_ensure_no_shared_proxies_raises_naming_the_shared_group():
+    shared = _proxy("5.6.7.8", 1080)
+    accounts = [_account("+1", shared), _account("+2", shared), _account("+3", _proxy("9.9.9.9", 1))]
+
+    with pytest.raises(SharedProxyError) as excinfo:
+        ensure_no_shared_proxies(accounts)
+
+    (phones,) = excinfo.value.groups.values()
+    assert phones == ["+1", "+2"]
+    assert "+1" in str(excinfo.value)
+    assert "+2" in str(excinfo.value)

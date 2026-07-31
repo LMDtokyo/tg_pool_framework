@@ -26,6 +26,14 @@ internal static class ToolsStrings
         table.Add("Parsing.SourcesLabel", "Источники (по одному на строку или через запятую)",
             "Sources (one per line or comma-separated)", "来源（每行一个或用逗号分隔）");
         table.Add("Parsing.StrategyLabel", "Стратегия", "Strategy", "策略");
+        table.Add("Parsing.StrategyAuto", "Авто", "Auto", "自动");
+        table.Add("Parsing.StrategyMembers", "Участники", "Members", "成员");
+        table.Add("Parsing.StrategyComments", "Комментарии", "Comments", "评论");
+        table.Add("Parsing.StrategyMessages", "Сообщения", "Messages", "消息");
+        table.Add("Parsing.StrategyReactions", "Реакции", "Reactions", "回应");
+        table.Add("Parsing.StrategyPolls", "Опросы", "Polls", "投票");
+        table.Add("Parsing.StrategySystem", "Системные", "System", "系统消息");
+        table.Add("Parsing.StrategyTopic", "Топик по ID", "Topic by ID", "按话题 ID");
         table.Add("Parsing.TopicIdLabel", "ID топика (только для стратегии topic)",
             "Topic ID (only for the topic strategy)", "话题 ID（仅用于 topic 策略）");
         table.Add("Parsing.FiltersHeader", "Фильтры", "Filters", "筛选条件");
@@ -37,6 +45,9 @@ internal static class ToolsStrings
         table.Add("Parsing.PremiumCheckbox", "Только Premium", "Premium only", "仅 Premium 用户");
         table.Add("Parsing.ExcludeBotsCheckbox", "Исключить ботов", "Exclude bots", "排除机器人");
         table.Add("Parsing.ExportModeLabel", "Формат экспорта", "Export format", "导出格式");
+        table.Add("Parsing.ExportModeFull", "Полный", "Full", "完整");
+        table.Add("Parsing.ExportModeSummary", "Сводка", "Summary", "摘要");
+        table.Add("Parsing.ExportModeBySource", "По источникам", "By source", "按来源");
         table.Add("Parsing.ExportPathLabel", "Путь экспорта (пусто — Data\\Exports\\parsed_*)",
             "Export path (empty — Data\\Exports\\parsed_*)", "导出路径（留空则为 Data\\Exports\\parsed_*）");
         table.Add("Parsing.StartButton", "Парсинг", "Start parsing", "开始解析");
@@ -81,6 +92,10 @@ internal static class ToolsStrings
         table.Add("Parsing.DownloadTxtButton", "Скачать блокнотом", "Download as .txt", "下载为 .txt");
         table.Add("Parsing.DownloadTxtDialogTitle", "Сохранить список пользователей",
             "Save the user list", "保存用户列表");
+        table.Add("Parsing.DownloadTxtDialogFilter",
+            "Текстовые файлы (*.txt)|*.txt|Все файлы|*.*",
+            "Text files (*.txt)|*.txt|All files|*.*",
+            "文本文件 (*.txt)|*.txt|所有文件|*.*");
 
         table.Add("SessionConvert.ListLabel",
             "Список сессий (по одной на строку: session_path|json_path|output_subdir)",
@@ -102,5 +117,84 @@ internal static class ToolsStrings
             "Select the base folder for tdata export", "选择 Tdata 导出的基础文件夹");
         table.Add("SessionConvert.AddFromFolderDialogTitle", "Выберите папку с .session+.json файлами",
             "Select the folder with .session+.json files", "选择包含 .session+.json 文件的文件夹");
+
+        table.Add("JsonGenerator.SettingsHeader", "НАСТРОЙКИ", "SETTINGS", "设置");
+        table.Add("JsonGenerator.ResetTooltip", "Сбросить настройки", "Reset settings", "重置设置");
+        table.Add("JsonGenerator.ResetButton", "Сброс", "Reset", "重置");
+        table.Add("JsonGenerator.DatabaseLabel", "База данных (из генератора параметров)",
+            "Database (from the parameter generator)", "数据库（来自参数生成器）");
+        table.Add("JsonGenerator.DatabaseTooltip", "База отпечатков в формате CSV, JSON, XLSX или XLSM",
+            "CSV, JSON, XLSX, or XLSM fingerprint database", "CSV、JSON、XLSX 或 XLSM 格式的指纹数据库");
+        table.Add("JsonGenerator.BrowseDatabaseTooltip", "Выбрать файл базы данных",
+            "Choose database file", "选择数据库文件");
+        table.Add("JsonGenerator.SessionsDirLabel", "Папка с файлами *.session",
+            "Folder with *.session files", "包含 *.session 文件的文件夹");
+        table.Add("JsonGenerator.BrowseSessionsDirTooltip", "Выбрать папку с сессиями",
+            "Choose session folder", "选择会话文件夹");
+        table.Add("JsonGenerator.OutputDirLabel", "Папка для сохранения результатов",
+            "Folder for saving results", "结果保存文件夹");
+        table.Add("JsonGenerator.BrowseOutputDirTooltip", "Выбрать папку для результатов",
+            "Choose results folder", "选择结果文件夹");
+        table.Add("JsonGenerator.StartButton", "Запустить", "Start", "开始");
+        table.Add("JsonGenerator.ImportantInfoHeader", "ВАЖНАЯ ИНФОРМАЦИЯ", "IMPORTANT INFORMATION", "重要信息");
+        table.Add("JsonGenerator.WarningParagraph1",
+            "Используйте генератор осторожно. Некорректные параметры могут привести к тому, что Telegram отклонит или ограничит аккаунт.",
+            "Use the generator with caution. Incorrect parameters can cause Telegram to reject or restrict an account.",
+            "请谨慎使用生成器。参数不正确可能导致 Telegram 拒绝或限制账户。");
+        table.Add("JsonGenerator.WarningParagraph2",
+            "Генератор копирует каждый .session файл и создаёт соответствующий JSON-файл Telegram Expert, используя случайно выбранный отпечаток из базы параметров.",
+            "The generator copies each .session file and creates a matching Telegram Expert JSON file using a randomly selected fingerprint from the parameter database.",
+            "生成器会复制每个 .session 文件，并使用参数数据库中随机选取的指纹创建对应的 Telegram Expert JSON 文件。");
+        table.Add("JsonGenerator.WarningParagraph3",
+            "Протестируйте сгенерированный JSON на одном аккаунте перед использованием для всей партии. Исходные session-файлы никогда не изменяются.",
+            "Test the generated JSON on one account before using it for a full batch. Source session files are never modified.",
+            "在用于整批处理之前，请先在一个账户上测试生成的 JSON。源 session 文件永远不会被修改。");
+        table.Add("JsonGenerator.ProgramActionsHeader", "ДЕЙСТВИЯ ПРОГРАММЫ", "PROGRAM ACTIONS", "程序操作");
+        table.Add("JsonGenerator.StartTooltip", "Старт", "Start", "开始");
+        table.Add("JsonGenerator.StopTooltip", "Стоп", "Stop", "停止");
+        table.Add("JsonGenerator.ClearTooltip", "Очистить активность", "Clear activity", "清空活动");
+        table.Add("JsonGenerator.ColTime", "Время", "Time", "时间");
+        table.Add("JsonGenerator.ColAccount", "Аккаунт", "Account", "账户");
+        table.Add("JsonGenerator.ColMessage", "Сообщение", "Message", "消息");
+        table.Add("JsonGenerator.ReadyStatus",
+            "Готов к генерации JSON-сайдкаров Telegram Expert.",
+            "Ready to generate Telegram Expert JSON sidecars.",
+            "已就绪，可生成 Telegram Expert JSON 附属文件。");
+        table.Add("JsonGenerator.StartingStatus",
+            "Запуск генерации JSON…", "Starting JSON generation…", "正在开始生成 JSON…");
+        table.Add("JsonGenerator.ActivityClearedStatus",
+            "Активность очищена.", "Activity cleared.", "活动记录已清空。");
+        table.Add("JsonGenerator.SettingsResetStatus",
+            "Настройки сброшены к значениям проекта по умолчанию.",
+            "Settings reset to project defaults.",
+            "设置已重置为项目默认值。");
+        table.Add("JsonGenerator.BrowseDatabaseDialogTitle",
+            "Выберите базу данных генератора параметров",
+            "Select the parameter generator database",
+            "选择参数生成器数据库");
+        table.Add("JsonGenerator.BrowseDatabaseDialogFilter",
+            "Базы параметров (*.xlsx;*.xlsm;*.csv;*.json)|*.xlsx;*.xlsm;*.csv;*.json|Все файлы (*.*)|*.*",
+            "Parameter databases (*.xlsx;*.xlsm;*.csv;*.json)|*.xlsx;*.xlsm;*.csv;*.json|All files (*.*)|*.*",
+            "参数数据库 (*.xlsx;*.xlsm;*.csv;*.json)|*.xlsx;*.xlsm;*.csv;*.json|所有文件 (*.*)|*.*");
+        table.Add("JsonGenerator.BrowseSessionsDirDialogTitle",
+            "Выберите папку с файлами .session",
+            "Select the folder with .session files",
+            "选择包含 .session 文件的文件夹");
+        table.Add("JsonGenerator.BrowseOutputDirDialogTitle",
+            "Выберите папку для сгенерированных файлов",
+            "Select the folder for generated files",
+            "选择生成文件的保存文件夹");
+        table.Add("JsonGenerator.GeneratingStatusFormat",
+            "Генерация файлов… {0} из {1}",
+            "Generating files… {0} of {1}",
+            "正在生成文件… {0}/{1}");
+        table.Add("JsonGenerator.StoppedStatusFormat",
+            "Остановлено после {0} из {1} аккаунтов.",
+            "Stopped after {0} of {1} accounts.",
+            "已停止，完成 {0}/{1} 个账户。");
+        table.Add("JsonGenerator.CompletedStatusFormat",
+            "Завершено {0} из {1} аккаунтов.",
+            "Completed {0} of {1} accounts.",
+            "已完成 {0}/{1} 个账户。");
     }
 }

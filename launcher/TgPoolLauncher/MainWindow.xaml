@@ -139,7 +139,7 @@
         </Style>
 
         <Style x:Key="NavTabItemStyle" TargetType="TabItem">
-            <Setter Property="Padding" Value="12,11" />
+            <Setter Property="Padding" Value="14,11" />
             <Setter Property="Margin" Value="0,0,0,4" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Cursor" Value="Hand" />
@@ -147,23 +147,26 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="Bg" CornerRadius="10">
-                            <Border.Background>
-                                <SolidColorBrush Color="Transparent" />
-                            </Border.Background>
+                        <Grid>
+                            <Border x:Name="HoverBg" CornerRadius="10">
+                                <Border.Background>
+                                    <SolidColorBrush Color="Transparent" />
+                                </Border.Background>
+                            </Border>
+                            <Border x:Name="ActivePill" CornerRadius="10" Opacity="0"
+                                    Background="{StaticResource NavActiveGradientBrush}">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#8B5CF6" BlurRadius="18" ShadowDepth="0" Opacity="0.5" />
+                                </Border.Effect>
+                            </Border>
                             <Grid Margin="{TemplateBinding Padding}">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="3" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <Border x:Name="AccentBar" Grid.Column="0" Width="3" CornerRadius="1.5"
-                                        Background="{StaticResource AccentBrush}" Opacity="0"
-                                        HorizontalAlignment="Left" Margin="-12,-2,0,-2" />
-                                <ContentPresenter Grid.Column="1" ContentSource="Header"
-                                                   VerticalAlignment="Center" Margin="9,0,0,0" />
+                                <ContentPresenter Grid.Column="0" ContentSource="Header" VerticalAlignment="Center" />
                             </Grid>
-                        </Border>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
@@ -173,7 +176,7 @@
                                 <MultiTrigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="Bg" Storyboard.TargetProperty="Background.Color"
+                                            <ColorAnimation Storyboard.TargetName="HoverBg" Storyboard.TargetProperty="Background.Color"
                                                             To="#28282D" Duration="0:0:0.15" />
                                         </Storyboard>
                                     </BeginStoryboard>
@@ -181,7 +184,7 @@
                                 <MultiTrigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="Bg" Storyboard.TargetProperty="Background.Color"
+                                            <ColorAnimation Storyboard.TargetName="HoverBg" Storyboard.TargetProperty="Background.Color"
                                                             To="Transparent" Duration="0:0:0.2" />
                                         </Storyboard>
                                     </BeginStoryboard>
@@ -191,24 +194,24 @@
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="Bg" Storyboard.TargetProperty="Background.Color"
-                                                            To="#2A3B82F6" Duration="0:0:0.18" />
-                                            <DoubleAnimation Storyboard.TargetName="AccentBar" Storyboard.TargetProperty="Opacity"
-                                                             To="1" Duration="0:0:0.18" />
+                                            <DoubleAnimation Storyboard.TargetName="ActivePill" Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.25">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <QuadraticEase EasingMode="EaseOut" />
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
                                 <Trigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ColorAnimation Storyboard.TargetName="Bg" Storyboard.TargetProperty="Background.Color"
-                                                            To="Transparent" Duration="0:0:0.18" />
-                                            <DoubleAnimation Storyboard.TargetName="AccentBar" Storyboard.TargetProperty="Opacity"
-                                                             To="0" Duration="0:0:0.18" />
+                                            <DoubleAnimation Storyboard.TargetName="ActivePill" Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.2" />
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
-                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                                 <Setter Property="FontWeight" Value="SemiBold" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -306,8 +309,8 @@
                     <ControlTemplate TargetType="ListBoxItem">
                         <Grid>
                             <Border x:Name="Bg" Margin="3,0,0,0" Background="{TemplateBinding Background}" CornerRadius="8" />
-                            <Border x:Name="AccentBar" Width="3" Background="{StaticResource AccentBrush}" CornerRadius="1.5"
-                                    HorizontalAlignment="Left" Margin="0,5,0,5" Opacity="0" />
+                            <Border x:Name="ActivePill" Margin="3,0,0,0" CornerRadius="8" Opacity="0"
+                                    Background="{StaticResource NavActiveGradientBrush}" />
                             <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center" />
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -315,9 +318,27 @@
                                 <Setter TargetName="Bg" Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource AccentTintBrush}" />
-                                <Setter TargetName="AccentBar" Property="Opacity" Value="1" />
-                                <Setter Property="Foreground" Value="{StaticResource AccentHoverBrush}" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ActivePill" Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.22">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <QuadraticEase EasingMode="EaseOut" />
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ActivePill" Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.18" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                                 <Setter Property="FontWeight" Value="SemiBold" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -338,30 +359,89 @@
 
                             <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}"
                                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-                                <DockPanel LastChildFill="False">
-                                    <Border DockPanel.Dock="Top" Margin="26,30,26,26">
-                                        <Image Source="pack://application:,,,/Assets/logo.png"
-                                               Width="130" Height="46" Stretch="Uniform"
-                                               HorizontalAlignment="Left"
-                                               RenderOptions.BitmapScalingMode="HighQuality" />
-                                    </Border>
-                                    <StackPanel DockPanel.Dock="Top" Margin="16,0">
-                                        <TabPanel IsItemsHost="True" />
-                                    </StackPanel>
+                                <Grid>
+                                    <Border Background="{StaticResource SidebarGlassBrush}" IsHitTestVisible="False" />
+                                    <DockPanel LastChildFill="True">
+                                        <Border DockPanel.Dock="Top" Margin="26,20,26,16">
+                                            <Image Source="pack://application:,,,/Assets/logo.png"
+                                                   Width="130" Height="46" Stretch="Uniform"
+                                                   HorizontalAlignment="Left"
+                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                        </Border>
 
-                                    <StackPanel DockPanel.Dock="Bottom" Margin="26,0,26,24">
-                                        <TextBlock Text="{tr:Tr Common.Language}" FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextFaintBrush}" Margin="0,0,0,8" />
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button Content="RU" Tag="Ru" Style="{StaticResource LanguageButtonRuStyle}"
-                                                    Click="LanguageButton_Click" />
-                                            <Button Content="EN" Tag="En" Style="{StaticResource LanguageButtonEnStyle}"
-                                                    Click="LanguageButton_Click" />
-                                            <Button Content="中文" Tag="Zh" Style="{StaticResource LanguageButtonZhStyle}"
-                                                    Click="LanguageButton_Click" Margin="0" />
+                                        <StackPanel DockPanel.Dock="Bottom" Margin="26,14,26,20">
+                                            <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,14" />
+
+                                            <Border Padding="12,9" CornerRadius="10" BorderThickness="1"
+                                                    Background="{StaticResource SurfaceAltBrush}" Margin="0,0,0,14">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Value="True">
+                                                                <DataTrigger.Binding>
+                                                                    <Binding Path="LicenseStatus.IsExpiringSoon" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                </DataTrigger.Binding>
+                                                                <Setter Property="BorderBrush" Value="{StaticResource LicenseWarningBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Value="True">
+                                                                <DataTrigger.Binding>
+                                                                    <Binding Path="LicenseStatus.IsExpired" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                </DataTrigger.Binding>
+                                                                <Setter Property="BorderBrush" Value="{StaticResource LicenseDangerBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <iconPacks:PackIconMaterial Kind="ShieldCheckOutline" Width="15" Height="15"
+                                                                               VerticalAlignment="Center" Margin="0,0,8,0">
+                                                        <iconPacks:PackIconMaterial.Style>
+                                                            <Style TargetType="iconPacks:PackIconMaterial">
+                                                                <Setter Property="Foreground" Value="{StaticResource LicenseHealthyBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Value="True">
+                                                                        <DataTrigger.Binding>
+                                                                            <Binding Path="LicenseStatus.IsExpiringSoon" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                        </DataTrigger.Binding>
+                                                                        <Setter Property="Foreground" Value="{StaticResource LicenseWarningBrush}" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Value="True">
+                                                                        <DataTrigger.Binding>
+                                                                            <Binding Path="LicenseStatus.IsExpired" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                        </DataTrigger.Binding>
+                                                                        <Setter Property="Foreground" Value="{StaticResource LicenseDangerBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </iconPacks:PackIconMaterial.Style>
+                                                    </iconPacks:PackIconMaterial>
+                                                    <TextBlock Text="{Binding LicenseStatus.SummaryText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                               FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                               Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <TextBlock Text="{tr:Tr Common.Language}" FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextFaintBrush}" Margin="0,0,0,8" />
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="RU" Tag="Ru" Style="{StaticResource LanguageButtonRuStyle}"
+                                                        Click="LanguageButton_Click" />
+                                                <Button Content="EN" Tag="En" Style="{StaticResource LanguageButtonEnStyle}"
+                                                        Click="LanguageButton_Click" />
+                                                <Button Content="中文" Tag="Zh" Style="{StaticResource LanguageButtonZhStyle}"
+                                                        Click="LanguageButton_Click" Margin="0" />
+                                            </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
-                                </DockPanel>
+
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                      Focusable="False" Padding="0,0,3,0">
+                                            <StackPanel Margin="16,0">
+                                                <TabPanel IsItemsHost="True" />
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </DockPanel>
+                                </Grid>
                             </Border>
 
                             <Border Grid.Column="1" Margin="0">
@@ -583,6 +663,15 @@
                 <StackPanel Orientation="Horizontal">
                     <iconPacks:PackIconMaterial Kind="CircleMultipleOutline" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Center" />
                     <TextBlock Text="{tr:Tr Nav.Stories}" VerticalAlignment="Center"
+                               Foreground="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Foreground}" />
+                </StackPanel>
+            </TabItem.Header>
+        </TabItem>
+        <TabItem x:Name="ManualTab">
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <iconPacks:PackIconMaterial Kind="BookOpenVariant" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{tr:Tr Nav.Manual}" VerticalAlignment="Center"
                                Foreground="{Binding RelativeSource={RelativeSource AncestorType=TabItem}, Path=Foreground}" />
                 </StackPanel>
             </TabItem.Header>

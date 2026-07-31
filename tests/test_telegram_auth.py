@@ -265,6 +265,44 @@ async def test_authenticator_avoids_fingerprint_signatures_already_in_use(tmp_pa
 
 
 @pytest.mark.asyncio
+async def test_authenticator_uses_the_profile_name_provider_when_given(tmp_path, monkeypatch):
+    source = tmp_path / "fingerprints.csv"
+    accounts_dir = tmp_path / "accounts"
+    _write_two_fingerprints(source)
+
+    class FakeClient:
+        def __init__(self, account):
+            self.account = account
+            self.connected = False
+
+        async def connect(self):
+            self.connected = True
+
+        def is_connected(self):
+            return self.connected
+
+        async def disconnect(self):
+            self.connected = False
+
+        async def send_code_request(self, phone):
+            return SimpleNamespace(phone_code_hash="hash")
+
+    monkeypatch.setattr(
+        "src.api.telegram_auth.ClientFactory.build", lambda account: FakeClient(account)
+    )
+    authenticator = TelegramAuthenticator(
+        fingerprint_file=str(source),
+        accounts_dir=str(accounts_dir),
+        profile_name_provider=lambda: ("Serverside", "Pooled"),
+    )
+
+    login = await authenticator.begin("15550001111")
+
+    assert (login.first_name, login.last_name) == ("Serverside", "Pooled")
+    await authenticator.discard(login)
+
+
+@pytest.mark.asyncio
 async def test_activation_manager_waits_for_launcher_two_factor(monkeypatch):
     request = AsyncMock(
         return_value={

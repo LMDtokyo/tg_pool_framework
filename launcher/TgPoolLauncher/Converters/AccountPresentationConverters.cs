@@ -44,6 +44,20 @@ public sealed class StatusToLabelConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+/// <summary>"send_by_id"/"send_by_numbers" (ScheduledCampaignDto.CampaignType, a raw backend
+/// value) -> the same localized labels already used for the create-form's RadioButtons.</summary>
+public sealed class CampaignTypeToLabelConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        LocalizationService.Instance[
+            (value as string) == "send_by_numbers"
+                ? "ScheduledCampaigns.SendByNumbersOption"
+                : "ScheduledCampaigns.SendByIdOption"];
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 public sealed class StatusToBackgroundBrushConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>

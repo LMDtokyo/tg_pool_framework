@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using TgPoolLauncher.Localization;
 
 namespace TgPoolLauncher.ViewModels;
 
@@ -26,7 +27,7 @@ public partial class TextRandomizerViewModel : ObservableObject
     private bool isEnToRu;
 
     [ObservableProperty]
-    private string statusMessage = "Template is ready.";
+    private string statusMessage = LocalizationService.Instance["TextRandomizer.TemplateReadyStatus"];
 
     public ObservableCollection<TemplateMask> Masks { get; } = new();
 
@@ -46,8 +47,8 @@ public partial class TextRandomizerViewModel : ObservableObject
     {
         RefreshMasks();
         StatusMessage = Masks.Count == 0
-            ? "No valid masks found. Use spin syntax like {O|0}."
-            : $"{Masks.Count} masks are ready.";
+            ? LocalizationService.Instance["TextRandomizer.NoValidMasksStatus"]
+            : string.Format(LocalizationService.Instance["TextRandomizer.MasksReadyStatusFormat"], Masks.Count);
     }
 
     [RelayCommand]
@@ -57,12 +58,12 @@ public partial class TextRandomizerViewModel : ObservableObject
         if (Masks.Count == 0)
         {
             ResultText = MainText;
-            StatusMessage = "No masks were applied.";
+            StatusMessage = LocalizationService.Instance["TextRandomizer.NoMasksAppliedStatus"];
             return;
         }
 
         ResultText = ApplyMasks(MainText, Masks);
-        StatusMessage = "Randomization created.";
+        StatusMessage = LocalizationService.Instance["TextRandomizer.RandomizationCreatedStatus"];
     }
 
     [RelayCommand]
@@ -70,7 +71,7 @@ public partial class TextRandomizerViewModel : ObservableObject
     {
         var source = string.IsNullOrEmpty(ResultText) ? ApplyMasks(MainText, Masks) : ResultText;
         ResultText = ResolveSpinSyntax(source);
-        StatusMessage = "One randomized version created.";
+        StatusMessage = LocalizationService.Instance["TextRandomizer.OneVersionCreatedStatus"];
     }
 
     private void RefreshMasks()

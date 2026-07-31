@@ -48,7 +48,7 @@ def test_normalize_recipient_id_and_invite_link():
 def test_start_rejects_unknown_sender():
     manager = InviteByNumberManager(accounts=[_account()], pool_guard=PoolAccessGuard())
     with pytest.raises(ValueError, match="Sender account not found"):
-        manager.start(
+        manager.start(require_proxy=False,
             recipients=[InviteRecipient(recipient_id="8535286786")],
             sender_links=[InviteSenderLink(sender_phone="+19999999999", invite_link="https://t.me/+x")],
         )
@@ -57,7 +57,7 @@ def test_start_rejects_unknown_sender():
 def test_start_rejects_empty_recipients():
     manager = InviteByNumberManager(accounts=[_account()], pool_guard=PoolAccessGuard())
     with pytest.raises(ValueError, match="No valid recipients"):
-        manager.start(
+        manager.start(require_proxy=False,
             recipients=[InviteRecipient(recipient_id="abc")],
             sender_links=[InviteSenderLink(sender_phone="+15551234567", invite_link="https://t.me/+x")],
         )
@@ -67,7 +67,7 @@ async def test_already_running_raises():
     manager = InviteByNumberManager(accounts=[_account()], pool_guard=PoolAccessGuard())
     manager._run = SimpleNamespace(finished=False)  # type: ignore[attr-defined]
     with pytest.raises(InviteByNumberAlreadyRunningError):
-        manager.start(
+        manager.start(require_proxy=False,
             recipients=[InviteRecipient(recipient_id="8535286786")],
             sender_links=[InviteSenderLink(sender_phone="+15551234567", invite_link="https://t.me/+x")],
         )
@@ -96,7 +96,7 @@ async def test_sends_invite_via_telethon(monkeypatch):
         lambda _account: client,
     )
 
-    job_id = manager.start(
+    job_id = manager.start(require_proxy=False,
         recipients=[InviteRecipient(recipient_id="8535286786", username="@gokuboa2")],
         sender_links=[InviteSenderLink(sender_phone=account.phone, invite_link="https://t.me/+InviteTest")],
         delay_min_sec=0,
@@ -142,7 +142,7 @@ async def test_rejects_self_chat_as_sent(monkeypatch):
         lambda _account: client,
     )
 
-    manager.start(
+    manager.start(require_proxy=False,
         recipients=[InviteRecipient(recipient_id="8535286786")],
         sender_links=[InviteSenderLink(sender_phone=account.phone, invite_link="https://t.me/+x")],
         delay_min_sec=0,
@@ -183,7 +183,7 @@ async def test_stop_marks_pending_skipped(monkeypatch):
     )
     monkeypatch.setattr(client, "send_message", AsyncMock(side_effect=slow_send))
 
-    manager.start(
+    manager.start(require_proxy=False,
         recipients=[
             InviteRecipient(recipient_id="8535286786"),
             InviteRecipient(recipient_id="8820638155"),

@@ -32,6 +32,10 @@ internal static class ScheduledCampaignsStrings
         table.Add("ScheduledCampaigns.LastRunLabel", "Последний запуск", "Last run", "上次运行");
 
         table.Add("ScheduledCampaigns.ChooseDatabaseTitle", "Выбрать базу данных", "Choose database", "选择数据库");
+        table.Add("ScheduledCampaigns.ChooseDatabaseFilter",
+            "Файлы аудитории (*.txt;*.csv;*.json;*.xlsx;*.xls)|*.txt;*.csv;*.json;*.xlsx;*.xls|Все файлы|*.*",
+            "Audience files (*.txt;*.csv;*.json;*.xlsx;*.xls)|*.txt;*.csv;*.json;*.xlsx;*.xls|All files|*.*",
+            "受众文件 (*.txt;*.csv;*.json;*.xlsx;*.xls)|*.txt;*.csv;*.json;*.xlsx;*.xls|所有文件|*.*");
         table.Add("ScheduledCampaigns.InvalidTimeError",
             "Введите время в формате ЧЧ:ММ", "Enter the time as HH:mm", "请输入格式为 HH:mm 的时间");
         table.Add("ScheduledCampaigns.InvalidRepeatError",

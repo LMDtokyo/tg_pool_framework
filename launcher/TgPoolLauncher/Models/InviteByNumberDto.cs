@@ -45,6 +45,9 @@ public sealed class InviteByNumberStartRequest
 
     [JsonPropertyName("message_template")]
     public string MessageTemplate { get; init; } = "{invite_link}";
+
+    [JsonPropertyName("require_proxy")]
+    public bool RequireProxy { get; init; } = true;
 }
 
 public sealed class InviteByNumberStartResponse
@@ -99,6 +102,9 @@ public sealed class InviteByNumberStatusDto
 
     [JsonPropertyName("error")]
     public string? Error { get; init; }
+
+    [JsonPropertyName("unproxied_senders")]
+    public List<string> UnproxiedSenders { get; init; } = [];
 
     [JsonPropertyName("results")]
     public List<InviteByNumberResultDto> Results { get; init; } = [];

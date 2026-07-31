@@ -24,10 +24,10 @@
 
                         <StackPanel Style="{StaticResource FieldGroupStyle}">
                             <TextBlock Text="{tr:Tr Stories.ActionTypeLabel}" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox SelectedValue="{Binding ActionType}" SelectedValuePath="Content" HorizontalAlignment="Stretch">
-                                <ComboBoxItem Content="view" />
-                                <ComboBoxItem Content="reaction" />
-                                <ComboBoxItem Content="post" />
+                            <ComboBox SelectedValue="{Binding ActionType}" SelectedValuePath="Tag" HorizontalAlignment="Stretch">
+                                <ComboBoxItem Tag="view" Content="{tr:Tr Stories.ActionView}" />
+                                <ComboBoxItem Tag="reaction" Content="{tr:Tr Stories.ActionReaction}" />
+                                <ComboBoxItem Tag="post" Content="{tr:Tr Stories.ActionPost}" />
                             </ComboBox>
                         </StackPanel>
 
@@ -79,9 +79,9 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="{tr:Tr Stories.PrivacyLabel}" Style="{StaticResource FieldLabelStyle}" />
-                                <ComboBox SelectedValue="{Binding Privacy}" SelectedValuePath="Content">
-                                    <ComboBoxItem Content="everyone" />
-                                    <ComboBoxItem Content="contacts" />
+                                <ComboBox SelectedValue="{Binding Privacy}" SelectedValuePath="Tag">
+                                    <ComboBoxItem Tag="everyone" Content="{tr:Tr Stories.PrivacyEveryone}" />
+                                    <ComboBoxItem Tag="contacts" Content="{tr:Tr Stories.PrivacyContacts}" />
                                 </ComboBox>
                             </StackPanel>
                             <StackPanel Grid.Column="2">
@@ -279,12 +279,13 @@
                             <DataTemplate>
                                 <Grid Margin="0,4">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="140" />
-                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="64" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{Binding AccountPhone}" FontSize="12" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="1" Text="{Binding State}" FontSize="12" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" ToolTip="{Binding State}"
                                                Foreground="{StaticResource AccentBrush}" />
                                     <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="12" TextTrimming="CharacterEllipsis"
                                                VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}" />

@@ -41,6 +41,12 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ScheduledCampaignsStrings.Register(_table);
         EngagementStrings.Register(_table);
         StoriesStrings.Register(_table);
+        ManualStrings.Register(_table);
+        HeroSmsStrings.Register(_table);
+        SmsPoolStrings.Register(_table);
+        InviteByNumberStrings.Register(_table);
+        UniversalActivateStrings.Register(_table);
+        TextRandomizerStrings.Register(_table);
 
         _current = LoadSavedLanguage();
     }

@@ -74,7 +74,7 @@ public partial class EngagementViewModel : ObservableObject
     private int autoStopFloodWait;
 
     [ObservableProperty]
-    private bool requireProxy;
+    private bool requireProxy = true;
 
     [ObservableProperty]
     private EngagementStatusDto? latestStatus;

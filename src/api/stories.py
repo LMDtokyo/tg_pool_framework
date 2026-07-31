@@ -46,9 +46,12 @@ from telethon.tl.types import (
     ReactionEmoji,
 )
 
+from src.accounts.account_registry import AccountRegistry
 from src.accounts.connection_manager import ClientFactory
-from src.accounts.proxy_safety import ensure_all_proxied, unproxied_phones
+from src.accounts.proxy_safety import ensure_all_proxied, ensure_no_shared_proxies, unproxied_phones
+from src.accounts.warmup_policy import WarmupPolicy, account_age_days
 from src.api.pool_guard import PoolAccessGuard, PoolBusyError
+from src.api.security_utils import scrub_secrets
 from src.config import AccountConfig
 
 logger = logging.getLogger(__name__)
@@ -133,17 +136,32 @@ class StoriesManager:
         session_encryption_key: Optional[bytes] = None,
         redis_client: Optional[Any] = None,
         proxy_repository: Optional[Any] = None,
+        registry: Optional[AccountRegistry] = None,
+        warmup_policy: Optional[WarmupPolicy] = None,
     ) -> None:
         self._accounts_by_phone = {self._phone_key(a.phone): a for a in accounts}
         self._pool_guard = pool_guard
         self._session_encryption_key = session_encryption_key
         self._redis_client = redis_client
         self._proxy_repository = proxy_repository
+        self._registry = registry
+        self._warmup_policy = warmup_policy
         self._run: Optional[_Run] = None
 
     @staticmethod
     def _phone_key(phone: str) -> str:
         return re.sub(r"[^0-9]", "", phone or "")
+
+    def _delay_multiplier(self, phone: str) -> float:
+        if self._warmup_policy is None:
+            return 1.0
+        return self._warmup_policy.delay_multiplier(account_age_days(self._registry, phone))
+
+    def _capped_daily_limit(self, phone: str, base_cap: int) -> int:
+        if self._warmup_policy is None:
+            return base_cap
+        warmup_cap = self._warmup_policy.daily_message_cap(account_age_days(self._registry, phone))
+        return min(base_cap, warmup_cap) if base_cap > 0 else warmup_cap
 
     def register_account(self, account: AccountConfig) -> None:
         self._accounts_by_phone[self._phone_key(account.phone)] = account
@@ -173,7 +191,7 @@ class StoriesManager:
         auto_stop_ban: int = 0,
         auto_stop_spamblock: int = 0,
         auto_stop_floodwait: int = 0,
-        require_proxy: bool = False,
+        require_proxy: bool = True,
         results_dir: str = "exports",
     ) -> str:
         if self.is_running:
@@ -204,6 +222,7 @@ class StoriesManager:
         sender_accounts = [self._accounts_by_phone[self._phone_key(p)] for p in senders]
         if require_proxy:
             ensure_all_proxied(sender_accounts)
+            ensure_no_shared_proxies(sender_accounts)
         unproxied = unproxied_phones(sender_accounts)
 
         delay_min = max(0.0, float(delay_min_sec))
@@ -321,7 +340,8 @@ class StoriesManager:
                 try:
                     await asyncio.wait_for(
                         run.shutdown_event.wait(),
-                        timeout=random.uniform(options.delay_min_sec, options.delay_max_sec),
+                        timeout=random.uniform(options.delay_min_sec, options.delay_max_sec)
+                        * self._delay_multiplier(phone),
                     )
                     row.state = "skipped"
                     row.message = "Stopped during stagger delay."
@@ -336,8 +356,9 @@ class StoriesManager:
     async def _perform_one(
         self, run: _Run, phone: str, row: StoryResultRow, options: StoriesOptions
     ) -> None:
-        if self._redis_client is not None and options.daily_cap_per_account > 0:
-            allowed = await self._check_daily_cap(phone, options)
+        cap = self._capped_daily_limit(phone, options.daily_cap_per_account)
+        if self._redis_client is not None and cap > 0:
+            allowed = await self._check_daily_cap(phone, options, cap)
             if not allowed:
                 row.state = "skipped"
                 row.message = "Daily cap for this account reached."
@@ -364,7 +385,7 @@ class StoriesManager:
             await self._record_ban_signal(phone)
         except Exception as exc:
             row.state = "failed"
-            row.message = f"{type(exc).__name__}: {exc}"
+            row.message = f"{type(exc).__name__}: {scrub_secrets(str(exc))}"
             run.failed += 1
             logger.warning("Stories action failed for %s: %s", phone, exc)
         finally:
@@ -443,14 +464,14 @@ class StoriesManager:
             )
         return InputMediaUploadedPhoto(file=file_handle)
 
-    async def _check_daily_cap(self, phone: str, options: StoriesOptions) -> bool:
+    async def _check_daily_cap(self, phone: str, options: StoriesOptions, cap: int) -> bool:
         from src.messaging.lua_storage import RedisRateLimiter
 
         limiter = RedisRateLimiter(
             self._redis_client,
             pool_id=f"stories:{options.action_type}:{self._phone_key(phone)}",
-            capacity=options.daily_cap_per_account,
-            refill_rate=options.daily_cap_per_account / 86400.0,
+            capacity=cap,
+            refill_rate=cap / 86400.0,
         )
         allowed, _reason = await limiter.check_and_consume(phone)
         return allowed

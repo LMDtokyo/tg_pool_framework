@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1080">
     <UserControl.Resources>
@@ -97,7 +98,7 @@
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="38,28,38,34">
-                <TextBlock Text="MASK" Style="{StaticResource SectionHeaderStyle}" />
+                <TextBlock Text="{tr:Tr TextRandomizer.MaskHeader}" Style="{StaticResource SectionHeaderStyle}" />
                 <Border Style="{StaticResource SectionCardStyle}">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -108,68 +109,68 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Template" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{tr:Tr TextRandomizer.TemplateLabel}" Style="{StaticResource FieldLabelStyle}" />
                             <TextBox Height="58" Style="{StaticResource RandomizerTextBoxStyle}"
                                      Text="{Binding Template, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
-                            <TextBlock Text="RU -> EN || EN -> RU" FontSize="12" FontWeight="Bold"
+                            <TextBlock Text="{tr:Tr TextRandomizer.DirectionToggleLabel}" FontSize="12" FontWeight="Bold"
                                        Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8" />
                             <ToggleButton Style="{StaticResource SwitchStyle}" IsChecked="{Binding IsEnToRu}" />
                         </StackPanel>
 
-                        <Button Grid.Column="4" Width="136" Height="52" VerticalAlignment="Bottom"
+                        <Button Grid.Column="4" MinWidth="136" Height="52" VerticalAlignment="Bottom"
                                 Style="{StaticResource OutlineAccentButtonStyle}"
                                 Command="{Binding CheckCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="CheckAll" Width="17" Height="17" Margin="0,0,8,0"
                                                            VerticalAlignment="Center" />
-                                <TextBlock Text="Check" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                <TextBlock Text="{tr:Tr TextRandomizer.CheckButton}" VerticalAlignment="Center" FontWeight="SemiBold" />
                             </StackPanel>
                         </Button>
                     </Grid>
                 </Border>
 
-                <TextBlock Text="MAIN TEXT" Style="{StaticResource SectionHeaderStyle}" />
+                <TextBlock Text="{tr:Tr TextRandomizer.MainTextHeader}" Style="{StaticResource SectionHeaderStyle}" />
                 <Border Style="{StaticResource SectionCardStyle}">
                     <StackPanel>
                         <TextBox MinHeight="238" Style="{StaticResource RandomizerTextBoxStyle}"
                                  Text="{Binding MainText, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button Width="256" Height="52" Margin="0,22,0,0" HorizontalAlignment="Center"
+                        <Button MinWidth="256" Height="52" Margin="0,22,0,0" HorizontalAlignment="Center"
                                 Style="{StaticResource OutlineAccentButtonStyle}"
                                 Command="{Binding CreateRandomizationCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="ShuffleVariant" Width="17" Height="17" Margin="0,0,8,0"
                                                            VerticalAlignment="Center" />
-                                <TextBlock Text="Create Randomization" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                <TextBlock Text="{tr:Tr TextRandomizer.CreateRandomizationButton}" VerticalAlignment="Center" FontWeight="SemiBold" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="RESULT" Style="{StaticResource SectionHeaderStyle}" />
+                <TextBlock Text="{tr:Tr TextRandomizer.ResultHeader}" Style="{StaticResource SectionHeaderStyle}" />
                 <Border Style="{StaticResource SectionCardStyle}">
                     <StackPanel>
                         <TextBox MinHeight="238" Style="{StaticResource RandomizerTextBoxStyle}"
                                  Text="{Binding ResultText, UpdateSourceTrigger=PropertyChanged}" />
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,22,0,0">
-                            <Button Width="256" Height="52"
+                            <Button MinWidth="256" Height="52"
                                     Style="{StaticResource OutlineAccentButtonStyle}"
                                     Command="{Binding CreateRandomizationCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <iconPacks:PackIconMaterial Kind="ShuffleVariant" Width="17" Height="17" Margin="0,0,8,0"
                                                                VerticalAlignment="Center" />
-                                    <TextBlock Text="Create Randomization" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                    <TextBlock Text="{tr:Tr TextRandomizer.CreateRandomizationButton}" VerticalAlignment="Center" FontWeight="SemiBold" />
                                 </StackPanel>
                             </Button>
-                            <Button Width="186" Height="52" Margin="12,0,0,0"
+                            <Button MinWidth="186" Height="52" Margin="12,0,0,0"
                                     Style="{StaticResource OutlineAccentButtonStyle}"
                                     Command="{Binding ResolveRandomizationCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <iconPacks:PackIconMaterial Kind="DiceMultipleOutline" Width="17" Height="17" Margin="0,0,8,0"
                                                                VerticalAlignment="Center" />
-                                    <TextBlock Text="Generate One" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                    <TextBlock Text="{tr:Tr TextRandomizer.GenerateOneButton}" VerticalAlignment="Center" FontWeight="SemiBold" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>

@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+             xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
              mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="1080">
     <UserControl.Resources>
         <Style x:Key="SectionCardStyle" TargetType="Border">
@@ -56,11 +57,12 @@
     </UserControl.Resources>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto">
         <Grid Margin="16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0.96*" MinWidth="390" />
+                <ColumnDefinition Width="0.96*" MinWidth="280" />
                 <ColumnDefinition Width="16" />
-                <ColumnDefinition Width="1.04*" MinWidth="430" />
+                <ColumnDefinition Width="1.04*" MinWidth="300" />
             </Grid.ColumnDefinitions>
 
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -70,33 +72,33 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="SETTINGS" Style="{StaticResource SectionHeaderStyle}" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Style="{StaticResource ToolbarIconButtonStyle}" Width="76"
-                                Command="{Binding ResetCommand}" ToolTip="Reset settings">
+                        <TextBlock Text="{tr:Tr JsonGenerator.SettingsHeader}" Style="{StaticResource SectionHeaderStyle}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Style="{StaticResource ToolbarIconButtonStyle}" MinWidth="76"
+                                Command="{Binding ResetCommand}" ToolTip="{tr:Tr JsonGenerator.ResetTooltip}">
                             <StackPanel Orientation="Horizontal">
                                 <iconPacks:PackIconMaterial Kind="Refresh" Width="15" Height="15" Margin="0,0,6,0" />
-                                <TextBlock Text="Reset" FontSize="11" FontWeight="SemiBold" />
+                                <TextBlock Text="{tr:Tr JsonGenerator.ResetButton}" FontSize="11" FontWeight="SemiBold" />
                             </StackPanel>
                         </Button>
                     </Grid>
 
                     <Border Style="{StaticResource SectionCardStyle}" Margin="0,0,0,16">
                         <StackPanel>
-                            <TextBlock Text="Database (from the parameter generator)" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{tr:Tr JsonGenerator.DatabaseLabel}" Style="{StaticResource FieldLabelStyle}" />
                             <Grid Margin="0,0,0,16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBox Height="42" Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="CSV, JSON, XLSX, or XLSM fingerprint database" />
+                                         ToolTip="{tr:Tr JsonGenerator.DatabaseTooltip}" />
                                 <Button Grid.Column="1" Style="{StaticResource PathButtonStyle}"
-                                        Command="{Binding BrowseDatabaseCommand}" ToolTip="Choose database file">
+                                        Command="{Binding BrowseDatabaseCommand}" ToolTip="{tr:Tr JsonGenerator.BrowseDatabaseTooltip}">
                                     <iconPacks:PackIconMaterial Kind="FileDocumentOutline" Width="18" Height="18" />
                                 </Button>
                             </Grid>
 
-                            <TextBlock Text="Folder with *.session files" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{tr:Tr JsonGenerator.SessionsDirLabel}" Style="{StaticResource FieldLabelStyle}" />
                             <Grid Margin="0,0,0,16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -104,12 +106,12 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBox Height="42" Text="{Binding SessionsDir, UpdateSourceTrigger=PropertyChanged}" />
                                 <Button Grid.Column="1" Style="{StaticResource PathButtonStyle}"
-                                        Command="{Binding BrowseSessionsDirCommand}" ToolTip="Choose session folder">
+                                        Command="{Binding BrowseSessionsDirCommand}" ToolTip="{tr:Tr JsonGenerator.BrowseSessionsDirTooltip}">
                                     <iconPacks:PackIconMaterial Kind="FolderOpenOutline" Width="18" Height="18" />
                                 </Button>
                             </Grid>
 
-                            <TextBlock Text="Folder for saving results" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{tr:Tr JsonGenerator.OutputDirLabel}" Style="{StaticResource FieldLabelStyle}" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -117,30 +119,30 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBox Height="42" Text="{Binding OutputDir, UpdateSourceTrigger=PropertyChanged}" />
                                 <Button Grid.Column="1" Style="{StaticResource PathButtonStyle}"
-                                        Command="{Binding BrowseOutputDirCommand}" ToolTip="Choose results folder">
+                                        Command="{Binding BrowseOutputDirCommand}" ToolTip="{tr:Tr JsonGenerator.BrowseOutputDirTooltip}">
                                     <iconPacks:PackIconMaterial Kind="FolderOpenOutline" Width="18" Height="18" />
                                 </Button>
                             </Grid>
                         </StackPanel>
                     </Border>
 
-                    <Button Style="{StaticResource PrimaryButtonStyle}" Height="42" Width="170"
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Height="42" MinWidth="170"
                             HorizontalAlignment="Center" Command="{Binding StartCommand}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Start" Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{tr:Tr JsonGenerator.StartButton}" Margin="0,0,8,0" VerticalAlignment="Center" />
                             <iconPacks:PackIconMaterial Kind="PlayCircleOutline" Width="17" Height="17" />
                         </StackPanel>
                     </Button>
 
-                    <TextBlock Text="IMPORTANT INFORMATION" Style="{StaticResource SectionHeaderStyle}" Margin="0,22,0,12" />
+                    <TextBlock Text="{tr:Tr JsonGenerator.ImportantInfoHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="0,22,0,12" />
                     <Border Style="{StaticResource SectionCardStyle}" Background="{StaticResource AccentTintBrush}"
                             BorderThickness="0" Margin="0,0,0,4">
                         <StackPanel>
-                            <TextBlock Text="Use the generator with caution. Incorrect parameters can cause Telegram to reject or restrict an account."
+                            <TextBlock Text="{tr:Tr JsonGenerator.WarningParagraph1}"
                                        TextWrapping="Wrap" Margin="0,0,0,12" />
-                            <TextBlock Text="The generator copies each .session file and creates a matching Telegram Expert JSON file using a randomly selected fingerprint from the parameter database."
+                            <TextBlock Text="{tr:Tr JsonGenerator.WarningParagraph2}"
                                        TextWrapping="Wrap" Margin="0,0,0,12" />
-                            <TextBlock Text="Test the generated JSON on one account before using it for a full batch. Source session files are never modified."
+                            <TextBlock Text="{tr:Tr JsonGenerator.WarningParagraph3}"
                                        TextWrapping="Wrap" Foreground="{StaticResource TextMutedBrush}" />
                         </StackPanel>
                     </Border>
@@ -158,15 +160,15 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="PROGRAM ACTIONS" Style="{StaticResource SectionHeaderStyle}" VerticalAlignment="Center" />
+                    <TextBlock Text="{tr:Tr JsonGenerator.ProgramActionsHeader}" Style="{StaticResource SectionHeaderStyle}" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Style="{StaticResource ToolbarIconButtonStyle}" Command="{Binding StartCommand}" ToolTip="Start">
+                        <Button Style="{StaticResource ToolbarIconButtonStyle}" Command="{Binding StartCommand}" ToolTip="{tr:Tr JsonGenerator.StartTooltip}">
                             <iconPacks:PackIconMaterial Kind="Play" Width="16" Height="16" />
                         </Button>
-                        <Button Style="{StaticResource ToolbarIconButtonStyle}" Command="{Binding StopCommand}" ToolTip="Stop">
+                        <Button Style="{StaticResource ToolbarIconButtonStyle}" Command="{Binding StopCommand}" ToolTip="{tr:Tr JsonGenerator.StopTooltip}">
                             <iconPacks:PackIconMaterial Kind="Stop" Width="16" Height="16" />
                         </Button>
-                        <Button Style="{StaticResource ToolbarIconButtonStyle}" Margin="0" Command="{Binding ClearCommand}" ToolTip="Clear activity">
+                        <Button Style="{StaticResource ToolbarIconButtonStyle}" Margin="0" Command="{Binding ClearCommand}" ToolTip="{tr:Tr JsonGenerator.ClearTooltip}">
                             <iconPacks:PackIconMaterial Kind="DeleteOutline" Width="16" Height="16" />
                         </Button>
                     </StackPanel>
@@ -177,9 +179,9 @@
                               CanUserAddRows="False" BorderThickness="0" HeadersVisibility="Column"
                               GridLinesVisibility="Horizontal">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="84" />
-                            <DataGridTextColumn Header="Account" Binding="{Binding Account}" Width="140" />
-                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
+                            <DataGridTextColumn Header="{tr:Tr JsonGenerator.ColTime}" Binding="{Binding Time}" Width="84" />
+                            <DataGridTextColumn Header="{tr:Tr JsonGenerator.ColAccount}" Binding="{Binding Account}" Width="140" />
+                            <DataGridTextColumn Header="{tr:Tr JsonGenerator.ColMessage}" Binding="{Binding Message}" Width="*" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Border>
@@ -203,5 +205,6 @@
                 </Border>
             </Grid>
         </Grid>
+        </ScrollViewer>
     </Grid>
 </UserControl>

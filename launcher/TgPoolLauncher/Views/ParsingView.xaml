@@ -42,15 +42,15 @@
 
                         <StackPanel Style="{StaticResource FieldGroupStyle}">
                             <TextBlock Text="{tr:Tr Parsing.StrategyLabel}" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox SelectedValue="{Binding Strategy}" SelectedValuePath="Content" HorizontalAlignment="Left" MinWidth="160">
-                                <ComboBoxItem Content="auto" />
-                                <ComboBoxItem Content="members" />
-                                <ComboBoxItem Content="comments" />
-                                <ComboBoxItem Content="messages" />
-                                <ComboBoxItem Content="reactions" />
-                                <ComboBoxItem Content="polls" />
-                                <ComboBoxItem Content="system" />
-                                <ComboBoxItem Content="topic" />
+                            <ComboBox SelectedValue="{Binding Strategy}" SelectedValuePath="Tag" HorizontalAlignment="Left" MinWidth="160">
+                                <ComboBoxItem Tag="auto" Content="{tr:Tr Parsing.StrategyAuto}" />
+                                <ComboBoxItem Tag="members" Content="{tr:Tr Parsing.StrategyMembers}" />
+                                <ComboBoxItem Tag="comments" Content="{tr:Tr Parsing.StrategyComments}" />
+                                <ComboBoxItem Tag="messages" Content="{tr:Tr Parsing.StrategyMessages}" />
+                                <ComboBoxItem Tag="reactions" Content="{tr:Tr Parsing.StrategyReactions}" />
+                                <ComboBoxItem Tag="polls" Content="{tr:Tr Parsing.StrategyPolls}" />
+                                <ComboBoxItem Tag="system" Content="{tr:Tr Parsing.StrategySystem}" />
+                                <ComboBoxItem Tag="topic" Content="{tr:Tr Parsing.StrategyTopic}" />
                             </ComboBox>
                         </StackPanel>
 
@@ -79,10 +79,10 @@
 
                         <StackPanel Style="{StaticResource FieldGroupStyle}">
                             <TextBlock Text="{tr:Tr Parsing.ExportModeLabel}" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox SelectedValue="{Binding ExportMode}" SelectedValuePath="Content" HorizontalAlignment="Left" MinWidth="160">
-                                <ComboBoxItem Content="full" />
-                                <ComboBoxItem Content="summary" />
-                                <ComboBoxItem Content="by_source" />
+                            <ComboBox SelectedValue="{Binding ExportMode}" SelectedValuePath="Tag" HorizontalAlignment="Left" MinWidth="160">
+                                <ComboBoxItem Tag="full" Content="{tr:Tr Parsing.ExportModeFull}" />
+                                <ComboBoxItem Tag="summary" Content="{tr:Tr Parsing.ExportModeSummary}" />
+                                <ComboBoxItem Tag="by_source" Content="{tr:Tr Parsing.ExportModeBySource}" />
                             </ComboBox>
                         </StackPanel>
 

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from telethon.tl.types import User
 
+from src.accounts.warmup_policy import WarmupPolicy
 from src.api.pool_guard import PoolAccessGuard
 from src.api.send_by_numbers import (
     PhoneRecipient,
@@ -14,6 +17,8 @@ from src.api.send_by_numbers import (
 )
 from src.config import AccountConfig
 
+pytestmark = pytest.mark.unit
+
 
 def make_account(phone: str) -> AccountConfig:
     return AccountConfig(
@@ -22,6 +27,36 @@ def make_account(phone: str) -> AccountConfig:
         phone=phone,
         session_dir="sessions",
     )
+
+
+class _FakeRegistry:
+    def __init__(self, first_seen_by_phone: dict) -> None:
+        self._first_seen_by_phone = first_seen_by_phone
+
+    def get(self, phone: str):
+        first_seen = self._first_seen_by_phone.get(phone)
+        return None if first_seen is None else SimpleNamespace(first_seen=first_seen)
+
+
+def test_delay_multiplier_throttles_a_young_account():
+    registry = _FakeRegistry({"+100": datetime.now(timezone.utc)})
+    policy = WarmupPolicy(duration_days=7, min_multiplier=3.0)
+    manager = SendByNumbersManager(
+        [make_account("+100")], PoolAccessGuard(), registry=registry, warmup_policy=policy
+    )
+
+    assert manager._delay_multiplier("+100") == pytest.approx(3.0)
+
+
+def test_delay_multiplier_is_one_without_a_warmup_policy():
+    manager = SendByNumbersManager([make_account("+100")], PoolAccessGuard())
+
+    assert manager._delay_multiplier("+100") == 1.0
+
+
+async def test_daily_cap_allows_everything_without_warmup_or_redis():
+    manager = SendByNumbersManager([make_account("+100")], PoolAccessGuard())
+    assert await manager._daily_cap_allows("+100") is True
 
 
 def make_options(**overrides) -> SendByNumbersOptions:
@@ -94,6 +129,7 @@ async def test_start_deduplicates_numbers_and_forwards_complete_options(monkeypa
         streams=4,
         auto_stop_ban=2,
         repeat_every_hours=1,
+        require_proxy=False,
     )
     await manager._run.task
 
