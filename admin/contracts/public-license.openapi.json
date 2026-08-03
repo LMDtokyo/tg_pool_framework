@@ -1,0 +1,256 @@
+{
+  "components": {
+    "schemas": {
+      "ActivateRequest": {
+        "properties": {
+          "hwid": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Hwid",
+            "type": "string"
+          },
+          "license_key": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "License Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "license_key",
+          "hwid"
+        ],
+        "title": "ActivateRequest",
+        "type": "object"
+      },
+      "ActivateResponse": {
+        "properties": {
+          "activated_at": {
+            "format": "date-time",
+            "title": "Activated At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tier",
+          "activated_at",
+          "expires_at",
+          "signature"
+        ],
+        "title": "ActivateResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ProfileNamesOut": {
+        "properties": {
+          "first_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "First Names",
+            "type": "array"
+          },
+          "last_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Last Names",
+            "type": "array"
+          }
+        },
+        "required": [
+          "first_names",
+          "last_names"
+        ],
+        "title": "ProfileNamesOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VersionOut": {
+        "properties": {
+          "latest_version": {
+            "title": "Latest Version",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "latest_version"
+        ],
+        "title": "VersionOut",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "TG Pool public license API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/license/activate": {
+      "post": {
+        "operationId": "activate_license_activate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Activate"
+      }
+    },
+    "/profile-names": {
+      "get": {
+        "description": "Public, no license/admin auth needed -- same trust level as /version.\nLets every deployed backend draw registration display names from one\nshared, centrally-updatable pool instead of a name list frozen into\nthat install's build (see license_server/profile_names.py).",
+        "operationId": "profile_names_profile_names_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileNamesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Profile Names"
+      }
+    },
+    "/version": {
+      "get": {
+        "description": "Lets the console activator show the customer 'installed vs latest' --\nbump LATEST_LAUNCHER_VERSION whenever a new build ships, no redeploy of\nthe launcher itself required for the check to reflect it.",
+        "operationId": "version_version_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Version"
+      }
+    }
+  }
+}
