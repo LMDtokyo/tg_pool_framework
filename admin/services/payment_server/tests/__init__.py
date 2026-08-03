@@ -1,0 +1,1 @@
+"""Payment server test suite."""

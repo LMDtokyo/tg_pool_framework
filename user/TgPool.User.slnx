@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="apps/desktop/TgPoolLauncher.csproj" />
+  <Project Path="apps/activator/TgPoolActivator.csproj" />
+  <Project Path="packages/desktop-common/TgPoolLauncher.Shared.csproj" />
+</Solution>

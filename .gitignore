@@ -30,7 +30,11 @@ env/
 
 # Конфиденциальная конфигурация (НЕ коммить!)
 .env
+.signer.env
 secrets.json
+*.enc
+admin/services/payment_server/local_payments.db
+admin/services/payment_signer/local/
 
 # IDE
 .idea/
@@ -47,11 +51,12 @@ htmlcov/
 *.log
 logs/
 
-# .NET / Visual Studio (launcher/)
+# .NET / Visual Studio
 bin/
 obj/
 *.user
 .vs/
 
-# Inno Setup build output (installer/)
-installer/Output/
+# Inno Setup build output
+user/packaging/windows-installer/Output/
+admin/packaging/windows-installer/Output/
