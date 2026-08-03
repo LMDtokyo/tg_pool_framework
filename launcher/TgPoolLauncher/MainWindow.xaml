@@ -8,7 +8,7 @@
         xmlns:tr="clr-namespace:TgPoolLauncher.Localization.Markup"
         xmlns:loc="clr-namespace:TgPoolLauncher.Localization"
         mc:Ignorable="d"
-        Title="TG Pool Launcher" Height="760" Width="1360" MinHeight="560" MinWidth="900"
+        Title="Telegram Andromeda" Height="760" Width="1360" MinHeight="560" MinWidth="900"
         Background="{StaticResource AppBackgroundBrush}"
         Foreground="{StaticResource TextPrimaryBrush}"
         Icon="pack://application:,,,/Assets/logo.png"
@@ -369,7 +369,13 @@
                                                    RenderOptions.BitmapScalingMode="HighQuality" />
                                         </Border>
 
-                                        <StackPanel DockPanel.Dock="Bottom" Margin="26,14,26,20">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                      Focusable="False" Padding="0,0,3,0">
+                                        <StackPanel>
+                                        <StackPanel Margin="16,0,16,8">
+                                            <TabPanel IsItemsHost="True" />
+                                        </StackPanel>
+                                        <StackPanel x:Name="SidebarFooter" Margin="26,14,26,20">
                                             <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,0,0,14" />
 
                                             <Border Padding="12,9" CornerRadius="10" BorderThickness="1"
@@ -433,12 +439,7 @@
                                                         Click="LanguageButton_Click" Margin="0" />
                                             </StackPanel>
                                         </StackPanel>
-
-                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                                      Focusable="False" Padding="0,0,3,0">
-                                            <StackPanel Margin="16,0">
-                                                <TabPanel IsItemsHost="True" />
-                                            </StackPanel>
+                                        </StackPanel>
                                         </ScrollViewer>
                                     </DockPanel>
                                 </Grid>
@@ -472,7 +473,7 @@
                     <Image Source="pack://application:,,,/Assets/logo.png" Height="16" Stretch="Uniform"
                            HorizontalAlignment="Left" Margin="0,0,10,0"
                            RenderOptions.BitmapScalingMode="HighQuality" />
-                    <TextBlock Text="TG Pool Launcher" FontSize="12" FontWeight="SemiBold"
+                    <TextBlock Text="Telegram Andromeda" FontSize="12" FontWeight="SemiBold"
                                Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
                 </StackPanel>
 

@@ -7,7 +7,7 @@
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="700">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
+    <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16,16,16,28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

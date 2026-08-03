@@ -95,7 +95,7 @@
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-            <Grid Margin="16" MinWidth="1010">
+            <Grid Margin="16,16,16,28" MinWidth="1010">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.02*" MinWidth="470" />
                     <ColumnDefinition Width="22" />

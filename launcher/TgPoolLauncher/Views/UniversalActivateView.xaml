@@ -96,7 +96,7 @@
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto">
-        <Grid Margin="16">
+        <Grid Margin="16,16,16,28">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1.05*" MinWidth="300" />
                 <ColumnDefinition Width="18" />
@@ -315,7 +315,7 @@
                                 <TextBlock Text="{tr:Tr UniversalActivate.ProgramActivityHeader}" Style="{StaticResource SectionTitleStyle}" />
                                 <TextBlock Text="{tr:Tr UniversalActivate.ActivitySubtitle}" TextWrapping="Wrap" Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,5,0,0" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
                                 <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr Common.Start}" IsEnabled="False">
                                     <iconPacks:PackIconMaterial Kind="Play" Width="15" Height="15" />
                                 </Button>

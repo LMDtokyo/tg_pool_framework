@@ -9,7 +9,7 @@
              d:DesignHeight="760" d:DesignWidth="1040">
     <Grid>
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
+            <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16,16,16,28">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="24" />
@@ -148,7 +148,7 @@
                         <CheckBox Content="{tr:Tr Engagement.RequireProxyLabel}" IsChecked="{Binding RequireProxy}"
                                   Margin="0,0,0,16" ToolTip="{tr:Tr Engagement.RequireProxyTooltip}" />
 
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                             <Button Content="{tr:Tr Common.Start}" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartCommand}" />
                             <Button Content="{tr:Tr Common.Stop}" Margin="10,0,0,0" Command="{Binding StopCommand}" />
                         </StackPanel>

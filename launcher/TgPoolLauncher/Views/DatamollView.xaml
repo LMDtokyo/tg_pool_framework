@@ -31,7 +31,7 @@
     </UserControl.Resources>
 
     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-    <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
+    <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16,16,16,28">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="0.95*" MinWidth="390" />
             <ColumnDefinition Width="18" />
@@ -148,7 +148,7 @@
                         </StackPanel>
                     </UniformGrid>
 
-                    <Grid Margin="0,0,0,12">
+                    <Grid Margin="0,0,0,16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
                             <ColumnDefinition Width="Auto" />

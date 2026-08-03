@@ -32,7 +32,7 @@
     </UserControl.Resources>
 
     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-    <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16">
+    <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16,16,16,28">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="0.9*" MinWidth="320" />
             <ColumnDefinition Width="18" />
@@ -164,7 +164,7 @@
                             <TextBlock Text="{tr:Tr SmsPool.ActivitySubtitle}" TextWrapping="Wrap"
                                        Foreground="{StaticResource TextFaintBrush}" FontSize="12" Margin="0,5,0,0" />
                         </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
                             <Button Style="{StaticResource ActionButtonStyle}" Command="{Binding StartCommand}" ToolTip="{tr:Tr SmsPool.StartTooltip}">
                                 <iconPacks:PackIconMaterial Kind="Play" Width="15" Height="15" />
                             </Button>

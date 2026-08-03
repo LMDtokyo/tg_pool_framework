@@ -533,7 +533,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{tr:Tr SendById.ProgramActionsHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="0" VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,0">
                                     <Button x:Name="StartButton"
                                             Style="{StaticResource ToolbarIconButtonStyle}"
                                             ToolTip="{tr:Tr Common.Start}"

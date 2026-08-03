@@ -53,7 +53,7 @@ public partial class App : System.Windows.Application
             {
                 MessageBox.Show(
                     Localization.LocalizationService.Instance["App.LicenseActivationFailedMessage"],
-                    "TgPoolLauncher", MessageBoxButton.OK, MessageBoxImage.Error);
+                    "Telegram Andromeda", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(-1);
                 return;
             }
@@ -146,7 +146,7 @@ public partial class App : System.Windows.Application
 
             MessageBox.Show(
                 message,
-                "TgPoolLauncher", MessageBoxButton.OK, MessageBoxImage.Error);
+                "Telegram Andromeda", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(-1);
             return;
         }
@@ -198,7 +198,7 @@ public partial class App : System.Windows.Application
         _trayIcon = new Forms.NotifyIcon
         {
             Icon = System.Drawing.SystemIcons.Application,
-            Text = "TgPoolLauncher",
+            Text = "Telegram Andromeda",
             ContextMenuStrip = menu,
             Visible = true,
         };

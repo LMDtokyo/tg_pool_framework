@@ -160,7 +160,7 @@
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-            <Grid Margin="16">
+            <Grid Margin="16,16,16,32">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.02*" MinWidth="360" />
                     <ColumnDefinition Width="20" />
@@ -399,7 +399,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="{tr:Tr InviteByNumber.ProgramActionsHeader}" Style="{StaticResource SectionHeaderStyle}" Margin="0" />
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,0">
                             <Button Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="{tr:Tr InviteByNumber.BuildInviteActionsTooltip}" Click="RunInviteActionsButton_Click">
                                 <iconPacks:PackIconMaterial Kind="Play" Width="15" Height="15" />
                             </Button>
