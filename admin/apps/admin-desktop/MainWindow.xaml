@@ -798,32 +798,111 @@
                                         Command="{Binding LoadPricingCommand}" Content="Load pricing" />
                             </Grid>
 
-                            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="20,0,20,12"
-                                    VerticalAlignment="Top" MaxWidth="720" HorizontalAlignment="Left">
-                                <StackPanel>
-                                    <TextBlock Text="Markup values" FontSize="16" FontWeight="SemiBold" />
-                                    <TextBlock Text="Retail price = wholesale × (1 + percent / 100) + fixed."
-                                               Foreground="{StaticResource TextMutedBrush}" FontSize="12"
-                                               Margin="0,6,0,18" TextWrapping="Wrap" />
-                                    <UniformGrid Columns="2">
-                                        <StackPanel Margin="0,0,10,0">
-                                            <TextBlock Text="Markup percent" Style="{StaticResource FieldLabelStyle}" />
-                                            <TextBox Text="{Binding MarkupPercent, UpdateSourceTrigger=PropertyChanged}"
-                                                     Height="42" VerticalContentAlignment="Center"
-                                                     ToolTip="Example: 20 for a 20% markup" />
-                                        </StackPanel>
-                                        <StackPanel Margin="10,0,0,0">
-                                            <TextBlock Text="Markup fixed" Style="{StaticResource FieldLabelStyle}" />
-                                            <TextBox Text="{Binding MarkupFixed, UpdateSourceTrigger=PropertyChanged}"
-                                                     Height="42" VerticalContentAlignment="Center"
-                                                     ToolTip="Example: 0.25 for a $0.25 fixed add-on" />
-                                        </StackPanel>
-                                    </UniformGrid>
-                                    <Button Margin="0,18,0,0" Height="42" MinWidth="140" HorizontalAlignment="Left"
-                                            Style="{StaticResource PrimaryButtonStyle}"
-                                            Command="{Binding SavePricingCommand}" Content="Save markup" />
-                                </StackPanel>
-                            </Border>
+                            <Grid Grid.Row="2" Margin="20,0,20,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Style="{StaticResource CardStyle}" VerticalAlignment="Top" Width="380">
+                                    <StackPanel>
+                                        <TextBlock Text="Markup values" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="Default retail price = wholesale × (1 + percent / 100) + fixed."
+                                                   Foreground="{StaticResource TextMutedBrush}" FontSize="12"
+                                                   Margin="0,6,0,18" TextWrapping="Wrap" />
+                                        <UniformGrid Columns="2">
+                                            <StackPanel Margin="0,0,10,0">
+                                                <TextBlock Text="Markup percent" Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBox Text="{Binding MarkupPercent, UpdateSourceTrigger=PropertyChanged}"
+                                                         Height="42" VerticalContentAlignment="Center"
+                                                         ToolTip="Example: 20 for a 20% markup" />
+                                            </StackPanel>
+                                            <StackPanel Margin="10,0,0,0">
+                                                <TextBlock Text="Markup fixed" Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBox Text="{Binding MarkupFixed, UpdateSourceTrigger=PropertyChanged}"
+                                                         Height="42" VerticalContentAlignment="Center"
+                                                         ToolTip="Example: 0.25 for a $0.25 fixed add-on" />
+                                            </StackPanel>
+                                        </UniformGrid>
+                                        <Button Margin="0,18,0,0" Height="42" MinWidth="140" HorizontalAlignment="Left"
+                                                Style="{StaticResource PrimaryButtonStyle}"
+                                                Command="{Binding SavePricingCommand}" Content="Save markup" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="0">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Margin="20,17,20,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition /><ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="Country pricing" FontSize="16" FontWeight="SemiBold" />
+                                                <TextBlock Text="Per-country markup, overriding the default for that country's accounts only."
+                                                           Foreground="{StaticResource TextMutedBrush}" FontSize="12"
+                                                           Margin="0,4,0,0" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Height="36" MinWidth="118" VerticalAlignment="Top"
+                                                    Command="{Binding LoadCatalogPricingCommand}" Content="Load catalog" />
+                                        </Grid>
+                                        <DataGrid Grid.Row="1" Margin="20,0,20,16"
+                                                  ItemsSource="{Binding CountryPricing}"
+                                                  AutoGenerateColumns="False" IsReadOnly="False"
+                                                  CanUserAddRows="False" CanUserDeleteRows="False"
+                                                  CanUserResizeRows="False" HeadersVisibility="Column"
+                                                  GridLinesVisibility="Horizontal" SelectionMode="Single"
+                                                  SelectionUnit="FullRow">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Country" Binding="{Binding Country}"
+                                                                     Width="70" IsReadOnly="True" />
+                                                <DataGridTextColumn Header="Items" Binding="{Binding ItemCount}"
+                                                                     Width="50" IsReadOnly="True" />
+                                                <DataGridTextColumn Header="Wholesale" Binding="{Binding WholesaleRangeDisplay}"
+                                                                     Width="85" IsReadOnly="True" />
+                                                <DataGridTextColumn Header="Retail now" Binding="{Binding RetailRangeDisplay}"
+                                                                     Width="85" IsReadOnly="True" />
+                                                <DataGridTemplateColumn Header="Status" Width="65" IsReadOnly="True">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="Custom" FontSize="11" FontWeight="SemiBold"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{StaticResource AccentBrush}"
+                                                                       Visibility="{Binding HasOverride, Converter={StaticResource BoolToVisibility}}" />
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="Markup %"
+                                                                     Binding="{Binding MarkupPercent, UpdateSourceTrigger=PropertyChanged}"
+                                                                     Width="75" />
+                                                <DataGridTextColumn Header="Markup fixed"
+                                                                     Binding="{Binding MarkupFixed, UpdateSourceTrigger=PropertyChanged}"
+                                                                     Width="90" />
+                                                <DataGridTemplateColumn Header="" Width="140">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                                <Button Content="Save" Height="30" MinWidth="52" Margin="0,0,6,0"
+                                                                        Command="{Binding DataContext.SaveCountryPricingCommand,
+                                                                                  RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                        CommandParameter="{Binding}" />
+                                                                <Button Content="Clear" Height="30" MinWidth="52"
+                                                                        Command="{Binding DataContext.ClearCountryOverrideCommand,
+                                                                                  RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                        CommandParameter="{Binding}" />
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Border>
+                            </Grid>
 
                             <Grid Grid.Row="3" Margin="20,5,20,12">
                                 <Grid.ColumnDefinitions>

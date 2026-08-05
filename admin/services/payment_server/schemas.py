@@ -235,3 +235,32 @@ class TreasuryWalletOut(BaseModel):
 
 class TreasuryWalletUpdate(BaseModel):
     address: str = Field(min_length=34, max_length=64)
+
+
+class CountryPricingOut(BaseModel):
+    country: str
+    markup_percent: str
+    markup_fixed: str
+
+
+class CountryPricingListOut(BaseModel):
+    items: list[CountryPricingOut] = Field(default_factory=list)
+
+
+class AdminCatalogProductOut(BaseModel):
+    product_id: int
+    name: str
+    wholesale_price: str
+    retail_price: str
+    currency: str
+    stock: int = Field(ge=0)
+    min_order: int = Field(ge=1)
+    max_order: Optional[int] = Field(default=None, ge=1)
+    category_name: Optional[str] = None
+    description: Optional[str] = None
+    country: Optional[str] = None
+    content_language: str = ""
+
+
+class AdminCatalogOut(BaseModel):
+    items: list[AdminCatalogProductOut] = Field(default_factory=list)

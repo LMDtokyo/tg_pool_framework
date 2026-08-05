@@ -16,6 +16,17 @@ internal static class DatamollStrings
         table.Add("Datamoll.BalanceLabel", "Доступный баланс", "Available balance", "可用余额");
         table.Add("Datamoll.RefreshBalanceTooltip", "Обновить баланс", "Refresh balance", "刷新余额");
 
+        table.Add("Datamoll.DepositAddressLabel", "Адрес для пополнения", "Deposit address", "充值地址");
+        table.Add("Datamoll.DepositAddressTooltip",
+            "Ваш личный TRC20-адрес USDT. Он не меняется и принадлежит только вам.",
+            "Your personal USDT TRC20 address. It never changes and belongs only to you.",
+            "您的个人 USDT TRC20 地址。该地址不会更改，仅属于您。");
+        table.Add("Datamoll.CopyDepositAddressTooltip", "Скопировать адрес", "Copy address", "复制地址");
+        table.Add("Datamoll.DepositAddressNote",
+            "Отправляйте USDT (TRC20) только на этот адрес. Средства зачисляются автоматически после подтверждений в сети.",
+            "Send USDT (TRC20) only to this address. Funds are credited automatically after network confirmations.",
+            "请仅向此地址发送 USDT（TRC20）。资金将在网络确认后自动到账。");
+
         table.Add("Datamoll.SectionTelegramProduct", "TELEGRAM ПРОДУКТ", "TELEGRAM PRODUCT", "TELEGRAM 产品");
         table.Add("Datamoll.SearchCountryLabel", "Поиск страны", "Search country", "搜索国家");
         table.Add("Datamoll.SearchCountryTooltip", "Поиск по названию страны", "Search by country name", "按国家名称搜索");

@@ -5,6 +5,7 @@ from tg_pool.api.payment import (
     create_order,
     fetch_balance,
     fetch_catalog,
+    fetch_me,
 )
 
 
@@ -14,6 +15,17 @@ async def test_payment_client_uses_issued_key_as_bearer_token():
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request)
+        if request.url.path == "/v1/me":
+            return httpx.Response(
+                200,
+                json={
+                    "user_id": 1,
+                    "display_name": "Customer",
+                    "deposit_address": "TCustomerDepositAddress1111111111111",
+                    "network": "mainnet",
+                    "asset": "USDT",
+                },
+            )
         if request.url.path == "/v1/balance":
             return httpx.Response(
                 200,
@@ -46,6 +58,7 @@ async def test_payment_client_uses_issued_key_as_bearer_token():
         transport=httpx.MockTransport(handler),
         base_url="https://payments.example.test",
     ) as client:
+        me = await fetch_me("sk_live_customer", client=client)
         await fetch_balance("sk_live_customer", client=client)
         await fetch_catalog("sk_live_customer", client=client)
         await create_order(
@@ -56,7 +69,8 @@ async def test_payment_client_uses_issued_key_as_bearer_token():
             client=client,
         )
 
-    assert len(seen) == 3
+    assert me["deposit_address"] == "TCustomerDepositAddress1111111111111"
+    assert len(seen) == 4
     assert all(
         request.headers["Authorization"] == "Bearer sk_live_customer"
         for request in seen

@@ -77,6 +77,12 @@ async def _request(
             await client.aclose()
 
 
+async def fetch_me(
+    api_key: str, *, client: Optional[httpx.AsyncClient] = None
+) -> dict[str, Any]:
+    return await _request("GET", "/v1/me", api_key, client=client)
+
+
 async def fetch_balance(
     api_key: str, *, client: Optional[httpx.AsyncClient] = None
 ) -> dict[str, Any]:

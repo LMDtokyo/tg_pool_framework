@@ -87,6 +87,19 @@ public sealed class BackendClient
             ?? throw new InvalidOperationException("Andromeda service returned an empty balance response");
     }
 
+    public async Task<DatamollMeDto> GetDatamollMeAsync(
+        string apiKey,
+        CancellationToken ct = default)
+    {
+        var resp = await _http.PostAsJsonAsync(
+            "/datamoll/me",
+            new PaymentApiKeyRequest { ApiKey = apiKey },
+            ct);
+        await EnsureDatamollSuccessAsync(resp, "load the deposit address", ct);
+        return await resp.Content.ReadFromJsonAsync<DatamollMeDto>(ct)
+            ?? throw new InvalidOperationException("Andromeda service returned an empty account response");
+    }
+
     public async Task<DatamollCatalogDto> GetDatamollCatalogAsync(
         string apiKey,
         CancellationToken ct = default)

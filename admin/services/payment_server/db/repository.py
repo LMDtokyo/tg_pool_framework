@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from payment_server.db.models import (
     ApiKeyRow,
     Base,
+    CountryPricingRow,
     DepositRow,
     LedgerEntryRow,
     OrderRow,
@@ -888,6 +889,56 @@ class PaymentRepository:
                     row.markup_percent = percent
                     row.markup_fixed = fixed
         return percent, fixed
+
+    async def list_country_pricing(self) -> list[tuple[str, Decimal, Decimal]]:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(CountryPricingRow).order_by(CountryPricingRow.country)
+            )
+            return [
+                (row.country, money(row.markup_percent), money(row.markup_fixed))
+                for row in result.scalars()
+            ]
+
+    async def set_country_pricing(
+        self,
+        country: str,
+        *,
+        markup_percent: Decimal,
+        markup_fixed: Decimal,
+    ) -> tuple[Decimal, Decimal]:
+        percent = money(markup_percent)
+        fixed = money(markup_fixed)
+        async with self._session_factory() as session:
+            async with session.begin():
+                result = await session.execute(
+                    select(CountryPricingRow).where(CountryPricingRow.country == country)
+                )
+                row = result.scalar_one_or_none()
+                if row is None:
+                    session.add(
+                        CountryPricingRow(
+                            country=country,
+                            markup_percent=percent,
+                            markup_fixed=fixed,
+                        )
+                    )
+                else:
+                    row.markup_percent = percent
+                    row.markup_fixed = fixed
+        return percent, fixed
+
+    async def delete_country_pricing(self, country: str) -> bool:
+        async with self._session_factory() as session:
+            async with session.begin():
+                result = await session.execute(
+                    select(CountryPricingRow).where(CountryPricingRow.country == country)
+                )
+                row = result.scalar_one_or_none()
+                if row is None:
+                    return False
+                await session.delete(row)
+        return True
 
     async def cache_products(self, products: list[dict[str, Any]]) -> None:
         now = datetime.now(timezone.utc)

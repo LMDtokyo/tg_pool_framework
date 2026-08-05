@@ -28,15 +28,19 @@ from payment_server.db.repository import (
     ensure_payment_tables,
     money,
 )
-from payment_server.pricing import RetailPricing
+from payment_server.pricing import RetailPricing, effective_pricing, normalize_country
 from payment_server.provider import DatamollProvider
 from payment_server.schemas import (
     AdjustmentRequest,
+    AdminCatalogOut,
+    AdminCatalogProductOut,
     AdminUserSummaryOut,
     AdminUsersOut,
     AdminWalletOut,
     BalanceOut,
     CatalogOut,
+    CountryPricingListOut,
+    CountryPricingOut,
     DailyDepositOut,
     DepositEventOut,
     DepositEventRequest,
@@ -146,11 +150,41 @@ def _address_pool(explicit: str | None) -> list[str]:
     ]
 
 
-def _product_out(product: dict[str, Any], pricing: RetailPricing) -> ProductOut:
+def _product_out(
+    product: dict[str, Any],
+    pricing: RetailPricing,
+    country_pricing: dict[str, RetailPricing],
+) -> ProductOut:
+    effective = effective_pricing(product.get("country"), pricing, country_pricing)
     return ProductOut(
         product_id=int(product["product_id"]),
         name=str(product.get("name") or ""),
-        price=format(pricing.price(product.get("price") or "0"), "f"),
+        price=format(effective.price(product.get("price") or "0"), "f"),
+        currency=str(product.get("currency") or "USD"),
+        stock=max(0, int(product.get("stock") or 0)),
+        min_order=max(1, int(product.get("min_order") or 1)),
+        max_order=(
+            int(product["max_order"]) if product.get("max_order") is not None else None
+        ),
+        category_name=product.get("category_name"),
+        description=product.get("description"),
+        country=product.get("country"),
+        content_language=str(product.get("content_language") or ""),
+    )
+
+
+def _admin_product_out(
+    product: dict[str, Any],
+    pricing: RetailPricing,
+    country_pricing: dict[str, RetailPricing],
+) -> AdminCatalogProductOut:
+    effective = effective_pricing(product.get("country"), pricing, country_pricing)
+    wholesale = product.get("price") or "0"
+    return AdminCatalogProductOut(
+        product_id=int(product["product_id"]),
+        name=str(product.get("name") or ""),
+        wholesale_price=format(money(wholesale), "f"),
+        retail_price=format(effective.price(wholesale), "f"),
         currency=str(product.get("currency") or "USD"),
         stock=max(0, int(product.get("stock") or 0)),
         min_order=max(1, int(product.get("min_order") or 1)),
@@ -185,6 +219,15 @@ async def _current_pricing() -> RetailPricing:
         pricing = RetailPricing(markup_percent=stored[0], markup_fixed=stored[1])
     app.state.pricing = pricing
     return pricing
+
+
+async def _current_country_pricing() -> dict[str, RetailPricing]:
+    repository: PaymentRepository = app.state.repository
+    overrides = await repository.list_country_pricing()
+    return {
+        country: RetailPricing(markup_percent=percent, markup_fixed=fixed)
+        for country, percent, fixed in overrides
+    }
 
 
 def _order_out(
@@ -814,16 +857,21 @@ async def products(user=Depends(require_user)) -> CatalogOut:
     del user
     provider: DatamollProvider = app.state.provider
     pricing = await _current_pricing()
+    country_pricing = await _current_country_pricing()
     repository: PaymentRepository = app.state.repository
     try:
         catalog = await provider.catalog()
         await repository.cache_products(catalog)
-        return CatalogOut(items=[_product_out(product, pricing) for product in catalog])
+        return CatalogOut(
+            items=[_product_out(product, pricing, country_pricing) for product in catalog]
+        )
     except Exception as exc:
         logger.warning("Provider catalog request failed: %s", exc)
         cached = await repository.cached_products()
         if cached:
-            return CatalogOut(items=[_product_out(product, pricing) for product in cached])
+            return CatalogOut(
+                items=[_product_out(product, pricing, country_pricing) for product in cached]
+            )
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
@@ -831,6 +879,7 @@ async def products(user=Depends(require_user)) -> CatalogOut:
 async def create_order(body: OrderRequest, user=Depends(require_user)) -> OrderOut:
     provider: DatamollProvider = app.state.provider
     pricing = await _current_pricing()
+    country_pricing = await _current_country_pricing()
     repository: PaymentRepository = app.state.repository
     try:
         existing = await repository.completed_order(
@@ -854,7 +903,8 @@ async def create_order(body: OrderRequest, user=Depends(require_user)) -> OrderO
         maximum = int(product.get("max_order") or stock)
         if body.quantity < minimum or body.quantity > min(stock, maximum):
             raise HTTPException(status_code=409, detail="Requested quantity is unavailable")
-        unit_price = pricing.price(product.get("price") or "0")
+        effective = effective_pricing(product.get("country"), pricing, country_pricing)
+        unit_price = effective.price(product.get("price") or "0")
         currency = str(product.get("currency") or repository.currency).upper()
         reservation = await repository.reserve_order(
             user_id=user.id,
@@ -969,6 +1019,88 @@ async def update_pricing(body: RetailPricingUpdate) -> RetailPricingOut:
     updated = RetailPricing(markup_percent=percent, markup_fixed=fixed)
     app.state.pricing = updated
     return _pricing_out(updated)
+
+
+@app.get(
+    "/admin/catalog",
+    response_model=AdminCatalogOut,
+    dependencies=[Depends(require_admin)],
+)
+async def admin_catalog() -> AdminCatalogOut:
+    provider: DatamollProvider = app.state.provider
+    pricing = await _current_pricing()
+    country_pricing = await _current_country_pricing()
+    repository: PaymentRepository = app.state.repository
+    try:
+        catalog = await provider.catalog()
+        await repository.cache_products(catalog)
+    except Exception as exc:
+        logger.warning("Provider catalog request failed: %s", exc)
+        catalog = await repository.cached_products()
+        if not catalog:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return AdminCatalogOut(
+        items=[_admin_product_out(product, pricing, country_pricing) for product in catalog]
+    )
+
+
+@app.get(
+    "/admin/pricing/countries",
+    response_model=CountryPricingListOut,
+    dependencies=[Depends(require_admin)],
+)
+async def list_country_pricing() -> CountryPricingListOut:
+    repository: PaymentRepository = app.state.repository
+    overrides = await repository.list_country_pricing()
+    return CountryPricingListOut(
+        items=[
+            CountryPricingOut(
+                country=country,
+                markup_percent=format(percent, "f"),
+                markup_fixed=format(fixed, "f"),
+            )
+            for country, percent, fixed in overrides
+        ]
+    )
+
+
+@app.put(
+    "/admin/pricing/countries/{country}",
+    response_model=CountryPricingOut,
+    dependencies=[Depends(require_admin)],
+)
+async def update_country_pricing(country: str, body: RetailPricingUpdate) -> CountryPricingOut:
+    normalized = normalize_country(country)
+    if not normalized:
+        raise HTTPException(status_code=422, detail="Country code is required")
+    repository: PaymentRepository = app.state.repository
+    try:
+        pricing = RetailPricing.from_values(body.markup_percent, body.markup_fixed)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    percent, fixed = await repository.set_country_pricing(
+        normalized,
+        markup_percent=pricing.markup_percent,
+        markup_fixed=pricing.markup_fixed,
+    )
+    return CountryPricingOut(
+        country=normalized,
+        markup_percent=format(percent, "f"),
+        markup_fixed=format(fixed, "f"),
+    )
+
+
+@app.delete(
+    "/admin/pricing/countries/{country}",
+    dependencies=[Depends(require_admin)],
+)
+async def delete_country_pricing(country: str) -> dict[str, str]:
+    normalized = normalize_country(country)
+    repository: PaymentRepository = app.state.repository
+    removed = await repository.delete_country_pricing(normalized)
+    if not removed:
+        raise HTTPException(status_code=404, detail="No override configured for this country")
+    return {"status": "removed"}
 
 
 @app.get(

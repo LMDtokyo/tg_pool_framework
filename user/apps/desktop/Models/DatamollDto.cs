@@ -45,6 +45,18 @@ public sealed class DatamollCatalogDto
     public List<DatamollProductDto> Items { get; init; } = [];
 }
 
+public sealed class DatamollMeDto
+{
+    [JsonPropertyName("deposit_address")]
+    public string DepositAddress { get; init; } = "";
+
+    [JsonPropertyName("network")]
+    public string Network { get; init; } = "";
+
+    [JsonPropertyName("asset")]
+    public string Asset { get; init; } = "USDT";
+}
+
 public sealed class DatamollProductDto
 {
     private static readonly Regex CountryPattern = new(

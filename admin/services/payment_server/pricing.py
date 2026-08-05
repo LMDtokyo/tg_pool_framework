@@ -42,3 +42,15 @@ class RetailPricing:
             raise ValueError("Wholesale price cannot be negative")
         multiplier = Decimal("1") + (self.markup_percent / Decimal("100"))
         return money((wholesale * multiplier) + self.markup_fixed)
+
+
+def normalize_country(value: str | None) -> str:
+    return (value or "").strip().upper()
+
+
+def effective_pricing(
+    country: str | None,
+    default: RetailPricing,
+    overrides: dict[str, RetailPricing],
+) -> RetailPricing:
+    return overrides.get(normalize_country(country), default)

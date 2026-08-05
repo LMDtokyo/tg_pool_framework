@@ -28,6 +28,9 @@ public partial class DatamollViewModel : ObservableObject
     private string balanceErrorMessage = "";
 
     [ObservableProperty]
+    private string depositAddress = "";
+
+    [ObservableProperty]
     private string catalogStatusMessage = LocalizationService.Instance["Datamoll.CatalogStatusLoadPrompt"];
 
     [ObservableProperty]
@@ -128,10 +131,16 @@ public partial class DatamollViewModel : ObservableObject
         BalanceErrorMessage = "";
         try
         {
-            var result = await _backend.GetDatamollBalanceAsync(ApiKey.Trim());
+            var key = ApiKey.Trim();
+            var balanceTask = _backend.GetDatamollBalanceAsync(key);
+            var meTask = _backend.GetDatamollMeAsync(key);
+            await Task.WhenAll(balanceTask, meTask);
+
+            var result = await balanceTask;
             BalanceDisplay =
                 $"{result.Currency} {DatamollMoney.Format(result.AvailableBalance)} available"
                 + $"  (balance {DatamollMoney.Format(result.Balance)}, credit {DatamollMoney.Format(result.CreditLimit)})";
+            DepositAddress = (await meTask).DepositAddress;
         }
         catch (Exception exc)
         {

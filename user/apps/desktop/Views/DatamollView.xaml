@@ -67,6 +67,22 @@
                     </Grid>
                     <TextBlock Text="{Binding BalanceErrorMessage}" Foreground="{StaticResource DangerBrush}"
                                FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                    <TextBlock Text="{tr:Tr Datamoll.DepositAddressLabel}" Style="{StaticResource FieldLabelStyle}" />
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding DepositAddress, Mode=OneWay}" Height="44" IsReadOnly="True"
+                                 FontFamily="Consolas" ToolTip="{tr:Tr Datamoll.DepositAddressTooltip}" />
+                        <Button Grid.Column="1" Style="{StaticResource IconButtonStyle}" Margin="10,5,0,5"
+                                Click="CopyDepositAddress_Click" ToolTip="{tr:Tr Datamoll.CopyDepositAddressTooltip}">
+                            <iconPacks:PackIconMaterial Kind="ContentCopy" Width="16" Height="16" />
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="{tr:Tr Datamoll.DepositAddressNote}" Foreground="{StaticResource TextFaintBrush}"
+                               FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12" />
                     <ProgressBar Height="3" Margin="0,0,0,12" IsIndeterminate="True"
                                  Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
 

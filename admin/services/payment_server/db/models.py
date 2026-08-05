@@ -258,3 +258,18 @@ class RetailPricingRow(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+
+class CountryPricingRow(Base):
+    __tablename__ = "payment_country_pricing"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    country: Mapped[str] = mapped_column(String(8), unique=True, nullable=False, index=True)
+    markup_percent: Mapped[Decimal] = mapped_column(Numeric(24, 8), nullable=False)
+    markup_fixed: Mapped[Decimal] = mapped_column(Numeric(24, 8), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )

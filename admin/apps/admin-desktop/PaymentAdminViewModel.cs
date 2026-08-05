@@ -48,6 +48,13 @@ public sealed class PaymentAdminViewModel : INotifyPropertyChanged
             LoadPricingAsync,
             () => !IsBusy && !string.IsNullOrWhiteSpace(AdminKey));
         SavePricingCommand = new AsyncCommand(SavePricingAsync, CanSavePricing);
+        LoadCatalogPricingCommand = new AsyncCommand(
+            LoadCatalogPricingAsync,
+            () => !IsBusy && !string.IsNullOrWhiteSpace(AdminKey));
+        SaveCountryPricingCommand = new AsyncCommand<CountryPricingRow>(
+            SaveCountryPricingAsync, CanSaveCountryPricing);
+        ClearCountryOverrideCommand = new AsyncCommand<CountryPricingRow>(
+            ClearCountryOverrideAsync, CanClearCountryOverride);
         LoadTreasuryCommand = new AsyncCommand(
             LoadTreasuryAsync,
             () => !IsBusy && !string.IsNullOrWhiteSpace(AdminKey));
@@ -60,6 +67,7 @@ public sealed class PaymentAdminViewModel : INotifyPropertyChanged
 
     public ObservableCollection<AdminUser> Users { get; } = [];
     public ObservableCollection<AdminWithdrawal> Withdrawals { get; } = [];
+    public ObservableCollection<CountryPricingRow> CountryPricing { get; } = [];
     public ObservableCollection<DailyDepositPoint> DailyDeposits { get; } = [];
     public ObservableCollection<DailyDepositPoint> DailyPurchases { get; } = [];
     public ObservableCollection<ChartDateLabel> DailyChartLabels { get; } = [];
@@ -75,6 +83,9 @@ public sealed class PaymentAdminViewModel : INotifyPropertyChanged
     public AsyncCommand RefreshSalesCommand { get; }
     public AsyncCommand LoadPricingCommand { get; }
     public AsyncCommand SavePricingCommand { get; }
+    public AsyncCommand LoadCatalogPricingCommand { get; }
+    public AsyncCommand<CountryPricingRow> SaveCountryPricingCommand { get; }
+    public AsyncCommand<CountryPricingRow> ClearCountryOverrideCommand { get; }
     public AsyncCommand LoadTreasuryCommand { get; }
     public AsyncCommand SaveTreasuryCommand { get; }
     public AsyncCommand WithdrawCommand { get; }
@@ -454,6 +465,140 @@ public sealed class PaymentAdminViewModel : INotifyPropertyChanged
         MarkupFixed = AdminUser.FormatAmount(pricing.MarkupFixed);
     }
 
+    private async Task LoadCatalogPricingAsync()
+    {
+        IsBusy = true;
+        ErrorMessage = "";
+        StatusMessage = "Loading the catalog and country markup overrides...";
+        try
+        {
+            var key = AdminKey.Trim();
+            var catalogTask = _api.GetCatalogAsync(key);
+            var overridesTask = _api.GetCountryPricingAsync(key);
+            await Task.WhenAll(catalogTask, overridesTask);
+            var catalog = (await catalogTask).Items;
+            var overrides = (await overridesTask).Items
+                .ToDictionary(item => item.Country, item => item);
+
+            var grouped = catalog
+                .GroupBy(item => string.IsNullOrWhiteSpace(item.Country)
+                    ? "—"
+                    : item.Country.Trim().ToUpperInvariant())
+                .OrderBy(group => group.Key);
+
+            CountryPricing.Clear();
+            foreach (var group in grouped)
+            {
+                var hasOverride = overrides.TryGetValue(group.Key, out var over);
+                CountryPricing.Add(new CountryPricingRow
+                {
+                    Country = group.Key,
+                    ItemCount = group.Count(),
+                    WholesaleRangeDisplay = FormatRange(group.Select(item => item.WholesaleValue)),
+                    RetailRangeDisplay = FormatRange(
+                        group.Select(item => ParseAmount(item.RetailPrice))),
+                    HasOverride = hasOverride,
+                    MarkupPercent = hasOverride ? AdminUser.FormatAmount(over!.MarkupPercent) : "",
+                    MarkupFixed = hasOverride ? AdminUser.FormatAmount(over!.MarkupFixed) : "",
+                });
+            }
+            StatusMessage = $"Loaded {CountryPricing.Count} countries from the catalog.";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = "";
+            ErrorMessage = exception.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private bool CanSaveCountryPricing(CountryPricingRow? row) =>
+        !IsBusy
+        && row is not null
+        && !string.IsNullOrWhiteSpace(AdminKey)
+        && decimal.TryParse(
+            row.MarkupPercent, NumberStyles.Number, CultureInfo.InvariantCulture, out var percent)
+        && percent >= 0
+        && decimal.TryParse(
+            row.MarkupFixed, NumberStyles.Number, CultureInfo.InvariantCulture, out var fixedAmount)
+        && fixedAmount >= 0;
+
+    private async Task SaveCountryPricingAsync(CountryPricingRow? row)
+    {
+        if (row is null)
+            return;
+        IsBusy = true;
+        ErrorMessage = "";
+        StatusMessage = $"Saving the markup for {row.Country}...";
+        try
+        {
+            var saved = await _api.SaveCountryPricingAsync(
+                AdminKey.Trim(), row.Country, row.MarkupPercent.Trim(), row.MarkupFixed.Trim());
+            row.MarkupPercent = AdminUser.FormatAmount(saved.MarkupPercent);
+            row.MarkupFixed = AdminUser.FormatAmount(saved.MarkupFixed);
+            row.HasOverride = true;
+            StatusMessage = $"Saved the {row.Country} markup: "
+                + $"{AdminUser.FormatAmount(saved.MarkupPercent)}% + "
+                + $"{AdminUser.FormatAmount(saved.MarkupFixed)} fixed.";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = "";
+            ErrorMessage = exception.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+            NotifyCommands();
+        }
+    }
+
+    private bool CanClearCountryOverride(CountryPricingRow? row) =>
+        !IsBusy && row is { HasOverride: true } && !string.IsNullOrWhiteSpace(AdminKey);
+
+    private async Task ClearCountryOverrideAsync(CountryPricingRow? row)
+    {
+        if (row is null)
+            return;
+        IsBusy = true;
+        ErrorMessage = "";
+        StatusMessage = $"Clearing the markup override for {row.Country}...";
+        try
+        {
+            await _api.DeleteCountryPricingAsync(AdminKey.Trim(), row.Country);
+            row.MarkupPercent = "";
+            row.MarkupFixed = "";
+            row.HasOverride = false;
+            StatusMessage = $"{row.Country} now uses the global default markup.";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = "";
+            ErrorMessage = exception.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+            NotifyCommands();
+        }
+    }
+
+    private static string FormatRange(IEnumerable<decimal> values)
+    {
+        var list = values.ToList();
+        if (list.Count == 0)
+            return "—";
+        var min = list.Min();
+        var max = list.Max();
+        return min == max
+            ? min.ToString("0.##", CultureInfo.InvariantCulture)
+            : $"{min.ToString("0.##", CultureInfo.InvariantCulture)}"
+                + $"–{max.ToString("0.##", CultureInfo.InvariantCulture)}";
+    }
+
     private async Task LoadTreasuryAsync()
     {
         IsBusy = true;
@@ -748,6 +893,9 @@ public sealed class PaymentAdminViewModel : INotifyPropertyChanged
         RefreshSalesCommand.RaiseCanExecuteChanged();
         LoadPricingCommand.RaiseCanExecuteChanged();
         SavePricingCommand.RaiseCanExecuteChanged();
+        LoadCatalogPricingCommand.RaiseCanExecuteChanged();
+        SaveCountryPricingCommand.RaiseCanExecuteChanged();
+        ClearCountryOverrideCommand.RaiseCanExecuteChanged();
         LoadTreasuryCommand.RaiseCanExecuteChanged();
         SaveTreasuryCommand.RaiseCanExecuteChanged();
         WithdrawCommand.RaiseCanExecuteChanged();
@@ -788,6 +936,47 @@ public sealed record DailyDepositPoint(
     double PointTop);
 
 public sealed record ChartDateLabel(string Date, double PointLeft);
+
+public sealed class CountryPricingRow : INotifyPropertyChanged
+{
+    private string _markupPercent = "";
+    private string _markupFixed = "";
+    private bool _hasOverride;
+
+    public required string Country { get; init; }
+    public int ItemCount { get; init; }
+    public string WholesaleRangeDisplay { get; init; } = "—";
+    public string RetailRangeDisplay { get; init; } = "—";
+
+    public bool HasOverride
+    {
+        get => _hasOverride;
+        set => Set(ref _hasOverride, value);
+    }
+
+    public string MarkupPercent
+    {
+        get => _markupPercent;
+        set => Set(ref _markupPercent, value);
+    }
+
+    public string MarkupFixed
+    {
+        get => _markupFixed;
+        set => Set(ref _markupFixed, value);
+    }
+
+    private bool Set<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value))
+            return false;
+        field = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        return true;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
 
 public sealed class AsyncCommand : ICommand
 {

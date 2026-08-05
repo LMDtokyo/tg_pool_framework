@@ -146,6 +146,12 @@ class DatamollBalanceOut(BaseModel):
     currency: str
 
 
+class DatamollMeOut(BaseModel):
+    deposit_address: str
+    network: str
+    asset: str
+
+
 class DatamollProductOut(BaseModel):
     product_id: int
     name: str

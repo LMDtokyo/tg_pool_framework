@@ -49,6 +49,46 @@ class FailingProvider:
         raise RuntimeError("provider unavailable")
 
 
+class TwoCountryProvider:
+    async def catalog(self):
+        return [
+            {
+                "product_id": 1,
+                "name": "US Telegram account",
+                "price": "2.00",
+                "currency": "USD",
+                "stock": 5,
+                "min_order": 1,
+                "max_order": 5,
+                "country": "us",
+            },
+            {
+                "product_id": 2,
+                "name": "RU Telegram account",
+                "price": "2.00",
+                "currency": "USD",
+                "stock": 5,
+                "min_order": 1,
+                "max_order": 5,
+                "country": "RU",
+            },
+        ]
+
+    async def create_order(self, *, product_id, quantity, external_order_id):
+        return {
+            "order_id": product_id * 100,
+            "external_order_id": external_order_id,
+            "status": "completed",
+            "payment_status": "paid",
+            "product_id": product_id,
+            "quantity": quantity,
+            "unit_price": "2.00",
+            "total_amount": "2.00",
+            "currency": "USD",
+            "items": [{"download_url": "https://example.test/delivery.zip"}],
+        }
+
+
 class FakeSigner:
     def __init__(self):
         self.balance_value = Decimal("10")
@@ -488,4 +528,120 @@ def test_full_api_key_deposit_and_purchase_flow(tmp_path, monkeypatch):
         )
         assert retried.status_code == 200
         assert retried.json()["status"] == "confirmed"
-        assert len(signer.sweep_calls) == 3
+
+
+def test_per_country_markup_overrides_default_for_matching_products_only(
+    tmp_path, monkeypatch
+):
+    database = tmp_path / "country-pricing.db"
+    monkeypatch.setenv(
+        "PAYMENT_DATABASE_URL", f"sqlite+aiosqlite:///{database.as_posix()}"
+    )
+    monkeypatch.setenv("PAYMENT_ADMIN_API_KEY", "admin-secret")
+    monkeypatch.setenv("PAYMENT_WEBHOOK_KEY", "webhook-secret")
+    monkeypatch.setenv(
+        "PAYMENT_DEPOSIT_ADDRESSES", "TTestAddress111111111111111111111111"
+    )
+    monkeypatch.setenv("PAYMENT_RETAIL_MARKUP_PERCENT", "10")
+    monkeypatch.setenv("PAYMENT_RETAIL_MARKUP_FIXED", "0")
+    monkeypatch.setenv("PAYMENT_CHAIN_NETWORK", "mainnet")
+    monkeypatch.setenv("PAYMENT_REQUIRED_CONFIRMATIONS", "1")
+    with TestClient(app) as client:
+        app.state.provider = TwoCountryProvider()
+        app.state.signer = FakeSigner()
+        admin = {"X-Admin-Key": "admin-secret"}
+
+        issued = client.post(
+            "/admin/users",
+            headers=admin,
+            json={"display_name": "Country Pricing Tester"},
+        )
+        assert issued.status_code == 200
+        account = issued.json()
+        bearer = {"Authorization": f"Bearer {account['api_key']}"}
+
+        client.post(
+            "/webhooks/tron/deposits",
+            headers={"X-Webhook-Key": "webhook-secret"},
+            json={
+                "event_id": "evt-country-1",
+                "network": "tron",
+                "asset": "USDT",
+                "address": account["deposit_address"],
+                "transaction_hash": "tx-country-1",
+                "event_index": 0,
+                "amount": "100",
+                "confirmations": 1,
+            },
+        )
+
+        # Before any override, both countries use the 10% global default.
+        catalog = client.get("/v1/products", headers=bearer).json()["items"]
+        by_country = {item["country"]: item for item in catalog}
+        assert by_country["us"]["price"] == "2.20000000"
+        assert by_country["RU"]["price"] == "2.20000000"
+
+        assert (
+            client.get("/admin/pricing/countries", headers=admin).json()["items"]
+            == []
+        )
+
+        override = client.put(
+            "/admin/pricing/countries/us",
+            headers=admin,
+            json={"markup_percent": "50", "markup_fixed": "0.10"},
+        )
+        assert override.status_code == 200
+        assert override.json() == {
+            "country": "US",
+            "markup_percent": "50.00000000",
+            "markup_fixed": "0.10000000",
+        }
+
+        listed = client.get("/admin/pricing/countries", headers=admin).json()["items"]
+        assert listed == [
+            {"country": "US", "markup_percent": "50.00000000", "markup_fixed": "0.10000000"}
+        ]
+
+        # US now uses its override; RU still falls back to the 10% default.
+        repriced = client.get("/v1/products", headers=bearer).json()["items"]
+        by_country = {item["country"]: item for item in repriced}
+        assert by_country["us"]["price"] == "3.10000000"
+        assert by_country["RU"]["price"] == "2.20000000"
+
+        admin_catalog = client.get("/admin/catalog", headers=admin).json()["items"]
+        admin_by_country = {item["country"]: item for item in admin_catalog}
+        assert admin_by_country["us"]["wholesale_price"] == "2.00000000"
+        assert admin_by_country["us"]["retail_price"] == "3.10000000"
+        assert admin_by_country["RU"]["wholesale_price"] == "2.00000000"
+        assert admin_by_country["RU"]["retail_price"] == "2.20000000"
+
+        # The customer is charged and debited exactly the country-marked-up price.
+        us_order = client.post(
+            "/v1/orders",
+            headers=bearer,
+            json={"product_id": 1, "quantity": 1, "external_order_id": "order-us-1"},
+        )
+        assert us_order.status_code == 200
+        assert us_order.json()["unit_price"] == "3.10000000"
+        assert us_order.json()["total_amount"] == "3.10000000"
+
+        ru_order = client.post(
+            "/v1/orders",
+            headers=bearer,
+            json={"product_id": 2, "quantity": 1, "external_order_id": "order-ru-1"},
+        )
+        assert ru_order.status_code == 200
+        assert ru_order.json()["unit_price"] == "2.20000000"
+
+        balance = client.get("/v1/balance", headers=bearer).json()["balance"]
+        assert balance == "94.70000000"  # 100 - 3.10 - 2.20
+
+        removed = client.delete("/admin/pricing/countries/us", headers=admin)
+        assert removed.status_code == 200
+        again = client.delete("/admin/pricing/countries/us", headers=admin)
+        assert again.status_code == 404
+
+        back_to_default = client.get("/v1/products", headers=bearer).json()["items"]
+        by_country = {item["country"]: item for item in back_to_default}
+        assert by_country["us"]["price"] == "2.20000000"

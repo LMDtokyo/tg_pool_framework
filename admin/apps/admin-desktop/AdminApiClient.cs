@@ -164,6 +164,68 @@ public sealed class AdminApiClient : IDisposable
                ?? throw new InvalidOperationException("Payment server returned empty retail pricing.");
     }
 
+    public async Task<AdminCatalogResponse> GetCatalogAsync(
+        string adminKey,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "admin/catalog");
+        request.Headers.Add("X-Admin-Key", adminKey);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "load the account catalog", cancellationToken);
+        return await response.Content.ReadFromJsonAsync<AdminCatalogResponse>(
+                   cancellationToken: cancellationToken)
+               ?? new AdminCatalogResponse();
+    }
+
+    public async Task<CountryPricingResponse> GetCountryPricingAsync(
+        string adminKey,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "admin/pricing/countries");
+        request.Headers.Add("X-Admin-Key", adminKey);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "load country markup overrides", cancellationToken);
+        return await response.Content.ReadFromJsonAsync<CountryPricingResponse>(
+                   cancellationToken: cancellationToken)
+               ?? new CountryPricingResponse();
+    }
+
+    public async Task<CountryPricing> SaveCountryPricingAsync(
+        string adminKey,
+        string country,
+        string markupPercent,
+        string markupFixed,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Put,
+            $"admin/pricing/countries/{Uri.EscapeDataString(country)}");
+        request.Headers.Add("X-Admin-Key", adminKey);
+        request.Content = JsonContent.Create(new RetailPricingBody
+        {
+            MarkupPercent = markupPercent,
+            MarkupFixed = markupFixed,
+        });
+        using var response = await _http.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "save the country markup", cancellationToken);
+        return await response.Content.ReadFromJsonAsync<CountryPricing>(
+                   cancellationToken: cancellationToken)
+               ?? throw new InvalidOperationException("Payment server returned empty country pricing.");
+    }
+
+    public async Task DeleteCountryPricingAsync(
+        string adminKey,
+        string country,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(
+            HttpMethod.Delete,
+            $"admin/pricing/countries/{Uri.EscapeDataString(country)}");
+        request.Headers.Add("X-Admin-Key", adminKey);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "clear the country markup override", cancellationToken);
+    }
+
     public async Task<TreasuryWallet> GetTreasuryWalletAsync(
         string adminKey,
         CancellationToken cancellationToken = default)
@@ -258,6 +320,43 @@ public sealed class RetailPricing
 
     [JsonPropertyName("markup_fixed")]
     public string MarkupFixed { get; init; } = "0";
+}
+
+public sealed class CountryPricing
+{
+    [JsonPropertyName("country")] public string Country { get; init; } = "";
+    [JsonPropertyName("markup_percent")] public string MarkupPercent { get; init; } = "0";
+    [JsonPropertyName("markup_fixed")] public string MarkupFixed { get; init; } = "0";
+}
+
+public sealed class CountryPricingResponse
+{
+    [JsonPropertyName("items")]
+    public List<CountryPricing> Items { get; init; } = [];
+}
+
+public sealed class AdminCatalogProduct
+{
+    [JsonPropertyName("product_id")] public int ProductId { get; init; }
+    [JsonPropertyName("name")] public string Name { get; init; } = "";
+    [JsonPropertyName("wholesale_price")] public string WholesalePrice { get; init; } = "0";
+    [JsonPropertyName("retail_price")] public string RetailPrice { get; init; } = "0";
+    [JsonPropertyName("currency")] public string Currency { get; init; } = "USD";
+    [JsonPropertyName("stock")] public int Stock { get; init; }
+    [JsonPropertyName("country")] public string? Country { get; init; }
+
+    [JsonIgnore] public decimal WholesaleValue => ParseAmount(WholesalePrice);
+
+    private static decimal ParseAmount(string? value) =>
+        decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
+            ? amount
+            : 0m;
+}
+
+public sealed class AdminCatalogResponse
+{
+    [JsonPropertyName("items")]
+    public List<AdminCatalogProduct> Items { get; init; } = [];
 }
 
 public sealed class AdminUsersResponse

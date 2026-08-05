@@ -27,6 +27,114 @@
         "title": "AdjustmentRequest",
         "type": "object"
       },
+      "AdminCatalogOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminCatalogProductOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "AdminCatalogOut",
+        "type": "object"
+      },
+      "AdminCatalogProductOut": {
+        "properties": {
+          "category_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Name"
+          },
+          "content_language": {
+            "default": "",
+            "title": "Content Language",
+            "type": "string"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "max_order": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Order"
+          },
+          "min_order": {
+            "minimum": 1.0,
+            "title": "Min Order",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "retail_price": {
+            "title": "Retail Price",
+            "type": "string"
+          },
+          "stock": {
+            "minimum": 0.0,
+            "title": "Stock",
+            "type": "integer"
+          },
+          "wholesale_price": {
+            "title": "Wholesale Price",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "name",
+          "wholesale_price",
+          "retail_price",
+          "currency",
+          "stock",
+          "min_order"
+        ],
+        "title": "AdminCatalogProductOut",
+        "type": "object"
+      },
       "AdminUserSummaryOut": {
         "properties": {
           "address": {
@@ -232,6 +340,42 @@
           "currency"
         ],
         "title": "BalanceOut",
+        "type": "object"
+      },
+      "CountryPricingListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CountryPricingOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "CountryPricingListOut",
+        "type": "object"
+      },
+      "CountryPricingOut": {
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "markup_fixed": {
+            "title": "Markup Fixed",
+            "type": "string"
+          },
+          "markup_percent": {
+            "title": "Markup Percent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "country",
+          "markup_percent",
+          "markup_fixed"
+        ],
+        "title": "CountryPricingOut",
         "type": "object"
       },
       "DailyDepositOut": {
@@ -904,6 +1048,46 @@
         "summary": "Adjustment"
       }
     },
+    "/admin/catalog": {
+      "get": {
+        "operationId": "admin_catalog_admin_catalog_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-admin-key",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "X-Admin-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCatalogOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Catalog"
+      }
+    },
     "/admin/pricing": {
       "get": {
         "operationId": "get_pricing_admin_pricing_get",
@@ -990,6 +1174,156 @@
           }
         },
         "summary": "Update Pricing"
+      }
+    },
+    "/admin/pricing/countries": {
+      "get": {
+        "operationId": "list_country_pricing_admin_pricing_countries_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-admin-key",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "X-Admin-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountryPricingListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Country Pricing"
+      }
+    },
+    "/admin/pricing/countries/{country}": {
+      "delete": {
+        "operationId": "delete_country_pricing_admin_pricing_countries__country__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-admin-key",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "X-Admin-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Delete Country Pricing Admin Pricing Countries  Country  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Country Pricing"
+      },
+      "put": {
+        "operationId": "update_country_pricing_admin_pricing_countries__country__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-admin-key",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "X-Admin-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetailPricingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountryPricingOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Country Pricing"
       }
     },
     "/admin/statistics/deposits": {

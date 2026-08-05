@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using TgPoolLauncher.ViewModels;
 
@@ -13,9 +14,15 @@ public partial class DatamollView : UserControl
 
     private void ApiKeyBox_OnPasswordChanged(
         object sender,
-        System.Windows.RoutedEventArgs e)
+        RoutedEventArgs e)
     {
         if (DataContext is DatamollViewModel viewModel && sender is PasswordBox passwordBox)
             viewModel.ApiKey = passwordBox.Password;
+    }
+
+    private void CopyDepositAddress_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is DatamollViewModel { DepositAddress.Length: > 0 } viewModel)
+            Clipboard.SetText(viewModel.DepositAddress);
     }
 }

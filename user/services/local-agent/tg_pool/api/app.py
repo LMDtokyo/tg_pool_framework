@@ -34,6 +34,7 @@ from tg_pool.api.payment import (
     create_order as create_payment_order,
     fetch_balance as fetch_payment_balance,
     fetch_catalog as fetch_payment_catalog,
+    fetch_me as fetch_payment_me,
 )
 from tg_pool.api.events import handle_event_stream
 from tg_pool.api.grizzly_sms import (
@@ -650,6 +651,22 @@ async def datamoll_balance(
         logger.warning("Payment balance request failed: %s", exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return schemas.DatamollBalanceOut(**balance)
+
+
+@app.post("/datamoll/me", response_model=schemas.DatamollMeOut)
+async def datamoll_me(
+    body: schemas.PaymentApiKeyRequest,
+) -> schemas.DatamollMeOut:
+    try:
+        me = await fetch_payment_me(body.api_key)
+    except (PaymentApiError, ValueError) as exc:
+        logger.warning("Payment account request failed: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.DatamollMeOut(
+        deposit_address=me["deposit_address"],
+        network=me["network"],
+        asset=me["asset"],
+    )
 
 
 @app.post("/datamoll/catalog", response_model=schemas.DatamollCatalogOut)
