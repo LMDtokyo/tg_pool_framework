@@ -168,6 +168,15 @@ async def activate(request: ActivateRequest) -> ActivateResponse:
         )
 
     assert result.tier is not None and result.activated_at is not None and result.expires_at is not None
+    # Sign result.expires_at.isoformat() ("+00:00" suffix), NOT the "Z"-suffixed
+    # string Pydantic puts on the wire. The real client parses the response
+    # into a datetime and calls .isoformat() on THAT object before verifying
+    # (see tg_pool/licensing/service.py) -- Python's isoformat() always emits
+    # "+00:00" for an aware UTC datetime regardless of how it was parsed, so
+    # this is the string every real client reconstructs. Signing "Z" instead
+    # (matching only the raw wire bytes) breaks verification for every real
+    # client while appearing to "fix" it in a test that checks the wire
+    # string directly instead of round-tripping through a datetime first.
     signature = sign_activation(
         app.state.signing_key,
         license_key=request.license_key,

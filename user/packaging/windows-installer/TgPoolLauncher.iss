@@ -30,6 +30,12 @@
 #define UserRoot "..\..\"
 #define LocalAgentDir "..\..\services\local-agent"
 #define PublishDir "..\..\apps\desktop\bin\Release\net10.0-windows\win-x64\publish"
+; Production license/payment server -- installer writes these as per-user env
+; vars so every customer install points here without manual configuration.
+; See ARCHITECTURE.md / admin/README.md for the server-side deployment this
+; talks to; update both values together if the server ever moves.
+#define LicenseServerUrl "https://142-111-194-9.sslip.io/license-api"
+#define PaymentServerUrl "https://142-111-194-9.sslip.io/pay-api"
 
 [Setup]
 ; Fixed AppId (GUID) so upgrades/reinstalls are recognized as the same product
@@ -101,6 +107,13 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+
+[Registry]
+; Per-user (no admin needed, matches PrivilegesRequired=lowest) so the app's
+; Environment.GetEnvironmentVariable("LICENSE_SERVER_URL"/"PAYMENT_SERVER_URL")
+; lookups resolve to the production server without any manual setup step.
+Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "LICENSE_SERVER_URL"; ValueData: "{#LicenseServerUrl}"; Flags: preservestringtype
+Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "PAYMENT_SERVER_URL"; ValueData: "{#PaymentServerUrl}"; Flags: preservestringtype
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
