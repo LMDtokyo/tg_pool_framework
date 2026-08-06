@@ -7,6 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- Keep in sync with MyAppVersion in packaging\windows-installer\TgPoolLauncher.iss:
+         the Dashboard's update check compares this exe's own FileVersionInfo against
+         the server's LATEST_LAUNCHER_VERSION, so a mismatch here makes that check lie. -->
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

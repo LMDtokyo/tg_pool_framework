@@ -223,18 +223,24 @@ def test_health_does_not_require_admin_key(monkeypatch, tmp_path):
 
 def test_version_reports_configured_latest_version(monkeypatch, tmp_path):
     monkeypatch.setenv("LATEST_LAUNCHER_VERSION", "2.3.4")
+    monkeypatch.setenv("LATEST_LAUNCHER_DOWNLOAD_URL", "https://example.test/Setup-2.3.4.exe")
     with _client(monkeypatch, tmp_path) as client:
         response = client.get("/version")
     assert response.status_code == 200
-    assert response.json()["latest_version"] == "2.3.4"
+    body = response.json()
+    assert body["latest_version"] == "2.3.4"
+    assert body["download_url"] == "https://example.test/Setup-2.3.4.exe"
 
 
 def test_version_defaults_when_unset(monkeypatch, tmp_path):
     monkeypatch.delenv("LATEST_LAUNCHER_VERSION", raising=False)
+    monkeypatch.delenv("LATEST_LAUNCHER_DOWNLOAD_URL", raising=False)
     with _client(monkeypatch, tmp_path) as client:
         response = client.get("/version")
     assert response.status_code == 200
-    assert response.json()["latest_version"] == "0.0.0"
+    body = response.json()
+    assert body["latest_version"] == "0.0.0"
+    assert body["download_url"] == ""
 
 
 def test_profile_names_requires_no_auth_and_returns_nonempty_pools(monkeypatch, tmp_path):

@@ -57,6 +57,7 @@ class ActivateResponse(BaseModel):
 class VersionOut(BaseModel):
     latest_version: str
     notes: str = ""
+    download_url: str = ""
 
 
 class ProfileNamesOut(BaseModel):

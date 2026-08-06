@@ -30,6 +30,22 @@ internal static class DashboardStrings
         table.Add("Dashboard.ComingSoon", "Скоро", "Soon", "即将推出");
         table.Add("Dashboard.DownloadTooltip", "Скачать / установить", "Download / install", "下载／安装");
 
+        table.Add("Dashboard.LauncherUpdateHeader", "ОБНОВЛЕНИЕ ПРИЛОЖЕНИЯ", "APP UPDATE", "应用更新");
+        table.Add("Dashboard.LauncherUpToDateFormat", "У вас последняя версия (v{0})",
+            "You have the latest version (v{0})", "您使用的已是最新版本 (v{0})");
+        table.Add("Dashboard.LauncherUpdateAvailableFormat", "Установлена v{0}, доступна v{1}",
+            "Installed v{0}, v{1} is available", "已安装 v{0}，可更新到 v{1}");
+        table.Add("Dashboard.LauncherUpdateCheckFailed", "Не удалось проверить обновления — нажмите, чтобы повторить",
+            "Could not check for updates — click to retry", "检查更新失败——点击重试");
+        table.Add("Dashboard.LauncherDownloadFailed", "Ошибка загрузки обновления — нажмите, чтобы повторить",
+            "Update download failed — click to retry", "更新下载失败——点击重试");
+        table.Add("Dashboard.LauncherReadyToInstall",
+            "Обновление загружено. Нажмите, чтобы установить — приложение закроется и перезапустится.",
+            "Update downloaded. Click to install — the app will close and restart.",
+            "更新已下载。点击安装——应用将关闭并重启。");
+        table.Add("Dashboard.LauncherDownloadButton", "Скачать обновление", "Download update", "下载更新");
+        table.Add("Dashboard.LauncherInstallButton", "Установить и перезапустить", "Install and restart", "安装并重启");
+
         table.Add("Dashboard.ToolChecking", "Проверка обновлений...", "Checking for updates...", "正在检查更新...");
         table.Add("Dashboard.ToolCheckFailed", "Не удалось проверить — нажмите, чтобы повторить",
             "Could not check — click to retry", "检查失败——点击重试");

@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using TgPoolLauncher.Localization;
 using TgPoolLauncher.Models;
 using TgPoolLauncher.Services;
+using TgPoolLauncher.Shared;
 
 namespace TgPoolLauncher.ViewModels;
 
@@ -16,6 +17,7 @@ public partial class DashboardViewModel : ObservableObject
 {
     private readonly RecommendedToolsService _tools;
     private readonly BackendClient _backend;
+    private readonly LicenseActivationClient _license;
     private readonly DispatcherTimer _proxyCoverageTimer;
 
     [ObservableProperty]
@@ -52,10 +54,53 @@ public partial class DashboardViewModel : ObservableObject
 
     public ObservableCollection<RecommendedToolRow> RecommendedTools { get; } = new();
 
-    public DashboardViewModel(EventStreamClient eventStream, RecommendedToolsService tools, BackendClient backend)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LauncherUpdateButtonLabel))]
+    [NotifyPropertyChangedFor(nameof(IsLauncherUpdateBusy))]
+    [NotifyPropertyChangedFor(nameof(IsLauncherUpdateIdle))]
+    [NotifyPropertyChangedFor(nameof(ShowLauncherUpdateBanner))]
+    private ToolDownloadState launcherUpdateState = ToolDownloadState.Checking;
+
+    [ObservableProperty]
+    private string? launcherInstalledVersion;
+
+    [ObservableProperty]
+    private string? launcherLatestVersion;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLauncherNotes))]
+    private string launcherNotes = "";
+
+    [ObservableProperty]
+    private double launcherProgress;
+
+    [ObservableProperty]
+    private string launcherUpdateStatusText = "";
+
+    public bool IsLauncherUpdateBusy =>
+        LauncherUpdateState is ToolDownloadState.Checking or ToolDownloadState.Downloading;
+
+    public bool IsLauncherUpdateIdle => !IsLauncherUpdateBusy;
+
+    public bool HasLauncherNotes => !string.IsNullOrWhiteSpace(LauncherNotes);
+
+    public string LauncherUpdateButtonLabel => LauncherUpdateState == ToolDownloadState.ReadyToInstall
+        ? LocalizationService.Instance["Dashboard.LauncherInstallButton"]
+        : LocalizationService.Instance["Dashboard.LauncherDownloadButton"];
+
+    public bool ShowLauncherUpdateBanner => LauncherUpdateState is
+        ToolDownloadState.UpdateAvailable or ToolDownloadState.Downloading
+        or ToolDownloadState.ReadyToInstall or ToolDownloadState.CheckFailed;
+
+    private string? _launcherLocalInstallerPath;
+
+    public DashboardViewModel(
+        EventStreamClient eventStream, RecommendedToolsService tools, BackendClient backend,
+        LicenseActivationClient license)
     {
         _tools = tools;
         _backend = backend;
+        _license = license;
 
         eventStream.EventReceived += OnEventReceived;
         eventStream.ConnectionStateChanged += isConnected =>
@@ -72,6 +117,12 @@ public partial class DashboardViewModel : ObservableObject
         // one GitHub Releases lookup per tool, well within its unauthenticated rate limit.
         foreach (var row in RecommendedTools)
             _ = CheckForUpdateAsync(row);
+
+        // Unlike the third-party tools above, this runs on every launch regardless of
+        // license state -- it's the only update check an already-activated, returning
+        // customer will ever see (TgPoolActivator's own check only fires when there is
+        // no locally valid cached license, i.e. essentially never for them).
+        _ = CheckForLauncherUpdateAsync();
 
         // Proxy coverage changes slowly (only when accounts/proxies are added or removed),
         // so this polls far less aggressively than job-status views.
@@ -145,6 +196,7 @@ public partial class DashboardViewModel : ObservableObject
             row.Description = descriptions[row.Key];
             row.StatusText = BuildStatusText(row);
         }
+        OnPropertyChanged(nameof(LauncherUpdateButtonLabel));
     }
 
     [RelayCommand]
@@ -233,6 +285,122 @@ public partial class DashboardViewModel : ObservableObject
         {
             row.State = ToolDownloadState.CheckFailed;
             row.StatusText = LocalizationService.Instance["Dashboard.ToolDownloadFailed"];
+        }
+    }
+
+    private async Task CheckForLauncherUpdateAsync()
+    {
+        LauncherUpdateState = ToolDownloadState.Checking;
+        LauncherInstalledVersion = ResolveInstalledVersion();
+        try
+        {
+            var release = await _license.TryGetLatestReleaseAsync();
+            if (release is null)
+            {
+                LauncherUpdateState = ToolDownloadState.CheckFailed;
+                LauncherUpdateStatusText = LocalizationService.Instance["Dashboard.LauncherUpdateCheckFailed"];
+                return;
+            }
+
+            LauncherLatestVersion = release.LatestVersion;
+            LauncherNotes = release.Notes;
+            LauncherUpdateState =
+                string.IsNullOrWhiteSpace(release.DownloadUrl)
+                || LauncherInstalledVersion == release.LatestVersion
+                    ? ToolDownloadState.UpToDate
+                    : ToolDownloadState.UpdateAvailable;
+            LauncherUpdateStatusText = LauncherUpdateState == ToolDownloadState.UpToDate
+                ? string.Format(LocalizationService.Instance["Dashboard.LauncherUpToDateFormat"], LauncherInstalledVersion)
+                : string.Format(
+                    LocalizationService.Instance["Dashboard.LauncherUpdateAvailableFormat"],
+                    LauncherInstalledVersion, release.LatestVersion);
+        }
+        catch
+        {
+            LauncherUpdateState = ToolDownloadState.CheckFailed;
+            LauncherUpdateStatusText = LocalizationService.Instance["Dashboard.LauncherUpdateCheckFailed"];
+        }
+    }
+
+    [RelayCommand]
+    private async Task DownloadOrRunLauncherUpdateAsync()
+    {
+        if (IsLauncherUpdateBusy)
+            return;
+
+        if (LauncherUpdateState == ToolDownloadState.ReadyToInstall && _launcherLocalInstallerPath is not null)
+        {
+            RunLauncherUpdateInstaller(_launcherLocalInstallerPath);
+            return;
+        }
+
+        if (LauncherUpdateState == ToolDownloadState.CheckFailed)
+        {
+            await CheckForLauncherUpdateAsync();
+            return;
+        }
+
+        var release = await _license.TryGetLatestReleaseAsync();
+        if (release is null || string.IsNullOrWhiteSpace(release.DownloadUrl))
+            return;
+
+        LauncherUpdateState = ToolDownloadState.Downloading;
+        LauncherProgress = 0;
+        try
+        {
+            var fileName = $"TelegramAndromedaSetup-{release.LatestVersion}.exe";
+            var destPath = Path.Combine(AppPaths.Tools, fileName);
+            var progress = new Progress<double>(p => LauncherProgress = p);
+            await _license.DownloadInstallerAsync(release.DownloadUrl, destPath, progress);
+            _launcherLocalInstallerPath = destPath;
+            LauncherUpdateState = ToolDownloadState.ReadyToInstall;
+            LauncherUpdateStatusText = LocalizationService.Instance["Dashboard.LauncherReadyToInstall"];
+        }
+        catch
+        {
+            LauncherUpdateState = ToolDownloadState.CheckFailed;
+            LauncherUpdateStatusText = LocalizationService.Instance["Dashboard.LauncherDownloadFailed"];
+        }
+    }
+
+    /// <summary>
+    /// Unlike <see cref="RunInstaller"/> (third-party tools, which stay independent of
+    /// this app's own process), our own installer needs to overwrite the exe that's
+    /// currently running it -- so this closes the app right after launching the
+    /// installer, giving Inno Setup's [Files] step an unlocked file to replace.
+    /// </summary>
+    private static void RunLauncherUpdateInstaller(string path)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch
+        {
+            return;
+        }
+        Application.Current.Shutdown();
+    }
+
+    private static string? ResolveInstalledVersion()
+    {
+        try
+        {
+            var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+            if (exePath is null)
+                return null;
+            var info = FileVersionInfo.GetVersionInfo(exePath);
+            if (string.IsNullOrWhiteSpace(info.ProductVersion))
+                return null;
+            // SourceLink appends "+<git-sha>" to ProductVersion on Release builds --
+            // strip it so comparing against the server's plain LATEST_LAUNCHER_VERSION
+            // ("1.1.0") doesn't always read as "an update is available".
+            var plusIndex = info.ProductVersion.IndexOf('+');
+            return plusIndex < 0 ? info.ProductVersion : info.ProductVersion[..plusIndex];
+        }
+        catch
+        {
+            return null;
         }
     }
 

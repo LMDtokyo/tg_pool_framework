@@ -30,7 +30,7 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
     <Grid Background="{StaticResource AppBackgroundBrush}" Margin="16,16,16,28">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="0.95*" MinWidth="390" />

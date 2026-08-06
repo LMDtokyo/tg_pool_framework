@@ -18,18 +18,23 @@
 ;
 ; Build steps (run from the repo root):
 ;   1. dotnet publish apps\desktop -c Release -p:PublishProfile=win-x64
-;   2. iscc packaging\windows-installer\TgPoolLauncher.iss
+;   2. dotnet publish apps\activator -c Release -p:PublishProfile=win-x64
+;   3. iscc packaging\windows-installer\TgPoolLauncher.iss
 ;   Output: packaging\windows-installer\Output\TelegramAndromedaSetup-<version>.exe
 ;
 ; Requires Inno Setup 6 (https://jrsoftware.org/isinfo.php) to compile.
 
 #define MyAppName "Telegram Andromeda"
-#define MyAppVersion "1.0.0"
+; Keep in sync with <Version> in apps\desktop\TgPoolLauncher.csproj -- the
+; Dashboard's in-app update check compares the running exe's own embedded
+; FileVersion against this number (via LATEST_LAUNCHER_VERSION on the server).
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "TG Pool Framework"
 #define MyAppExeName "TgPoolLauncher.exe"
 #define UserRoot "..\..\"
 #define LocalAgentDir "..\..\services\local-agent"
 #define PublishDir "..\..\apps\desktop\bin\Release\net10.0-windows\win-x64\publish"
+#define ActivatorPublishDir "..\..\apps\activator\bin\Release\net10.0-windows\win-x64\publish"
 ; Production license/payment server -- installer writes these as per-user env
 ; vars so every customer install points here without manual configuration.
 ; See ARCHITECTURE.md / admin/README.md for the server-side deployment this
@@ -75,6 +80,11 @@ english.InstallingDeps=Installing Python dependencies (requirements.txt) -- this
 ; The self-contained single-file WPF launcher (built via the win-x64 publish
 ; profile -- see apps/desktop/Properties/PublishProfiles/win-x64.pubxml).
 Source: "{#PublishDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+
+; License-activation gate (LicenseGateway.RunActivatorAsync looks for this
+; next to the main exe). Previously missing from this installer entirely --
+; without it, a fresh install with no cached license had no way to activate.
+Source: "{#ActivatorPublishDir}\TgPoolActivator.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Python local-agent source -- the launcher spawns `python -m uvicorn tg_pool.api.app:app`
 ; with {app} as the working directory (see BackendProcessManager.cs).

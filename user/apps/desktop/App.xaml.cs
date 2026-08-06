@@ -6,6 +6,7 @@ using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TgPoolLauncher.Services;
+using TgPoolLauncher.Shared;
 using TgPoolLauncher.ViewModels;
 using TgPoolLauncher.Views;
 using Forms = System.Windows.Forms;
@@ -78,6 +79,8 @@ public partial class App : System.Windows.Application
                     return new EventStreamClient(processManager.BaseUri, processManager.LocalApiToken);
                 });
                 services.AddHttpClient<RecommendedToolsService>();
+                services.AddSingleton(new LicenseActivationClient(
+                    Environment.GetEnvironmentVariable("LICENSE_SERVER_URL") ?? "http://127.0.0.1:8100"));
 
                 services.AddSingleton<DashboardViewModel>();
                 services.AddSingleton<AccountsViewModel>();

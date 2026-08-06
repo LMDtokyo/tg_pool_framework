@@ -85,12 +85,15 @@ async def health() -> dict:
 
 @app.get("/version", response_model=VersionOut)
 async def version() -> VersionOut:
-    """Lets the console activator show the customer 'installed vs latest' --
-    bump LATEST_LAUNCHER_VERSION whenever a new build ships, no redeploy of
-    the launcher itself required for the check to reflect it."""
+    """Lets the console activator and the main app's Dashboard show
+    'installed vs latest' and, when a download URL is configured, offer it
+    in-app -- bump LATEST_LAUNCHER_VERSION/NOTES/DOWNLOAD_URL together
+    whenever a new build ships, no redeploy of the launcher itself required
+    for the check to reflect it."""
     return VersionOut(
         latest_version=os.getenv("LATEST_LAUNCHER_VERSION", "0.0.0"),
         notes=os.getenv("LATEST_LAUNCHER_NOTES", ""),
+        download_url=os.getenv("LATEST_LAUNCHER_DOWNLOAD_URL", ""),
     )
 
 

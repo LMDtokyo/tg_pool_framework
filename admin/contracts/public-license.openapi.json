@@ -132,6 +132,11 @@
       },
       "VersionOut": {
         "properties": {
+          "download_url": {
+            "default": "",
+            "title": "Download Url",
+            "type": "string"
+          },
           "latest_version": {
             "title": "Latest Version",
             "type": "string"
@@ -235,7 +240,7 @@
     },
     "/version": {
       "get": {
-        "description": "Lets the console activator show the customer 'installed vs latest' --\nbump LATEST_LAUNCHER_VERSION whenever a new build ships, no redeploy of\nthe launcher itself required for the check to reflect it.",
+        "description": "Lets the console activator and the main app's Dashboard show\n'installed vs latest' and, when a download URL is configured, offer it\nin-app -- bump LATEST_LAUNCHER_VERSION/NOTES/DOWNLOAD_URL together\nwhenever a new build ships, no redeploy of the launcher itself required\nfor the check to reflect it.",
         "operationId": "version_version_get",
         "responses": {
           "200": {

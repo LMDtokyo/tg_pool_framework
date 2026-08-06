@@ -100,6 +100,41 @@
                     </Grid>
                 </Border>
 
+                <!-- Launcher self-update: checked on every launch (unlike TgPoolActivator's
+                     one-shot check, which only runs for a not-yet-activated install), sourced
+                     from license_server's /version. Only shown once there's something to act
+                     on: up-to-date and still-checking states stay silent. -->
+                <Border Margin="0,0,0,20" Padding="16,12" CornerRadius="10"
+                        Background="{StaticResource GlassBackgroundBrush}"
+                        BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                        Visibility="{Binding ShowLauncherUpdateBanner, Converter={StaticResource BoolToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <iconPacks:PackIconMaterial Grid.Column="0" Kind="Rocket" Width="20" Height="20"
+                                                     Margin="0,0,12,0" VerticalAlignment="Center"
+                                                     Foreground="{StaticResource AccentBrush}" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding LauncherUpdateStatusText}"
+                                       TextWrapping="Wrap" FontSize="13"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="{Binding LauncherNotes}" TextWrapping="Wrap" FontSize="11"
+                                       Margin="0,3,0,0" Foreground="{StaticResource TextMutedBrush}"
+                                       Visibility="{Binding HasLauncherNotes, Converter={StaticResource BoolToVisibility}}" />
+                            <ProgressBar Height="3" Margin="0,6,0,0" Minimum="0" Maximum="1"
+                                         Value="{Binding LauncherProgress, Mode=OneWay}"
+                                         Visibility="{Binding IsLauncherUpdateBusy, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                        <Button Grid.Column="2" VerticalAlignment="Center" Margin="12,0,0,0"
+                                Content="{Binding LauncherUpdateButtonLabel}"
+                                IsEnabled="{Binding IsLauncherUpdateIdle}"
+                                Command="{Binding DownloadOrRunLauncherUpdateCommand}" />
+                    </Grid>
+                </Border>
+
                 <!-- Hero banner + quick-links sidebar -->
                 <Grid Margin="0,0,0,20">
                     <Grid.ColumnDefinitions>
