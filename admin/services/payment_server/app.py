@@ -68,6 +68,7 @@ from payment_server.schemas import (
 )
 from payment_server.signer import PaymentSignerClient, SignerError
 from payment_server.telegram import notify_deposit
+from payment_server.vault import load_datamoll_credentials
 
 logger = logging.getLogger("payment_server")
 
@@ -87,6 +88,12 @@ async def lifespan(app: FastAPI):
         level=logging.INFO,
         format="%(asctime)s [%(levelname)-8s] %(name)s %(message)s",
     )
+    # When VAULT_ADDR is configured, this overrides whatever DATAMOLL_PROVIDER_KEY/
+    # SECRET load_dotenv just set -- Vault is the source of truth for that one
+    # secret in production; .env stays the documented dev-only fallback.
+    vault_credentials = await load_datamoll_credentials()
+    if vault_credentials is not None:
+        os.environ["DATAMOLL_PROVIDER_KEY"], os.environ["DATAMOLL_PROVIDER_SECRET"] = vault_credentials
     active_surface = getattr(app.state, "active_surface", "combined")
     if active_surface in {"admin", "combined"}:
         _required_env("PAYMENT_ADMIN_API_KEY")

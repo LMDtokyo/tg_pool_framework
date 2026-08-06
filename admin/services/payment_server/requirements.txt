@@ -13,6 +13,10 @@ alembic>=1.13
 # published, this becomes a plain "datamoll-provider-sdk>=0.2.4" line.
 datamoll-provider-sdk @ https://docs.datamollcore.com/downloads/datamoll_provider_sdk-0.2.4-py3-none-any.whl#sha256=64a65d94544fefeec8301ca50c3f31702db97bc863de628f5cd3a81e27bdb914
 
+# HashiCorp Vault client -- see vault.py. Optional at runtime (only used
+# when VAULT_ADDR is configured); required at import time either way.
+hvac>=2.0.0
+
 # Tests
 pytest>=8.0.0
 pytest-asyncio>=0.23.0

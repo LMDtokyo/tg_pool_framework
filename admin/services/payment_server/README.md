@@ -22,6 +22,13 @@ PAYMENT_WEBHOOK_KEY=replace-with-a-different-long-random-secret
 PAYMENT_AUTO_CREATE_WALLETS=1
 DATAMOLL_PROVIDER_KEY=provider-key
 DATAMOLL_PROVIDER_SECRET=provider-secret
+# In production, leave the two DATAMOLL_PROVIDER_* values above blank and
+# set these instead -- vault.py reads the Datamoll credentials from Vault's
+# KV v2 store (secret/data/payment-server/datamoll) via AppRole login and
+# overrides the env vars at startup. See deploy/04-vault-setup.sh.
+VAULT_ADDR=http://127.0.0.1:8202
+VAULT_ROLE_ID=replace-with-the-approle-role-id
+VAULT_SECRET_ID=replace-with-a-rotatable-approle-secret-id
 PAYMENT_SIGNER_URL=http://private-signer:8300
 PAYMENT_SIGNER_API_KEY=shared-internal-secret
 PAYMENT_CHAIN_NETWORK=mainnet
