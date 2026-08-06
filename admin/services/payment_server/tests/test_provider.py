@@ -192,6 +192,31 @@ async def test_processing_order_is_recovered_by_external_order_id():
 
 
 @pytest.mark.asyncio
+async def test_balance_unwraps_the_sdk_response():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert str(request.url) == "https://datamollcore.com/api/v1/provider/balance"
+        return httpx.Response(
+            200,
+            json={
+                "partner_id": 1,
+                "balance": "12.50",
+                "total_balance": "12.50",
+                "held_balance": "0.00",
+                "active_holds_count": 0,
+                "credit_limit": "0.00",
+                "available_balance": "12.50",
+                "currency": "USD",
+            },
+        )
+
+    mock_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    result = await DatamollProvider().balance(http_client=mock_client)
+
+    assert result["available_balance"] == "12.50"
+    assert result["currency"] == "USD"
+
+
+@pytest.mark.asyncio
 async def test_provider_error_message_is_preserved():
     transport = httpx.MockTransport(
         lambda _: httpx.Response(

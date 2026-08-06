@@ -32,6 +32,9 @@ public sealed class PaymentAdminViewModel : INotifyPropertyChanged
     private string _treasuryAsset = "";
     private string _treasuryBalance = "";
     private string _treasuryTrxBalance = "";
+    private string _datamollAvailableBalance = "";
+    private string _datamollCurrency = "USD";
+    private bool _hasDatamollBalance;
     private bool _isBusy;
     private string _statusMessage = "";
     private string _errorMessage = "";
@@ -264,6 +267,50 @@ public sealed class PaymentAdminViewModel : INotifyPropertyChanged
         ? "Destination used for all customer-wallet withdrawals."
         : $"{TreasuryNetwork} · {TreasuryAsset} withdrawal destination";
 
+    // Below this, purchases start failing with "insufficient_balance" at Datamoll --
+    // there's no way to top that balance up through their API, only through their
+    // own dashboard/support, so this is just an early warning, not something we can
+    // resolve in-app.
+    private const decimal DatamollLowBalanceThreshold = 10m;
+
+    public string DatamollAvailableBalance
+    {
+        get => _datamollAvailableBalance;
+        private set
+        {
+            if (!Set(ref _datamollAvailableBalance, value))
+                return;
+            OnPropertyChanged(nameof(DatamollBalanceDisplay));
+            OnPropertyChanged(nameof(IsDatamollBalanceLow));
+        }
+    }
+
+    public string DatamollCurrency
+    {
+        get => _datamollCurrency;
+        private set
+        {
+            if (!Set(ref _datamollCurrency, value))
+                return;
+            OnPropertyChanged(nameof(DatamollBalanceDisplay));
+        }
+    }
+
+    public bool HasDatamollBalance
+    {
+        get => _hasDatamollBalance;
+        private set => Set(ref _hasDatamollBalance, value);
+    }
+
+    public string DatamollBalanceDisplay =>
+        $"{AdminUser.FormatAmount(DatamollAvailableBalance)} {DatamollCurrency}";
+
+    public bool IsDatamollBalanceLow =>
+        HasDatamollBalance
+        && decimal.TryParse(
+            DatamollAvailableBalance, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
+        && amount < DatamollLowBalanceThreshold;
+
     public bool IsBusy
     {
         get => _isBusy;
@@ -475,7 +522,9 @@ public sealed class PaymentAdminViewModel : INotifyPropertyChanged
             var key = AdminKey.Trim();
             var catalogTask = _api.GetCatalogAsync(key);
             var overridesTask = _api.GetCountryPricingAsync(key);
-            await Task.WhenAll(catalogTask, overridesTask);
+            var balanceTask = _api.GetDatamollBalanceAsync(key);
+            await Task.WhenAll(catalogTask, overridesTask, balanceTask);
+            ApplyDatamollBalance(await balanceTask);
             var catalog = (await catalogTask).Items;
             var overrides = (await overridesTask).Items
                 .ToDictionary(item => item.Country, item => item);
@@ -654,6 +703,13 @@ public sealed class PaymentAdminViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
         }
+    }
+
+    private void ApplyDatamollBalance(ProviderBalance balance)
+    {
+        DatamollAvailableBalance = balance.AvailableBalance;
+        DatamollCurrency = balance.Currency;
+        HasDatamollBalance = true;
     }
 
     private void ApplyTreasury(TreasuryWallet wallet)

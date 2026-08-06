@@ -226,6 +226,19 @@ public sealed class AdminApiClient : IDisposable
         await EnsureSuccessAsync(response, "clear the country markup override", cancellationToken);
     }
 
+    public async Task<ProviderBalance> GetDatamollBalanceAsync(
+        string adminKey,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "admin/datamoll-balance");
+        request.Headers.Add("X-Admin-Key", adminKey);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, "load the Datamoll balance", cancellationToken);
+        return await response.Content.ReadFromJsonAsync<ProviderBalance>(
+                   cancellationToken: cancellationToken)
+               ?? throw new InvalidOperationException("Payment server returned an empty balance response.");
+    }
+
     public async Task<TreasuryWallet> GetTreasuryWalletAsync(
         string adminKey,
         CancellationToken cancellationToken = default)
@@ -320,6 +333,15 @@ public sealed class RetailPricing
 
     [JsonPropertyName("markup_fixed")]
     public string MarkupFixed { get; init; } = "0";
+}
+
+public sealed class ProviderBalance
+{
+    [JsonPropertyName("balance")] public string Balance { get; init; } = "0";
+    [JsonPropertyName("available_balance")] public string AvailableBalance { get; init; } = "0";
+    [JsonPropertyName("held_balance")] public string HeldBalance { get; init; } = "0";
+    [JsonPropertyName("credit_limit")] public string CreditLimit { get; init; } = "0";
+    [JsonPropertyName("currency")] public string Currency { get; init; } = "USD";
 }
 
 public sealed class CountryPricing

@@ -95,3 +95,8 @@ class DatamollProvider:
                 CreateOrderWithRecoveryOptions(idempotency_key=external_order_id),
             )
         return dict(order.data)
+
+    async def balance(self, *, http_client: Optional[httpx.AsyncClient] = None) -> dict[str, Any]:
+        async with self._client(http_client) as client:
+            balance = await client.get_balance()
+        return dict(balance.data)

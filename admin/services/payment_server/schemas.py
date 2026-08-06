@@ -264,3 +264,11 @@ class AdminCatalogProductOut(BaseModel):
 
 class AdminCatalogOut(BaseModel):
     items: list[AdminCatalogProductOut] = Field(default_factory=list)
+
+
+class ProviderBalanceOut(BaseModel):
+    balance: str
+    available_balance: str
+    held_balance: str
+    credit_limit: str
+    currency: str

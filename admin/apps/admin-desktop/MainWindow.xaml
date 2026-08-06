@@ -768,12 +768,53 @@
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <StackPanel Margin="20,18,20,0">
-                                <TextBlock Text="Retail pricing" FontSize="24" FontWeight="SemiBold" />
-                                <TextBlock Text="Set the markup applied on top of Datamoll wholesale prices for catalog and purchases."
-                                           Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,5,0,0"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
+                            <Grid Margin="20,18,20,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Retail pricing" FontSize="24" FontWeight="SemiBold" />
+                                    <TextBlock Text="Set the markup applied on top of Datamoll wholesale prices for catalog and purchases."
+                                               Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,5,0,0"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Border Grid.Column="1" CornerRadius="8" Padding="10,6" VerticalAlignment="Top"
+                                        Visibility="{Binding HasDatamollBalance, Converter={StaticResource BoolToVisibility}}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{StaticResource SuccessTintBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDatamollBalanceLow}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource WarningBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel Orientation="Horizontal">
+                                        <iconPacks:PackIconMaterial Width="14" Height="14" Margin="0,0,6,0"
+                                                                     VerticalAlignment="Center">
+                                            <iconPacks:PackIconMaterial.Style>
+                                                <Style TargetType="iconPacks:PackIconMaterial">
+                                                    <Setter Property="Kind" Value="Wallet" />
+                                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsDatamollBalanceLow}" Value="True">
+                                                            <Setter Property="Kind" Value="AlertOutline" />
+                                                            <Setter Property="Foreground" Value="#0C0C0E" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </iconPacks:PackIconMaterial.Style>
+                                        </iconPacks:PackIconMaterial>
+                                        <StackPanel>
+                                            <TextBlock Text="Datamoll balance" FontSize="10"
+                                                       Foreground="{StaticResource TextMutedBrush}" />
+                                            <TextBlock Text="{Binding DatamollBalanceDisplay}" FontSize="13" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
 
                             <Grid Grid.Row="1" Margin="20,16,20,16">
                                 <Grid.ColumnDefinitions>

@@ -52,6 +52,7 @@ from payment_server.schemas import (
     OrderOut,
     OrderRequest,
     ProductOut,
+    ProviderBalanceOut,
     RegeneratedKeyOut,
     RetailPricingOut,
     RetailPricingUpdate,
@@ -1048,6 +1049,27 @@ async def admin_catalog() -> AdminCatalogOut:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
     return AdminCatalogOut(
         items=[_admin_product_out(product, pricing, country_pricing) for product in catalog]
+    )
+
+
+@app.get(
+    "/admin/datamoll-balance",
+    response_model=ProviderBalanceOut,
+    dependencies=[Depends(require_admin)],
+)
+async def admin_datamoll_balance() -> ProviderBalanceOut:
+    provider: DatamollProvider = app.state.provider
+    try:
+        balance = await provider.balance()
+    except Exception as exc:
+        logger.warning("Datamoll balance request failed: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return ProviderBalanceOut(
+        balance=str(balance.get("balance") or "0"),
+        available_balance=str(balance.get("available_balance") or "0"),
+        held_balance=str(balance.get("held_balance") or "0"),
+        credit_limit=str(balance.get("credit_limit") or "0"),
+        currency=str(balance.get("currency") or "USD"),
     )
 
 

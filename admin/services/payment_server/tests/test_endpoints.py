@@ -43,9 +43,21 @@ class FakeProvider:
             "items": [{"download_url": "https://example.test/delivery.zip"}],
         }
 
+    async def balance(self):
+        return {
+            "balance": "50.00",
+            "available_balance": "45.00",
+            "held_balance": "5.00",
+            "credit_limit": "0.00",
+            "currency": "USD",
+        }
+
 
 class FailingProvider:
     async def catalog(self):
+        raise RuntimeError("provider unavailable")
+
+    async def balance(self):
         raise RuntimeError("provider unavailable")
 
 
@@ -645,3 +657,31 @@ def test_per_country_markup_overrides_default_for_matching_products_only(
         back_to_default = client.get("/v1/products", headers=bearer).json()["items"]
         by_country = {item["country"]: item for item in back_to_default}
         assert by_country["us"]["price"] == "2.20000000"
+
+
+def test_admin_datamoll_balance(tmp_path, monkeypatch):
+    database = tmp_path / "datamoll-balance.db"
+    monkeypatch.setenv(
+        "PAYMENT_DATABASE_URL", f"sqlite+aiosqlite:///{database.as_posix()}"
+    )
+    monkeypatch.setenv("PAYMENT_ADMIN_API_KEY", "admin-secret")
+    monkeypatch.setenv("PAYMENT_WEBHOOK_KEY", "webhook-secret")
+    with TestClient(app) as client:
+        app.state.provider = FakeProvider()
+        app.state.signer = FakeSigner()
+
+        response = client.get("/admin/datamoll-balance", headers={"X-Admin-Key": "admin-secret"})
+        assert response.status_code == 200
+        assert response.json() == {
+            "balance": "50.00",
+            "available_balance": "45.00",
+            "held_balance": "5.00",
+            "credit_limit": "0.00",
+            "currency": "USD",
+        }
+
+        assert client.get("/admin/datamoll-balance").status_code == 401
+
+        app.state.provider = FailingProvider()
+        failed = client.get("/admin/datamoll-balance", headers={"X-Admin-Key": "admin-secret"})
+        assert failed.status_code == 502

@@ -634,6 +634,39 @@
         "title": "MeOut",
         "type": "object"
       },
+      "ProviderBalanceOut": {
+        "properties": {
+          "available_balance": {
+            "title": "Available Balance",
+            "type": "string"
+          },
+          "balance": {
+            "title": "Balance",
+            "type": "string"
+          },
+          "credit_limit": {
+            "title": "Credit Limit",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "held_balance": {
+            "title": "Held Balance",
+            "type": "string"
+          }
+        },
+        "required": [
+          "balance",
+          "available_balance",
+          "held_balance",
+          "credit_limit",
+          "currency"
+        ],
+        "title": "ProviderBalanceOut",
+        "type": "object"
+      },
       "RegeneratedKeyOut": {
         "properties": {
           "api_key": {
@@ -1086,6 +1119,46 @@
           }
         },
         "summary": "Admin Catalog"
+      }
+    },
+    "/admin/datamoll-balance": {
+      "get": {
+        "operationId": "admin_datamoll_balance_admin_datamoll_balance_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-admin-key",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "X-Admin-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderBalanceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Datamoll Balance"
       }
     },
     "/admin/pricing": {
